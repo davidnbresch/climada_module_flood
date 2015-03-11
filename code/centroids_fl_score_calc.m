@@ -35,6 +35,7 @@ function centroids = centroids_fl_score_calc(centroids, check_plots, force_recal
 %   assigns a number for flow accumulation to each centroid
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
 %-
 
 global climada_global
@@ -218,6 +219,9 @@ if ~isfield(centroids,'flood_score') || force_recalc
         total_flow_accumulation = total_flow_accumulation + temp_inflow_sum;
     end
     
+    % Calculate wetness index
+    wet_index = log((1+total_flow_accumulation)./tand(slope));
+    
     % ---------------------------
     % Add field flood_score to the centroids struct, i.e. loop over all
     % centroid IDs (which do not in all cases start at 1!) and assign the
@@ -227,9 +231,12 @@ if ~isfield(centroids,'flood_score') || force_recalc
         centroids_indices = find(c_ID == centroid_i);
         centroids.flood_score(centroid_i) = ...
             mean(total_flow_accumulation(centroids_indices));
+        centroids.wetness_index = ...
+            mean(wet_index(centroids_indices));
     end
     
     centroids.flood_score(isnan(centroids.flood_score))=0;
+    centroids.wetness_index(isnan(centroids.wetness_index))=0;
     cprintf([23 158 58]/255,['Successfully completed calculation of '...
         'flood scores.\n']);
 else
@@ -270,7 +277,7 @@ if check_plots
     
     % Plot flow accumulation
     %h = pcolor(log(1+flowac));
-    figure('Name','Flow accumulation','Color',[1 1 1]);
+    figure('Name','Flood scores','Color',[1 1 1]);
     h = pcolor(total_flow_accumulation);
     colormap(flipud(jet)), colorbar
     set(h,'LineStyle','none')
@@ -279,7 +286,18 @@ if check_plots
     [r, c] = size(total_flow_accumulation);
     axis([1 c 1 r])
     set(gca,'TickDir','out')
-
+    
+    % Plot wetness index
+    figure('Name','Wetness index','Color',[1 1 1]);
+    h = pcolor(wet_index);
+    colormap(flipud(jet)), colorbar
+    set(h,'LineStyle','none')
+    axis equal
+    title('Wetness index')
+    [r, c] = size(weti);
+    axis([1 c 1 r])
+    set(gca,'TickDir','out')
+    
 %   % plot flow direction
 %   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
 %    title('Runoff flow direction')
