@@ -276,13 +276,13 @@ if check_plots
     set(gca,'TickDir','out')
     
     % Plot flow accumulation
-    %h = pcolor(log(1+flowac));
+    h = pcolor(log(1+total_flow_accumulation));
     figure('Name','Flood scores','Color',[1 1 1]);
-    h = pcolor(total_flow_accumulation);
+    %h = pcolor(total_flow_accumulation);
     colormap(flipud(jet)), colorbar
     set(h,'LineStyle','none')
     axis equal
-    title('Flow accumulation')
+    title('Flood scores')
     [r, c] = size(total_flow_accumulation);
     axis([1 c 1 r])
     set(gca,'TickDir','out')

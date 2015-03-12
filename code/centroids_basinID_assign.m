@@ -211,6 +211,7 @@ if check_plots
     ax_lim = [min(centroids.lon)-scale/30     max(centroids.lon)+scale/30 ...
         max(min(centroids.lat),-60)-scale/30  min(max(centroids.lat),80)+scale/30];
     
+    figure('Name','Basin IDs','Color',[1 1 1]);
     % plot climada world borders
     climada_plot_world_borders(0.5);
     xlabel('Longitude'); ylabel('Latitude')
@@ -219,10 +220,10 @@ if check_plots
     axis(ax_lim)
     
     % plot the centroids color-coded according to their basin IDs
-    cbar = plotclr(centroids.lon, centroids.lat, centroids.basin_ID, '.',...
+    h = plotclr(centroids.lon, centroids.lat, centroids.basin_ID, '.',...
         markersize,show_colorbar,[],[],cmap);
     caxis([0 size(cmap,1)])
-    
+    title(title_string)
     
 %     unique_IDs = unique(centroids.basin_ID);
 %     cbar_label = unique_IDs(2:end);  % skipped 0, since not a valid basin ID
@@ -231,7 +232,7 @@ if check_plots
 %     end
 %     
 %     set(cbar,'YTick',0.5:1:size(cmap,1)-0.5,'yticklabel',cbar_label,'fontsize',12)
-    title(title_string)
+    
 end % if check_plots
 
 end
