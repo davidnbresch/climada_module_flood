@@ -294,7 +294,7 @@ if check_plots
     set(h,'LineStyle','none')
     axis equal
     title('Wetness index')
-    [r, c] = size(weti);
+    [r, c] = size(wet_index);
     axis([1 c 1 r])
     set(gca,'TickDir','out')
     
