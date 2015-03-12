@@ -38,6 +38,11 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 %   centroids: centroids with an additional field 'basin_ID' denoting the 
 %   river basin a centroid has been assigned to
 %  
+% TO DO:
+%   Add code to determine the basin shapefile covering the given centroids
+%   from continent names (in case the bounding box approach does not work,
+%   i.e. the centroids bounding box is not fully contained in one of the
+%   shapefile bounding boxes)
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150225, initial
 
@@ -82,6 +87,13 @@ if ~exist('check_plots', 'var')|| isempty(check_plots),
 if ~exist('force_recalc','var') || isempty(force_recalc), 
     force_recalc = 0;  end
 
+% Define centroids bounding boxes
+centroids_rect = [min(centroids.lon), max(centroids.lon),...
+    min(centroids.lat) max(centroids.lat)];
+centroids_edges_x = [centroids_rect(1),centroids_rect(2),...
+    centroids_rect(2),centroids_rect(1)];
+centroids_edges_y = [centroids_rect(3),centroids_rect(3),...
+    centroids_rect(4),centroids_rect(4)];
 
 % We only calculate the basin IDs if the centroids do not come equipped
 % with them
@@ -91,6 +103,8 @@ if ~isfield(centroids,'basin_ID') || force_recalc
     if ~isempty(basin_shapefile)
         exist_matfile = climada_check_matfile(basin_shapefile);
         if exist_matfile
+            [fP,fN,~] = fileparts(basin_shapefile);
+            basin_shapefile = [fP filesep fN '.mat'];
             load(basin_shapefile);
         elseif exist(basin_shapefile,'file')
             shapes = climada_shaperead(basin_shapefile);
@@ -117,13 +131,6 @@ if ~isfield(centroids,'basin_ID') || force_recalc
         % Determine in which of the default HydroSHEDS shapefiles the 
         % centroids are located
         fprintf('Determining HydroSHEDS bounding box...\n')
-        centroids_rect = [min(centroids.lon), max(centroids.lon),...
-            min(centroids.lat) max(centroids.lat)];
-        centroids_edges_x = [centroids_rect(1),centroids_rect(2),...
-            centroids_rect(2),centroids_rect(1)];
-        centroids_edges_y = [centroids_rect(3),centroids_rect(3),...
-            centroids_rect(4),centroids_rect(4)];
-        
         quit = 0;
         for i = 1:length(fields)
             box_edges_x = [bounding_box.(fields{i})(1), ...
@@ -135,6 +142,7 @@ if ~isfield(centroids,'basin_ID') || force_recalc
             in_box = inpolygon(centroids_edges_x, centroids_edges_y,...
                 box_edges_x, box_edges_y);
             if isempty(in_box(in_box==0))
+                fprintf('found bounding box\n')
                 quit=1;
                 % found the centroids' corresponding basin shapefile
                 shapefile_name = sprintf('%s_bas_%s_beta.shp',...
@@ -159,8 +167,15 @@ if ~isfield(centroids,'basin_ID') || force_recalc
                 end % exist matfile
             end % isempty(in_box(in_box==0))
             if quit==1, break; end % no need to check the remaining boxes
-        end % loop over fields
+        end % loop over fields     
     end % if ~isempty(basin_shapefile)
+    % if basin_shapefile is still empty (i.e. the centroids bounding box is
+    % not fully contain within one of the shapefile bounding boxes), we
+    % also try whether the correct shapefile can be determined from the
+    % continent name
+    %%%%%%%%%%%%%%%%%%%%%%%% IMPLEMENT THIS HERE %%%%%%%%%%%%%%%%%%%%%%%
+    
+    
     
     % Preselect basins such that only basins that overlap with the
     % centroids structure will be considered for assignment of basin IDs 
@@ -211,19 +226,18 @@ if check_plots
     ax_lim = [min(centroids.lon)-scale/30     max(centroids.lon)+scale/30 ...
         max(min(centroids.lat),-60)-scale/30  min(max(centroids.lat),80)+scale/30];
     
-    figure('Name','Basin IDs','Color',[1 1 1]);
+    figure('Name','Basin IDs','Color',[1 1 1]);  
     % plot climada world borders
     climada_plot_world_borders(0.5);
     xlabel('Longitude'); ylabel('Latitude')
     axis(ax_lim)
     axis equal
-    axis(ax_lim)
+    axis(ax_lim) 
     
     % plot the centroids color-coded according to their basin IDs
-    h = plotclr(centroids.lon, centroids.lat, centroids.basin_ID, '.',...
+    h=plotclr(centroids.lon, centroids.lat, centroids.basin_ID, '.',...
         markersize,show_colorbar,[],[],cmap);
     caxis([0 size(cmap,1)])
-    title(title_string)
     
 %     unique_IDs = unique(centroids.basin_ID);
 %     cbar_label = unique_IDs(2:end);  % skipped 0, since not a valid basin ID
@@ -231,7 +245,7 @@ if check_plots
 %         cbar_label(i) = unique_IDs(i+1);
 %     end
 %     
-%     set(cbar,'YTick',0.5:1:size(cmap,1)-0.5,'yticklabel',cbar_label,'fontsize',12)
+%     set(h,'YTick',0.5:1:size(cmap,1)-0.5,'yticklabel',cbar_label,'fontsize',12)
     
 end % if check_plots
 
