@@ -238,6 +238,10 @@ if ~isfield(centroids,'flood_score') || force_recalc
     end
     centroids.flood_score(isnan(centroids.flood_score))=0;
     centroids.wetness_index(isnan(centroids.wetness_index))=0;
+    % set flood scores and wetness indices to 0 for centroids in the ocean
+    centroids.flood_score(centroids.onLand==0)=0;
+    centroids.wetness_index(centroids.onLand==0)=0;
+    
     cprintf([23 158 58]/255,['Successfully completed calculation of '...
         'flood scores.\n']);
 else
