@@ -1,7 +1,7 @@
 function basin_IDs = basin_identify(lon_pts,lat_pts,lon_polygons,lat_polygons,basin_names)
 % Identify basins in which a set of points are located
 % MODULE:
-%   tbd
+%   flood
 % NAME:
 %   basin_identify
 % PURPOSE: 
