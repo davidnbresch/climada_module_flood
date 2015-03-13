@@ -1,7 +1,7 @@
 function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, check_plots, force_recalc)
 % Assign flood score and basin IDs to centroids
 % MODULE:
-%   tbd
+%   flood
 % NAME:
 %	fl_centroids_prepare
 % PURPOSE:
