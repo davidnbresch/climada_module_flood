@@ -96,6 +96,7 @@ hazard.matrix_density   =   [];
 hazard.comment          =   [];
 hazard.intensity        =   zeros(size(hazard_tr.intensity));
 
+
 if isfield(hazard,'rainfield_comment')
     hazard = rmfield(hazard, 'rainfield_comment');
 end
@@ -122,5 +123,15 @@ for basin_i = 1:number_of_basins
         end 
     end
 end
-    
+
+% flood only makes sense on land
+% centroids field 'onLand':
+%   1 (or higher, if more than one country):    on land,
+%   0:                                          on sea,
+%   and maximum value stands for buffer zone
+hazard.intensity(centroids.onLand==0) = 0;
+hazard.intensity(centroids.onLand==max(centroids.onLand))=0;
+
+fprintf('saving FL hazard set as %s\n',fl_hazard_save_file);
+save(fl_hazard_save_file,'hazard')
 
