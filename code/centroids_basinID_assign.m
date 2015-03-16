@@ -38,13 +38,9 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 %   centroids: centroids with an additional field 'basin_ID' denoting the 
 %   river basin a centroid has been assigned to
 %  
-% TO DO:
-%   Add code to determine the basin shapefile covering the given centroids
-%   from continent names (in case the bounding box approach does not work,
-%   i.e. the centroids bounding box is not fully contained in one of the
-%   shapefile bounding boxes)
 % MODIFICATION HISTORY:
-% Melanie Bieli, melanie.bieli@bluewin.ch, 20150225, initial
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150301, initial
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150314, add basin identification based on continents
 
 
 % set global variables
@@ -209,9 +205,15 @@ if ~isfield(centroids,'basin_ID') || force_recalc
             return;
         end
         shapefile_name = sprintf('%s_bas_%s_beta.shp',...
-            fields{continent_index},res_string);
+            fields{continent_index},res_string); 
+        % special cases 
+        % Mexico would otherwise be assinged to North America
+        if strcmp(centroids.admin0_name,'Mexico')
+            shapefile_name = sprintf('ca_bas_%s_beta.shp',res_string);
+        end
         basin_shapefile = [module_data_dir filesep 'system' filesep ...
                     shapefile_name];
+       
         % check if matfile already exists before reading the basin
         % shapefile
         exist_matfile = climada_check_matfile(basin_shapefile);
