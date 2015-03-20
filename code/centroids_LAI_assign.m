@@ -22,9 +22,9 @@ function centroids=centroids_LAI_assign(centroids, LAI_img_filename, check_plots
 % For the time being, the function has only been tested using the monthly
 % mean LAI of January 2014 (LAI_Jan2014.png)
 % CALLING SEQUENCE:
-%   LAI = centroids_LAI_assign(centroids,img_filename)
+%   centroids = centroids_LAI_assign(centroids, LAI_img_filename)
 % EXAMPLE:
-%   LAI = centroids_LAI_assign(centroids)
+%   centroids = centroids_LAI_assign(centroids)
 % INPUTS:
 %  centroids: Climada centroids struct; the following fields are required:
 %         .lat:           Latitude
