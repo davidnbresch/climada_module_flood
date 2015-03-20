@@ -1,5 +1,7 @@
 function centroids=centroids_LAI_assign(centroids, LAI_img_filename, check_plots, force_recalc)
 % Assign Leaf Area Indices (LAIs) to given centroids
+% MODULE:
+%   flood
 % NAME:
 %	centroids_LAI_assign
 % PURPOSE:
