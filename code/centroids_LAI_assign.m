@@ -18,11 +18,10 @@ function centroids=centroids_LAI_assign(centroids, LAI_img_filename, check_plots
 %   land surface.
 %   Global monthly mean LAI images in grayscale can be downloaded here:
 %       http://neo.sci.gsfc.nasa.gov/view.php?datasetId=MOD15A2_M_LAI
-% TO DO: Since only monthly mean data are provided under the link above, a
-% grayscale picture of the annual mean LAI will need to be produced first
-% (function 'imadd' in the Image Processing Toolbox can be used for this).
-% For the time being, the function has only been tested using the monthly
-% mean LAI of January 2014 (LAI_Jan2014.png)
+% NOTE: Since only monthly mean data are provided under the link above, a
+% grayscale picture of the annual mean LAI needs to be produced manually by
+% adding monthly pictures and taking the average. 
+% 
 % CALLING SEQUENCE:
 %   centroids = centroids_LAI_assign(centroids, LAI_img_filename)
 % EXAMPLE:
@@ -55,7 +54,7 @@ if ~climada_init_vars,return;end;
 % check arguments
 if ~exist('centroids','var') || isempty(centroids)
     cprintf([206 50 50]/255,['Error: Missing input ''centroids'' to '...
-        'function centroids_fl_score_calc, can''t proceed.\n']);
+        'function centroids_LAI_assign, can''t proceed.\n']);
     return;
 end
 if ~exist('LAI_img_filename','var'),LAI_img_filename=''; end
@@ -70,7 +69,8 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % PARAMETERS
 %
 % the file with the LAI data
-default_LAI_img_filename=[module_data_dir filesep 'LAI_Jan2014.png'];
+default_LAI_img_filename=[module_data_dir filesep 'system' ...
+    filesep 'LAI_global_average_2014.tif'];
 min_South=-90; % degree, defined on the webpage above
 max_North= 90; % defined on the webpage above
 %
@@ -92,13 +92,13 @@ if ~isfield(centroids,'LAI') || force_recalc
     if isempty(LAI_img_filename)
         [fP,fN,~] = fileparts(default_LAI_img_filename);
         default_LAI_img_filename_mat = [fP filesep fN '.mat'];
-        if exist(default_LAI_img_filename_mat,'file')
+        if climada_check_matfile(default_LAI_img_filename_mat,'file')
             load(default_LAI_img_filename_mat);
         elseif exist(default_LAI_img_filename,'file')
             LAI_img_filename = default_LAI_img_filename;
         else
             % Prompt for image file
-            LAI_img_filename=[module_data_dir filesep '*.png'];
+            LAI_img_filename=[module_data_dir filesep '*.tif'];
             [filename, pathname] = uigetfile(LAI_img_filename, 'Select LAI image:');
             if isequal(filename,0) || isequal(pathname,0) % Cancel pressed
                 return
@@ -148,28 +148,29 @@ if ~isfield(centroids,'LAI') || force_recalc
     % convert range of greyscale values (0 to 255) into actual Leaf Area
     % Indices (LAIs) ranging from 0 to 7
     centroids.LAI = centroids.LAI.*(7/255);
+    
+    if check_plots
+        % convert to double (from uint8)
+        LAIs=double(img);
+        % plot the image (kind of 'georeferenced')
+        pcolor(X,Y,LAIs.*(7/255)); colorbar
+        shading flat
+        if isfield(centroids,'admin0_name')
+            title_string = sprintf('Leaf Area Index (LAI), %s', ...
+                centroids.admin0_name);
+        else title_string = 'Leaf Area Index (LAI)';
+        end
+        title(title_string)
+        hold on
+        set(gcf,'Color',[1 1 1]) % white figure background
+    end % if check_plots
+    
 else
     % centroids already have a field 'LAI'
     cprintf([23 158 58]/255,'Skipped - centroids already have LAIs.\n')
 end % if isfield(centroids,'LAI')
     
-if check_plots
-    % convert to double (from uint8)
-    LAIs=double(img);
-    % plot the image (kind of 'georeferenced')
-    pcolor(X,Y,LAIs.*(7/255)); colorbar
-    shading flat
-    if isfield(centroids,'admin0_name')
-        title_string = sprintf('Leaf Area Index (LAI), %s', ...
-            centroids.admin0_name);
-    else title_string = 'Leaf Area Index (LAI)';
-    end
-    title(title_string)
-    hold on
-    set(gcf,'Color',[1 1 1]) % white figure background
-end
-
-return % centroids_LAI_assign
+end % centroids_LAI_assign
 
 
 
