@@ -1,5 +1,5 @@
 function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_img_filename, check_plots, force_recalc)
-% Assign flood score and basin IDs to centroids
+% Assign flood scores, basin IDs, LAI, and ET to centroids
 % MODULE:
 %   flood
 % NAME:
@@ -13,6 +13,8 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 %       centroids_basinID_assign for details)
 %       In step 3, Leaf Area Indices (LAIs) are calculated for the
 %       centroids (see centroids_LAI_assign for details)
+%       In step 4, evapotranspiration (ET) is calculated for the centroids
+%       (see centroids_ET_assign for details)
 % CALLING SEQUENCE:
 %   centroids = fl_centroids_prepare(centroids, res, basin_shapefile, check_plots)
 % EXAMPLE:
@@ -43,11 +45,13 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 %   centroids: centroids with three additional fields: 
 %       centroids.flood_score: flow accumulation for each centroid
 %       centroids.basin_ID: river basins the centroid have been assigned to
-%       centroids.LAI: Leaf Area Index
+%       centroids.LAI: Leaf Area Index (m^2/m^2)
+%       centroids.ET: evapotranspiration (mm/yr)
 %  
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150319, added LAI
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150321, added ET
 
 global climada_global
 
@@ -79,6 +83,9 @@ centroids = centroids_basinID_assign(centroids, res, basin_shapefile, ...
 % Step 3: Assign Leaf Area Indices (LAIs)
 centroids = centroids_LAI_assign(centroids, LAI_img_filename, ...
     check_plots, force_recalc);
+
+% Step 4: Assign evapotranspiration (ET)
+centroids = centroids_ET_assign(centroids, check_plots, force_recalc);
 end
 
 
