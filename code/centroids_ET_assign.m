@@ -30,8 +30,8 @@ function centroids=centroids_ET_assign(centroids, check_plots, force_recalc)
 %   already have a field 'ET' (default is 0)
 % OUTPUTS: 
 %   centroids: The input centroids structure with an additional field
-%   'ET', which contains the annual mean evapotranspiration (in mm/yr)
-%   for each centroid
+%   'evapotranpiration', which contains the annual mean evapotranspiration 
+%   (in mm/yr) for each centroid
 % NOTE: 
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150320, initial
@@ -95,7 +95,7 @@ bbox = [min(centroids.lon), min(centroids.lat),...
 
 % We only calculate ET values if the centroids do not come equipped
 % with them or if force_recalc is set to 1
-if ~isfield(centroids,'ET') || force_recalc
+if ~isfield(centroids,'evapotranspiration') || force_recalc
     [fP,fN,~] = fileparts(ET_file);
     ET_file_mat = [fP filesep fN '.mat'];
     if climada_check_matfile(ET_file,ET_file_mat)
@@ -140,12 +140,15 @@ if ~isfield(centroids,'ET') || force_recalc
             centroids.lat(centroid_i),X_1D,Y_1D);
         [~,min_dist_index] = min(distances);
         [img_row, img_col] = ind2sub(size(X),min_dist_index);
-        centroids.ET(centroid_i) = img(img_row, img_col);
+        centroids.evapotranspiration(centroid_i) = img(img_row, img_col);
     end
     
     % convert range of greyscale values (uint16, i.e. values range from 0 
     % to 65535) into actual evapotranspiration (in mm/yr). 
-    centroids.ET = centroids.ET.*0.1;
+    centroids.evapotranspiration = centroids.evapotranspiration.*0.1;
+    
+    cprintf([23 158 58]/255,['Successfully completed calculation of '...
+        'evapotranspiration.\n']);
     
     if check_plots
         % convert to double (from uint16)
@@ -154,9 +157,9 @@ if ~isfield(centroids,'ET') || force_recalc
         pcolor(X,Y,evapo.*0.1); colorbar
         shading flat
         if isfield(centroids,'admin0_name')
-            title_string = sprintf('Evapotranspiration (ET), %s', ...
+            title_string = sprintf('Evapotranspiration (mm/yr), %s', ...
                 centroids.admin0_name);
-        else title_string = 'Evapotranspiration (ET)';
+        else title_string = 'Evapotranspiration (mm/yr)';
         end
         title(title_string)
         hold on
@@ -164,10 +167,10 @@ if ~isfield(centroids,'ET') || force_recalc
     end
 
 else
-    % centroids already have a field 'ET'
+    % centroids already have a field 'evapotranspiration'
     cprintf([23 158 58]/255,['Skipped - centroids already have'...
-        'evaporation data.\n']);
-end % if isfield(centroids,'ET')
+        'evapotranspiration data.\n']);
+end % if isfield(centroids,'evapotranspiration')
    
 end % centroids_ET_assign
 

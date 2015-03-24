@@ -41,7 +41,7 @@ function centroids=centroids_LAI_assign(centroids, LAI_img_filename, check_plots
 %   already exist (default is 0)
 % OUTPUTS: 
 %   centroids: The input centroids structure with an additional field
-%   'LAI', which contains the Leaf Area Index for each centroid
+%   'leaf_area_index', which contains the Leaf Area Index for each centroid
 % NOTE: 
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150318, initial
@@ -84,7 +84,7 @@ bbox = [min(centroids.lon), min(centroids.lat),...
 
 % We only calculate the LAIs if the centroids do not come equipped
 % with them or if force_recalc is set to 1
-if ~isfield(centroids,'LAI') || force_recalc
+if ~isfield(centroids,'leaf_area_index') || force_recalc
     
     % Find LAI picture if not specified as an input argument
     % Try a default image filename first and then prompt for the file if the
@@ -142,12 +142,12 @@ if ~isfield(centroids,'LAI') || force_recalc
             centroids.lat(centroid_i),X_1D,Y_1D);
         [~,min_dist_index] = min(distances);
         [img_row, img_col] = ind2sub(size(X),min_dist_index);
-        centroids.LAI(centroid_i) = img(img_row, img_col);
+        centroids.leaf_area_index(centroid_i) = img(img_row, img_col);
     end
     
     % convert range of greyscale values (0 to 255) into actual Leaf Area
     % Indices (LAIs) ranging from 0 to 7
-    centroids.LAI = centroids.LAI.*(7/255);
+    centroids.leaf_area_index = centroids.leaf_area_index.*(7/255);
     
     if check_plots
         % convert to double (from uint8)
@@ -156,9 +156,9 @@ if ~isfield(centroids,'LAI') || force_recalc
         pcolor(X,Y,LAIs.*(7/255)); colorbar
         shading flat
         if isfield(centroids,'admin0_name')
-            title_string = sprintf('Leaf Area Index (LAI), %s', ...
+            title_string = sprintf('Leaf Area Index (m^2/m^2), %s', ...
                 centroids.admin0_name);
-        else title_string = 'Leaf Area Index (LAI)';
+        else title_string = 'Leaf Area Index (m^2/m^2)';
         end
         title(title_string)
         hold on
@@ -166,9 +166,10 @@ if ~isfield(centroids,'LAI') || force_recalc
     end % if check_plots
     
 else
-    % centroids already have a field 'LAI'
-    cprintf([23 158 58]/255,'Skipped - centroids already have LAIs.\n')
-end % if isfield(centroids,'LAI')
+    % centroids already have a field 'leaf_area_index'
+    cprintf([23 158 58]/255,['Skipped - centroids already have'...
+        'leaf area indices.\n'])
+end % if isfield(centroids,'leaf_area_index')
     
 end % centroids_LAI_assign
 
