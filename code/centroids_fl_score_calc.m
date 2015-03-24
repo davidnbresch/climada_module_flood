@@ -31,8 +31,10 @@ function centroids = centroids_fl_score_calc(centroids, check_plots, force_recal
 %   force_recalc: if set to 1, flood scores are calculated even if they
 %   already exist (default is 0)
 % OUTPUTS:
-%   centroids: centroids with an additional field 'flood_score', which 
-%   assigns a number for flow accumulation to each centroid
+%   centroids: centroids with two additional fields:
+%       'flood_score', which assigns a number for flow accumulation to 
+%       each centroid, and 
+%       'wetness_index', which assigns a wetness index to each centroid
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
@@ -67,7 +69,7 @@ weighting_factor = 1.1;
 
 % We only calculate the basin IDs if the centroids do not come equipped
 % with them
-if ~isfield(centroids,'flood_score') || force_recalc
+if ~isfield(centroids,'wetness_index') || force_recalc
     
     % Get elevation data if centroids do not come equipped with them
     if ~isfield(centroids, 'elevation_m')
@@ -239,14 +241,18 @@ if ~isfield(centroids,'flood_score') || force_recalc
     centroids.flood_score(isnan(centroids.flood_score))=0;
     centroids.wetness_index(isnan(centroids.wetness_index))=0;
     % set flood scores and wetness indices to 0 for centroids in the ocean
-%     centroids.flood_score(centroids.onLand==0)=0;
-%     centroids.wetness_index(centroids.onLand==0)=0;
+    % and in the buffer zone
+    centroids.flood_score(centroids.onLand==0)=0;
+    centroids.flood_score(centroids.onLand==max(centroids.onLand)) = 0;
+    centroids.wetness_index(centroids.onLand==0)=0;
+    centroids.wetness_index(centroids.onLand==max(centroids.onLand)) = 0;
     
     cprintf([23 158 58]/255,['Successfully completed calculation of '...
-        'flood scores.\n']);
+        'flood scores and wetness indices.\n']);
 else
     % centroids already have a field 'flood_scores'
-    cprintf([23 158 58]/255,'Skipped - centroids already have flood scores.\n')
+    cprintf([23 158 58]/255,['Skipped - centroids already have '...
+        'wetness indices.\n'])
 end % if isfield(centroids,'flood_score')
     
 
