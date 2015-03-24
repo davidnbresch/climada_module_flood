@@ -15,6 +15,8 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 %       centroids (see centroids_LAI_assign for details)
 %       In step 4, evapotranspiration (ET) is calculated for the centroids
 %       (see centroids_ET_assign for details)
+%       In step 5, field capacity (FC) is calculated for the centroids (see
+%       centroids_FC_assign for details)
 % CALLING SEQUENCE:
 %   centroids = fl_centroids_prepare(centroids, res, basin_shapefile, check_plots)
 % EXAMPLE:
@@ -44,14 +46,17 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 % OUTPUT:
 %   centroids: centroids with three additional fields: 
 %       centroids.flood_score: flow accumulation for each centroid
+%       centroids.wetness_index: wetness index for each centroid
 %       centroids.basin_ID: river basins the centroid have been assigned to
-%       centroids.LAI: Leaf Area Index (m^2/m^2)
-%       centroids.ET: evapotranspiration (mm/yr)
+%       centroids.leaf_area_index: Leaf Area Index (m^2/m^2)
+%       centroids.evapotranspiration: evapotranspiration (mm/yr)
+%       centroids.field_capacity: field capacity for each centroid
 %  
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150319, added LAI
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150321, added ET
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150324, added FC
 
 global climada_global
 
@@ -86,6 +91,9 @@ centroids = centroids_LAI_assign(centroids, LAI_img_filename, ...
 
 % Step 4: Assign evapotranspiration (ET)
 centroids = centroids_ET_assign(centroids, check_plots, force_recalc);
+
+% Step 5: Assign field capacity (FC)
+centroids = centroids_FC_assign(centroids, check_plots, force_recalc);
 end
 
 
