@@ -1,11 +1,12 @@
 function centroids = centroids_fl_score_calc(centroids, check_plots, force_recalc)
-% Calculate flood scores
+% Calculate flood scores and topographic wetness indices 
 % MODULE:
 %   tbd
 % NAME:
 %	centroids_fl_score_calc
 % PURPOSE:
-%   Calculate flood score for given centroids
+%   Calculate flood scores and topographic wetness indices for given 
+%   centroids.
 %   centroids_fl_score_calc applies a multiple-flow-direction method which, 
 %   in contrast to the simple D8 method, allows the runoff to flow to 
 %   multiple neighbouring cells. The distribution of the flow is determined 
@@ -15,6 +16,13 @@ function centroids = centroids_fl_score_calc(centroids, check_plots, force_recal
 %       Freeman, T.G. (1991): Calculating catchment area with 
 %       divergent flow based on a regular grid; 
 %       doi:10.1016/0098-3004(91)90048-I 
+%   The Topographic wetness index (TWI), which can be derived from the 
+%   calculated flow accumulation, then provides a cost-efficient 
+%   alternative to flood determination by conventional hydrodynamic models. 
+%   For more information on TWI see 
+%       Pourali, S.H. et al. (2014): Topography Wetness Index Application
+%       in Flood-Risk-Based Land Use Planning;
+%       doi:10.1007/s12061-014-9130-2
 % CALLING SEQUENCE:
 %   centroids = centroids_fl_score_calc(centroids, check_plots)
 % EXAMPLE:
@@ -34,7 +42,8 @@ function centroids = centroids_fl_score_calc(centroids, check_plots, force_recal
 %   centroids: centroids with two additional fields:
 %       'flood_score', which assigns a number for flow accumulation to 
 %       each centroid, and 
-%       'wetness_index', which assigns a wetness index to each centroid
+%       'topo_wetness_index', which assigns a topographic wetness index to 
+%       each centroid
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
@@ -69,7 +78,7 @@ weighting_factor = 1.1;
 
 % We only calculate the basin IDs if the centroids do not come equipped
 % with them
-if ~isfield(centroids,'wetness_index') || force_recalc
+if ~isfield(centroids,'topo_wetness_index') || force_recalc
     
     % Get elevation data if centroids do not come equipped with them
     if ~isfield(centroids, 'elevation_m')
@@ -206,8 +215,8 @@ if ~isfield(centroids,'wetness_index') || force_recalc
     temp_inflow = gradients*0;
     
     % Flow accumulation (terminates when there is no inflow):
-    fprintf('Calculating flood scores for %i centroids...\n',...
-        length(centroids.centroid_ID));
+    fprintf(['Calculating flood scores and topographic wetness indices'...
+        'for %i centroids...\n'],length(centroids.centroid_ID));
     while sum(temp_inflow_sum(:))>0
         % iterate over inflow from all directions and store it in temp_inflow
         for i = 1:8
@@ -230,110 +239,108 @@ if ~isfield(centroids,'wetness_index') || force_recalc
     % Add field flood_score to the centroids struct, i.e. loop over all
     % centroid IDs (which do not in all cases start at 1!) and assign the
     % respective flow accumulation numbers (the so-called flood scores)
-    fprintf('Assigning flood scores to centroids...\n')
+    fprintf(['Assigning flood scores and topographic wetness indices '...
+        'to centroids...\n'])
     for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
         centroids_indices = find(c_ID == centroid_i);
         centroids.flood_score(centroid_i) = ...
             mean(total_flow_accumulation(centroids_indices));
-        centroids.wetness_index(centroid_i) = ...
+        centroids.topo_wetness_index(centroid_i) = ...
             mean(wet_index(centroids_indices));
     end
     centroids.flood_score(isnan(centroids.flood_score))=0;
-    centroids.wetness_index(isnan(centroids.wetness_index))=0;
+    centroids.topo_wetness_index(isnan(centroids.topo_wetness_index))=0;
     % set flood scores and wetness indices to 0 for centroids in the ocean
     % and in the buffer zone
     centroids.flood_score(centroids.onLand==0)=0;
     centroids.flood_score(centroids.onLand==max(centroids.onLand)) = 0;
-    centroids.wetness_index(centroids.onLand==0)=0;
-    centroids.wetness_index(centroids.onLand==max(centroids.onLand)) = 0;
+    centroids.topo_wetness_index(centroids.onLand==0)=0;
+    centroids.topo_wetness_index(centroids.onLand==max(centroids.onLand)) = 0;
     
     cprintf([23 158 58]/255,['Successfully completed calculation of '...
-        'flood scores and wetness indices.\n']);
+        'flood scores and topographic wetness indices.\n']);
+    
+    % -----------------------------
+    % If requested, generate pseudocolor plots of elevation, slope, aspect 
+    % angle, and flow accumulation 
+    if check_plots
+    
+        % plot elevation data
+        figure('Name','Elevation','Color',[1 1 1]);
+        dem(unique(lon),unique(lat),z)
+        
+        % plot slope
+        figure('Name','Slope','Color',[1 1 1]);
+        h = pcolor(slope);
+        colormap(jet), colorbar
+        set(h,'LineStyle','none')
+        axis equal
+        title('Slope [degrees]')
+        [r, c] = size(slope);
+        axis([1 c 1 r])
+        set(gca,'TickDir','out')
+        
+        
+        % plot aspect angle
+        figure('Name','Aspect','Color',[1 1 1]);
+        h=pcolor(aspect);
+        colormap(hsv),colorbar
+        set(h,'Linestyle','none')
+        axis equal
+        title('Aspect')
+        axis([1 c 1 r])
+        set(gca,'TickDir','out')
+        
+        % Plot flow accumulation
+        figure('Name','Flood scores','Color',[1 1 1]);
+        h = pcolor(log(1+total_flow_accumulation));
+        %h = pcolor(total_flow_accumulation);
+        colormap(flipud(jet)), colorbar
+        set(h,'LineStyle','none')
+        axis equal
+        title('Flood scores')
+        [r, c] = size(total_flow_accumulation);
+        axis([1 c 1 r])
+        set(gca,'TickDir','out')
+        
+        % Plot wetness index
+        figure('Name','Topographic wetness index','Color',[1 1 1]);
+        h = pcolor(wet_index);
+        colormap(flipud(jet)), colorbar
+        set(h,'LineStyle','none')
+        axis equal
+        title('Topographic wetness index')
+        [r, c] = size(wet_index);
+        axis([1 c 1 r])
+        set(gca,'TickDir','out')
+    end
+    
+        % plot flow direction
+        %   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
+        %    title('Runoff flow direction')
+        %   h = contourf(z, linspace(min(min(z)),max(max(z)),15));
+        %   hold on
+        %   gradients(isinf(gradients)) = nan;
+        %   quiver(x,y, dzdx.*-1, dzdy.*-1);
+        %   %quiver(x, y, gradients(:,:,1)+gradients(:,:,5), ...
+        %     %gradients(:,:,3)+gradients(:,:,7)); 
+        %   %[size_dim1, size_dim2, ~] = size(gradients);
+        %   %axis([1 size_dim1 1 size_dim2])
+        %   %set(gca,'TickDir','out')
+        %   hold off
+    
+        %   % plot runoff direction
+        %   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
+        %   title('Runoff flow direction')
+        %   hold on
+        %   contourf(x,y,z)
+        %   quiver(x, y, dzdx.*-1, dzdy.*-1) 
 else
     % centroids already have a field 'flood_scores'
     cprintf([23 158 58]/255,['Skipped - centroids already have '...
-        'wetness indices.\n'])
-end % if isfield(centroids,'flood_score')
-    
+        'topographic wetness indices.\n'])
+end % if isfield(centroids,'topo_wetness_index')
 
-% -----------------------------
-% If requested, generate pseudocolor plots of elevation, slope, aspect 
-% angle, and flow accumulation 
-if check_plots
-    
-    % plot elevation data
-    figure('Name','Elevation','Color',[1 1 1]);
-    dem(unique(lon),unique(lat),z)
-    
-    % plot slope
-    figure('Name','Slope','Color',[1 1 1]);    
-    h = pcolor(slope);
-    colormap(jet), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Slope [degrees]')
-    [r, c] = size(slope);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-  
-    
-    % plot aspect angle
-    figure('Name','Aspect','Color',[1 1 1]);
-    h=pcolor(aspect);
-    colormap(hsv),colorbar
-    set(h,'Linestyle','none')
-    axis equal
-    title('Aspect')
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-    
-    % Plot flow accumulation
-    figure('Name','Flood scores','Color',[1 1 1]);
-    h = pcolor(log(1+total_flow_accumulation));
-    %h = pcolor(total_flow_accumulation);
-    colormap(flipud(jet)), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Flood scores')
-    [r, c] = size(total_flow_accumulation);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-    
-    % Plot wetness index
-    figure('Name','Wetness index','Color',[1 1 1]);
-    h = pcolor(wet_index);
-    colormap(flipud(jet)), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Wetness index')
-    [r, c] = size(wet_index);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-
-    
-%   % plot flow direction
-%   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
-%    title('Runoff flow direction')
-%   h = contourf(z, linspace(min(min(z)),max(max(z)),15));
-%   hold on
-%   gradients(isinf(gradients)) = nan;
-%   quiver(x,y, dzdx.*-1, dzdy.*-1);
-%   %quiver(x, y, gradients(:,:,1)+gradients(:,:,5), ...
-%     %gradients(:,:,3)+gradients(:,:,7)); 
-%   %[size_dim1, size_dim2, ~] = size(gradients);
-%   %axis([1 size_dim1 1 size_dim2])
-%   %set(gca,'TickDir','out')
-%   hold off
-    
-%   % plot runoff direction
-%   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
-%   title('Runoff flow direction')
-%   hold on
-%   contourf(x,y,z)
-%   quiver(x, y, dzdx.*-1, dzdy.*-1) 
-
-end % if check_plots
-
-end
+end % centroids_fl_score_calc
 
 
