@@ -105,7 +105,7 @@ if ~isfield(centroids,'soil_wetness_index') || force_recalc
     else
         % Error message
         cprintf([206 50 50]/255,['Error: Missing image %s.\n'...
-            'Can''t proceed.\n',SWI_file]);
+            'Can''t proceed.\n'],SWI_file);
         return
     end
     
@@ -162,7 +162,7 @@ if ~isfield(centroids,'soil_wetness_index') || force_recalc
 
 else
     % centroids already have a field 'evapotranspiration'
-    cprintf([23 158 58]/255,['Skipped - centroids already have'...
+    cprintf([23 158 58]/255,['Skipped - centroids already have '...
         'soil wetness indices.\n']);
 end % if isfield(centroids,'soil_wetness_index')
    

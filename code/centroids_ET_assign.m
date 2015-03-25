@@ -103,12 +103,12 @@ if ~isfield(centroids,'evapotranspiration') || force_recalc
         load(ET_file_mat);
     elseif exist(ET_file,'file')
         % GeoTIFF file exists; read it
-        fprintf('Reading Evapotranspiration data from %s\n',ET_file)
+        fprintf('Reading evapotranspiration data from %s\n',ET_file)
         full_ET_img = imread(ET_file);
         save(ET_file_mat,'full_ET_img');
     else
         % Read the GeoTIFF file from the web
-        fprintf('Reading Evapotranspiration data from web:\n\t%s\n',...
+        fprintf('Reading evapotranspiration data from web:\n\t%s\n',...
             ET_file_URL)
         full_ET_img = imread(ET_file_URL);
         save(ET_file_mat,'full_ET_img');
@@ -134,13 +134,13 @@ if ~isfield(centroids,'evapotranspiration') || force_recalc
     n_centroids = length(centroids.centroid_ID);
     X_1D = reshape(X,[1,numel(X)]);
     Y_1D = reshape(Y,[1,numel(Y)]);
-    fprintf('Assigning Evapotranspiration values to centroids...\n')
+    fprintf('Assigning evapotranspiration values to centroids...\n')
     for centroid_i=1:n_centroids
         distances=climada_geo_distance(centroids.lon(centroid_i),...
             centroids.lat(centroid_i),X_1D,Y_1D);
         [~,min_dist_index] = min(distances);
         [img_row, img_col] = ind2sub(size(X),min_dist_index);
-        centroids.evapotranspiration(centroid_i) = img(img_row, img_col);
+        centroids.evapotranspiration(centroid_i) = double(img(img_row, img_col));
     end
     
     % convert range of greyscale values (uint16, i.e. values range from 0 

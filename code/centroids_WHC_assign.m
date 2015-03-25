@@ -101,7 +101,7 @@ if ~isfield(centroids,'water_holding_capacity') || force_recalc
     else
         % Error message
         cprintf([206 50 50]/255,['Error: Missing tiff image %s.\n'...
-            'Can''t proceed.\n',WHC_file]);
+            'Can''t proceed.\n'],WHC_file);
         return
     end
     
@@ -147,9 +147,9 @@ if ~isfield(centroids,'water_holding_capacity') || force_recalc
         pcolor(X,Y,water_holding_cap); colorbar
         shading flat
         if isfield(centroids,'admin0_name')
-            title_string = sprintf('Water holding capacity (mm), %s', ...
-                centroids.admin0_name);
-        else title_string = 'Water holding capacity (mm)';
+            title_string = sprintf(['Available water holding capacity'...
+                '(mm), %s'], centroids.admin0_name);
+        else title_string = 'Available water holding capacity (mm)';
         end
         title(title_string)
         hold on
