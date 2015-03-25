@@ -1,24 +1,29 @@
-function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_img_filename, check_plots, force_recalc)
-% Assign flood scores, basin IDs, LAI, and ET to centroids
+function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, check_plots, force_recalc)
+% Equip centroids with all necessary hydrological information 
 % MODULE:
 %   flood
 % NAME:
 %	fl_centroids_prepare
 % PURPOSE:
-%   Equip centroids with flood scores and basin IDs, such that they can be
-%   used for the generation of a flood hazard set. 
-%       In step 1, flood scores and wetness indices are calculated for the 
-%       given centroids (see function centroids_fl_score_calc for details)
+%   Equip centroids with flood scores, wetness indices, basin IDs, 
+%   evapotranspiration values, soil wetness indices, and values for the 
+%   available water-holding capacity of the soil, such that the centroids
+%   then contain all the information needed for the generation of 
+%   a flood hazard set. 
+%       In step 1, flood scores and topographic wetness indices are 
+%       calculated for the given centroids 
+%       (see function centroids_fl_score_calc for details)
 %       In step 2, basin IDs are assigned to the centroids (see function
 %       centroids_basinID_assign for details)
-%       In step 3, Leaf Area Indices (LAIs) are calculated for the
-%       centroids (see centroids_LAI_assign for details)
-%       In step 4, evapotranspiration (ET) is calculated for the centroids
+%       In step 3, evapotranspiration (ET) is calculated for the centroids
 %       (see centroids_ET_assign for details)
-%       In step 5, field capacity (FC) is calculated for the centroids (see
-%       centroids_FC_assign for details)
+%       In step 4, soil wetness index (SWI) is calculated for the centroids 
+%       (see centroids_SWI_assign for details)
+%       In step 5, available water-holding capacity of the soil (WHC) is 
+%       calculated for the centroids (see centroids_WHC_assign for details)
 % CALLING SEQUENCE:
-%   centroids = fl_centroids_prepare(centroids, res, basin_shapefile, check_plots)
+%   centroids = fl_centroids_prepare(centroids, res, basin_shapefile,...
+%       check_plots, force_recalc)
 % EXAMPLE:
 %   centroids = fl_centroids_prepare(centroids,15,'',1)
 % INPUTS:
@@ -33,8 +38,6 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 %   to the shapefile names as provided by HydroSHEDS. The basin shapefiles
 %   need to be located in the data/system folder of the CLIMADA flood
 %   module. 
-%   LAI_img_filename: The filename of the global annual mean LAI image (if
-%   empty, the default image will be used)
 %   res: resolution of shape file - the HydroSHEDS basin outline files are
 %   provided in 15 arcsecond (res==15) and 30 arcsecond (res==30; default)
 %   resolution.
@@ -45,18 +48,21 @@ function centroids = fl_centroids_prepare(centroids, res, basin_shapefile, LAI_i
 %   if they already exist (default is 0)
 % OUTPUT:
 %   centroids: centroids with three additional fields: 
-%       centroids.flood_score: flow accumulation for each centroid
-%       centroids.wetness_index: wetness index for each centroid
-%       centroids.basin_ID: river basins the centroid have been assigned to
-%       centroids.leaf_area_index: Leaf Area Index (m^2/m^2)
+%       centroids.flood_score: flow accumulation 
+%       centroids.topo_wetness_index: topographic wetness index 
+%       centroids.basin_ID: river basins 
 %       centroids.evapotranspiration: evapotranspiration (mm/yr)
-%       centroids.field_capacity: field capacity for each centroid
+%       centroids.soil_wetness_index: soil wetness index (%)
+%       centroids.water_holding_capacity: available water-holding capacity
+%           of the soil (mm)
 %  
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150319, added LAI
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150321, added ET
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150324, added FC
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150325, added SWI and WHC;
+% removed variables that will presumably not be used 
 
 global climada_global
 
@@ -70,8 +76,6 @@ if ~exist('centroids','var') || isempty(centroids)
 end
 if ~exist('basin_shapefile','var') || isempty(basin_shapefile)
     basin_shapefile='';     end
-if ~exist('LAI_img_filename','var') || isempty(LAI_img_filename)
-    LAI_img_filename='';    end
 if ~exist('check_plots', 'var') || isempty(check_plots)
     check_plots = 0;        end
 if ~exist('force_recalc','var') || isempty(force_recalc), 
@@ -85,15 +89,14 @@ centroids = centroids_fl_score_calc(centroids, check_plots, force_recalc);
 centroids = centroids_basinID_assign(centroids, res, basin_shapefile, ...
     check_plots, force_recalc);
 
-% Step 3: Assign Leaf Area Indices (LAIs)
-centroids = centroids_LAI_assign(centroids, LAI_img_filename, ...
-    check_plots, force_recalc);
-
-% Step 4: Assign evapotranspiration (ET)
+% Step 3: Assign evapotranspiration (ET)
 centroids = centroids_ET_assign(centroids, check_plots, force_recalc);
 
-% Step 5: Assign field capacity (FC)
-centroids = centroids_FC_assign(centroids, check_plots, force_recalc);
+% Step 4: Assign soil wetness index (SWI)
+centroids = centroids_SWI_assign(centroids, check_plots, force_recalc);
+
+% Step 5: Assign available water-holding capacity of the soil (WHC)
+centroids = centroids_WHC_assign(centroids, check_plots, force_recalc);
 end
 
 
