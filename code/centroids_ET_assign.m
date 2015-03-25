@@ -27,7 +27,7 @@ function centroids=centroids_ET_assign(centroids, check_plots, force_recalc)
 % OPTIONAL INPUT PARAMETERS:
 %   check_plots: whether a plot should be drawn (=1) or not (=0; default)
 %   force_recalc: if set to 1, ET is calculated even if the centroids
-%   already have a field 'ET' (default is 0)
+%   already have a field 'evapotranspiration' (default is 0)
 % OUTPUTS: 
 %   centroids: The input centroids structure with an additional field
 %   'evapotranpiration', which contains the annual mean evapotranspiration 
