@@ -7,6 +7,8 @@ function centroids=centroids_FC_assign(centroids, check_plots, force_recalc)
 % PURPOSE:
 %   Determine field capacity (FC) for given centroids by
 %   reading a grayscale GeoTIFF of global annual mean FC. 
+%   Field capacity is the soil water content after the soil has been 
+%   saturated and allowed to drain freely for about 24 to 48 hours.
 %   The global mean annual FC GeoTIFF image is part of the Global Gridded 
 %   Surfaces of Selected Soil Characteristics data set, which was developed 
 %   by the Global Soil Data Task of the International Geosphere-Biosphere 
