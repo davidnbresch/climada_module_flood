@@ -9,8 +9,13 @@ function centroids=centroids_SWI_assign(centroids, check_plots, force_recalc)
 %   reading a grayscale image of global annual mean SWI. 
 %   SWI describes the amount of soil moisture present out of how much could 
 %   potentially exist in the soil; i.e., the current water storage divided 
-%   by the available water storage. SWI ranges from 0 to 100%. 
-%
+%   by the available water storage. SWI ranges from 0 to 100% and is given
+%   by:
+%   SWI = (soil_moisture-wilting_point)/(field_capacity-wilting_point)
+%   SWI therefore equals 0 at the wilting point and 1 at the field capacity
+%   For more information on SWI see e.g. this paper by the Global Soil
+%   Wetness Project:
+%       https://www.jstage.jst.go.jp/article/jmsj1965/77/1B/77_1B_305/_pdf
 %   Daily global SWI images derived can be downloaded here:
 %   http://land.copernicus.eu/global/products/swi
 %   The image needs to be placed in data/system of the climada module flood
