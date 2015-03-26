@@ -1,0 +1,3 @@
+data/system/*.shp
+data/system/*_bas_*
+data/system/hydrosheds*
