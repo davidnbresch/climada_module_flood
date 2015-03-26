@@ -167,7 +167,7 @@ for basin_i = 1:n_basins
     c_ndx       =   (centroids.basin_ID == basin_IDs(basin_i));% & (centroids.onLand==1);
     
     % fl_score_sum                =   sum(centroids.flood_score(c_ndx));
-    wet_index_sum               =   sum(centroids.wetness_index(c_ndx));
+    wet_index_sum               =   sum(centroids.topo_wetness_index(c_ndx));
     
         % for progress mgmt
         mod_step    = 10;
@@ -190,7 +190,7 @@ for basin_i = 1:n_basins
             rain_sum                            =   sum(hazard_tr.intensity(event_i,r_ndx & c_ndx),2);
             %hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.flood_score(fl_ndx) ./ fl_score_sum);
             if wet_index_sum ~=0
-                hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.wetness_index(fl_ndx) ./ wet_index_sum);
+                hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.topo_wetness_index(fl_ndx) ./ wet_index_sum);
             else
                 hazard.intensity(event_i,fl_ndx)     =   rain_sum / sum(fl_ndx);
             end
@@ -207,10 +207,8 @@ for basin_i = 1:n_basins
         end
         format_str_b = [repmat('\b',1,length(msgstr_b)+length(msgstr)) '%s'];
 end
-<<<<<<< HEAD
     
 return
-=======
 
 % flood only makes sense on land
 % centroids field 'onLand':
@@ -222,5 +220,3 @@ hazard.intensity(centroids.onLand==max(centroids.onLand))=0;
 
 fprintf('saving FL hazard set as %s\n',fl_hazard_save_file);
 save(fl_hazard_save_file,'hazard')
-
->>>>>>> c96da723f7f0c7ae195dbfbea7ac288807b4e569
