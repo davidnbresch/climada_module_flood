@@ -41,7 +41,8 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150301, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150314, add basin identification based on continents
-
+% Gilles Stassen, gillesstassen@hotmail.com,20150315, added use of subdir
+%-
 
 % set global variables
 global climada_global
@@ -143,8 +144,17 @@ if ~isfield(centroids,'basin_ID') || force_recalc
                 % found the centroids' corresponding basin shapefile
                 shapefile_name = sprintf('%s_bas_%s_beta.shp',...
                     fields{i},res_string);
-                basin_shapefile = [module_data_dir filesep 'system' filesep ...
-                    shapefile_name];
+                
+                % look for file in module dir
+                basin_dir = subdir([module_data_dir filesep shapefile_name]);
+                if ~isempty(basin_dir)
+                    basin_shapefile = basin_dir.name;
+                    % check if matfile already exists before reading the basin
+                    % shapefile
+                    exist_matfile = climada_check_matfile(basin_shapefile);
+                else
+                    exist_matfile = 0;
+                end
                 % check if matfile already exists before reading the basin
                 % shapefile
                 exist_matfile = climada_check_matfile(basin_shapefile);
