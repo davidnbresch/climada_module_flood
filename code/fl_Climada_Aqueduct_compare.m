@@ -21,16 +21,20 @@ function fl_Climada_Aqueduct_compare(country_risk,report_filename)
 %   damage data for a list of countries. You can create such a struct 
 %   using the script fl_countryrisk_generate
 % CALLING SEQUENCE:
-%   fl_Climada_Aqueduct_compare(country_risk,report_filename)
+%   fl_Climada_Aqueduct_compare(fl_country_risk,report_filename)
 % EXAMPLE:
-%   fl_Climada_Aqueduct_compare(country_risk_calc('Barbados')); % all in one
+%   fl_Climada_Aqueduct_compare(fl_country_risk);
 % INPUTS:
 %   fl_country_risk: a structure with the results from 
 %   fl_countryrisk_generate
 % OPTIONAL INPUT PARAMETERS:
 %   report_filename: the filename of the Excel file the comparison is 
 %       written to. Prompted for if not given 
-% OUTPUTS: produces an excel sheet
+% OUTPUTS: writes an excel sheet
+% NOTE: This function will probably just serve for developing purposes,
+%   i.e. to get a guideline for the calibration of flood damages and/or
+%   intensities. Hence the function might be removed from the repositories
+%   once it has fulfilled its purpose.
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150326, initial
 %-
