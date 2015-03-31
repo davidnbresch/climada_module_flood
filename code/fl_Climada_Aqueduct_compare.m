@@ -3,7 +3,7 @@ function fl_Climada_Aqueduct_compare(country_risk,report_filename)
 % MODULE:
 %   flood
 % NAME:
-%   country_risk_report
+%   fl_Climada_Aqueduct_compare
 % PURPOSE:
 %   Compare flood damages calculated by Climada to the flood damage 
 %   estimates of the Aqueduct Global Flood Analyzer developed by the World 
@@ -16,16 +16,21 @@ function fl_Climada_Aqueduct_compare(country_risk,report_filename)
 %   (Click on the yellow button reading "3 DOWNLOADS", select "Data by 
 %   Country" and place the unzipped files in
 %       climada_module_flood/data/system)
+% PREVIOUS STEP:
+%   Generate a "country flood risk" struct that collects all the flood 
+%   damage data for a list of countries. You can create such a struct 
+%   using the script fl_countryrisk_generate
 % CALLING SEQUENCE:
 %   fl_Climada_Aqueduct_compare(country_risk,report_filename)
 % EXAMPLE:
 %   fl_Climada_Aqueduct_compare(country_risk_calc('Barbados')); % all in one
 % INPUTS:
-%   country_risk: a structure with the results from fl_country_risk_calc
+%   fl_country_risk: a structure with the results from 
+%   fl_countryrisk_generate
 % OPTIONAL INPUT PARAMETERS:
 %   report_filename: the filename of the Excel file the comparison is 
 %       written to. Prompted for if not given 
-% OUTPUTS:
+% OUTPUTS: produces an excel sheet
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150326, initial
 %-
