@@ -5,12 +5,12 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 % NAME:
 %	country_basinID_assign
 % PURPOSE:
-%   Assign basin IDs to centroids based on HydroSHEDS basin outline 
-%   shapefiles For more information and a technical documentation see 
-%   http://hydrosheds.org/page/hydrobasins, 
-%   and to download the basin shapefiles see 
-%   http://hydrosheds.org/user/signin (requires registration) 
-%   
+%   Assign basin IDs to centroids based on HydroSHEDS basin outline
+%   shapefiles For more information and a technical documentation see
+%   http://hydrosheds.org/page/hydrobasins,
+%   and to download the basin shapefiles see
+%   http://hydrosheds.org/user/signin (requires registration)
+%
 % CALLING SEQUENCE:
 %   centroids_basinID = centroids_basinID_assign(basin_shapefile,centroids, check_plots)
 % EXAMPLE:
@@ -26,7 +26,7 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 %   be used. If left empty, the code constructs default names corresponding
 %   to the shapefile names as provided by HydroSHEDS. The basin shapefiles
 %   need to be located in the data/system folder of the CLIMADA flood
-%   module. 
+%   module.
 %   res: resolution of shape file - the HydroSHEDS basin outline files are
 %   provided in 15 arcsecond (res==15; default) and 30 arcsecond (res==30)
 %   resolution.
@@ -35,31 +35,30 @@ function centroids = centroids_basinID_assign(centroids, res, basin_shapefile, c
 %   force_recalc: if set to 1, basin IDs are recalculated even if they
 %   already exist (default is 0)
 % OUTPUTS:
-%   centroids: centroids with an additional field 'basin_ID' denoting the 
+%   centroids: centroids with an additional field 'basin_ID' denoting the
 %   river basin a centroid has been assigned to
-%  
+%
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150301, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150314, add basin identification based on continents
-% Gilles Stassen, gillesstassen@hotmail.com,20150315, added use of subdir
+% Gilles Stassen, gillesstassen@hotmail.com, 20150315, added use of subdir
+% Gilles Stassen, gillesstassen@hotmail.com, 20150327, automatic download functionality
 %-
 
 % set global variables
 global climada_global
 
-% check input arguments 
+% check input arguments
 if ~climada_init_vars; return; end
 if ~exist('centroids','var') || isempty(centroids)
-    cprintf([206 50 50]/255,['Error: Missing input ''centroids'' to '...
-        'function centroids_basin_ID_assign, can''t proceed.\n']);
-    return;
+    climada_centroids_load
 end
 if ~exist('res','var') || isempty(res), res = 15;  end
 if ~exist('basin_shapefile','var') || isempty(basin_shapefile)
     basin_shapefile=''; end
-if ~exist('check_plots', 'var')|| isempty(check_plots), 
+if ~exist('check_plots', 'var')|| isempty(check_plots),
     check_plots = 0; end
-if ~exist('force_recalc','var') || isempty(force_recalc), 
+if ~exist('force_recalc','var') || isempty(force_recalc),
     force_recalc = 0;  end
 
 
@@ -84,7 +83,7 @@ bounding_box.names = {
     'Asia'
     'Africa'
     'Australia'
-    };   
+    };
 %
 % fields contains the continent abbreviations that can be used to construct
 % file names
@@ -119,14 +118,14 @@ if ~isfield(centroids,'basin_ID') || force_recalc
         elseif exist(basin_shapefile,'file')
             shapes = climada_shaperead(basin_shapefile);
         else
-            cprintf([206 50 50]/255,'Error: Did not find file %s.\n',...
+            cprintf([206 50 50]/255,'ERROR: did not find the specified file %s.\n',...
                 basin_shapefile);
         end
-    % B) use default basin shapefile
+        % B) use default basin shapefile
     else
         % B.1): check whether centroids bounding box is contained in a
         % shapefile bounding box
-        % Determine in which of the default HydroSHEDS shapefiles the 
+        % Determine in which of the default HydroSHEDS shapefiles the
         % centroids are located
         fprintf('Determining HydroSHEDS bounding box...\n')
         quit = 0;
@@ -142,11 +141,11 @@ if ~isfield(centroids,'basin_ID') || force_recalc
             if isempty(in_box(in_box==0))
                 quit=1;
                 % found the centroids' corresponding basin shapefile
-                shapefile_name = sprintf('%s_bas_%s_beta.shp',...
+                shapefile_name = sprintf('%s_bas_%s_beta',...
                     fields{i},res_string);
                 
                 % look for file in module dir
-                basin_dir = subdir([module_data_dir filesep shapefile_name]);
+                basin_dir = subdir([module_data_dir filesep shapefile_name '.shp']);
                 if ~isempty(basin_dir)
                     basin_shapefile = basin_dir.name;
                     % check if matfile already exists before reading the basin
@@ -155,38 +154,39 @@ if ~isfield(centroids,'basin_ID') || force_recalc
                 else
                     exist_matfile = 0;
                 end
-                % check if matfile already exists before reading the basin
-                % shapefile
-                exist_matfile = climada_check_matfile(basin_shapefile);
+                
                 if exist_matfile
-                    [fP,fN,~] = fileparts(basin_shapefile);
+                    [fP,fN] = fileparts(basin_shapefile);
                     basin_matfile = [fP filesep fN '.mat'];
                     load(basin_matfile);
                 elseif exist(basin_shapefile,'file')
                     shapes = climada_shaperead(basin_shapefile);
                 else
-                    cprintf([206 50 50]/255,['Error: Missing basin shapefile %s.\n'...
-                        'Please <a href="http://hydrosheds.org/user/signin">'...
-                        'download it from the HydroSHEDS database</a>' ...
-                        '(requires registration).\n'], shapefile_name);
-                    return;
+                    % download directly
+                    fprintf('downloading HydroSHEDS basin shape files...')
+                    basin_shape_URL = ['http://earlywarning.usgs.gov/hydrodata/sa_shapefiles_zip/'...
+                        shapefile_name '.zip'];
+                    basin_dir = [module_data_dir filesep 'system' filesep shapefile_name];
+                    basin_shapefile = unzip(basin_shape_URL,basin_dir);
+                    shapes = climada_shaperead(basin_shapefile,1);
+                    fprintf(' done\n')
                 end % exist matfile
             end % isempty(in_box(in_box==0))
             if quit==1, break; end % no need to check the remaining boxes
-        end % loop over fields     
+        end % loop over fields
     end % if ~isempty(basin_shapefile)
     
-    if isempty(basin_shapefile)
+    if isempty(basin_shapefile) && isfield(centroids, 'admin0_ISO3')
         % B.2): Centroids bounding box is not fully contained in one of
         % the shapefile bounding boxes. We therefore try to determine the
         % correct shapefile from continent names
-        fprintf(['Centroids bounding box is not fully contained in '...
-            'one of the \nHydroSHEDS shapefile bounding boxes.\n' ...
-            'Using continent names instead...\n']);
+        %         fprintf(['Centroids bounding box is not fully contained in '...
+        %             'one of the \nHydroSHEDS shapefile bounding boxes.\n' ...
+        %             'Using continent names instead...\n']);
         if exist(climada_global.map_border_file, 'file')
             load(climada_global.map_border_file)
         else
-            cprintf([206 50 50]/255,['\nError: climada_global.map_border_file '...
+            cprintf([206 50 50]/255,['\nERROR: climada_global.map_border_file '...
                 'not found.\nPlease download the '...
                 '<a href="https://github.com/davidnbresch/climada">'...
                 'CLIMADA core module</a> from Github.\n']);
@@ -194,36 +194,26 @@ if ~isfield(centroids,'basin_ID') || force_recalc
         end
         % Find country in the map border shapefile and determine the
         % continent
-        country_names = {shapes.NAME}.';
-        if isfield(centroids,'admin0_name')
-            country_index = find(strcmp(centroids.admin0_name,country_names));
-        else
+        
+        [~,~,country_ndx] = climada_country_name(centroids.admin0_ISO3); % err msg in climada_country_name
+
+        continent = shapes(country_ndx).CONTINENT;
+        continent_ndx = strcmp(continent, bounding_box.names);
+        if isempty(country_ndx)
             cprintf([206 50 50]/255,['\nError: Could not determine'...
-                'default HydroSHEDS shapefile for %s \n',centroids]);
+                'default HydroSHEDS shapefile for %s\n', centroids.admin0_ISO3]);
             return;
         end
-        if isempty(country_index)
-            cprintf([206 50 50]/255,['\nError: Could not determine'...
-                'default HydroSHEDS shapefile for %s\n', centroids.admin0_name]);
-            return;
-        end
-        continent = shapes(country_index).CONTINENT;
-        continent_index = find(strcmp(continent, bounding_box.names));
-        if isempty(country_index)
-            cprintf([206 50 50]/255,['\nError: Could not determine'...
-                'default HydroSHEDS shapefile for %s\n', centroids.admin0_name]);
-            return;
-        end
-        shapefile_name = sprintf('%s_bas_%s_beta.shp',...
-            fields{continent_index},res_string); 
-        % special cases 
+        shapefile_name = sprintf('%s_bas_%s_beta',...
+            fields{continent_ndx},res_string);
+        % special cases
         % Mexico would otherwise be assinged to North America
         if strcmp(centroids.admin0_name,'Mexico')
-            shapefile_name = sprintf('ca_bas_%s_beta.shp',res_string);
+            shapefile_name = sprintf('ca_bas_%s_beta',res_string);
         end
         basin_shapefile = [module_data_dir filesep 'system' filesep ...
-                    shapefile_name];
-       
+            shapefile_name '.shp'];
+        
         % check if matfile already exists before reading the basin
         % shapefile
         exist_matfile = climada_check_matfile(basin_shapefile);
@@ -232,28 +222,30 @@ if ~isfield(centroids,'basin_ID') || force_recalc
             basin_matfile = [fP filesep fN '.mat'];
             load(basin_matfile);
         elseif exist(basin_shapefile,'file')
-            shapes = climada_shaperead(basin_shapefile);
+            shapes = climada_shaperead(basin_shapefile,1);
         else
-            cprintf([206 50 50]/255,['Error: Missing basin shapefile %s.\n'...
-                'Please <a href="http://hydrosheds.org/user/signin">'...
-                'download it from the HydroSHEDS database</a>' ...
-                '(requires registration).\n'], shapefile_name);
-            return;
+            fprintf('downloading HydroSHEDS basin shape files...')
+            basin_shape_URL = ['http://earlywarning.usgs.gov/hydrodata/sa_shapefiles_zip/'...
+                shapefile_name '.zip'];
+            basin_dir = [module_data_dir filesep 'system' filesep shapefile_name];
+            basin_shapefile = unzip(basin_shape_URL,basin_dir);
+            shapes = climada_shaperead(basin_shapefile);
+            fprintf(' done\n')
         end % exist_matfile
     end % if isempty(basin_shapefile)
     
     % Preselect basins such that only basins that overlap with the
-    % centroids structure will be considered for assignment of basin IDs 
+    % centroids structure will be considered for assignment of basin IDs
     preselect_basin_IDs = false(length(shapes),1);
- 
+    
     for basin_i = 1: length(shapes)
-
+        
         if any(inpolygon(shapes(basin_i).X, shapes(basin_i).Y, ...
                 centroids_edges_x, centroids_edges_y))
             preselect_basin_IDs(basin_i) = true;
         end
     end
- 
+    
     shapes(~preselect_basin_IDs) = [];
     
     % Prepare input for basin_identify
@@ -265,13 +257,13 @@ if ~isfield(centroids,'basin_ID') || force_recalc
     basin_names = basin_names';
     
     % Assign basin ID to the centroids
-    fprintf('Identifying basins for %i centroids...\n',...
-        length(centroids.centroid_ID));
+    fprintf('assigning basin IDs to %i centroids... ',length(centroids.centroid_ID));
     basin_IDs = basin_identify(centroids.lon,centroids.lat,lon_polygons,...
         lat_polygons,basin_names);
     centroids.basin_ID = basin_IDs;
-    cprintf([23 158 58]/255,['Successfully completed calculation of '...
-        'basin IDs.\n']);
+    fprintf('done \n')
+%     cprintf([23 158 58]/255,['Successfully completed calculation of '...
+%         'basin IDs.\n']);
 else
     % centroids already have a field 'basin_ID'
     cprintf([23 158 58]/255,'Skipped - centroids already have basin IDs.\n')
@@ -291,13 +283,13 @@ if check_plots
     ax_lim = [min(centroids.lon)-scale/30     max(centroids.lon)+scale/30 ...
         max(min(centroids.lat),-60)-scale/30  min(max(centroids.lat),80)+scale/30];
     
-    figure('Name','Basin IDs','Color',[1 1 1]);  
+    figure('Name','Basin IDs','Color',[1 1 1]);
     % plot climada world borders
     climada_plot_world_borders(0.5);
     xlabel('Longitude'); ylabel('Latitude')
     axis(ax_lim)
     axis equal
-    axis(ax_lim) 
+    axis(ax_lim)
     
     % plot the centroids color-coded according to their basin IDs
     h=plotclr(centroids.lon, centroids.lat, centroids.basin_ID, '.',...
@@ -305,13 +297,13 @@ if check_plots
     caxis([0 size(cmap,1)])
     title(title_string)
     
-%     unique_IDs = unique(centroids.basin_ID);
-%     cbar_label = unique_IDs(2:end);  % skipped 0, since not a valid basin ID
-%     for i = 1:length(number_of_basins)
-%         cbar_label(i) = unique_IDs(i+1);
-%     end
-%     
-%     set(h,'YTick',0.5:1:size(cmap,1)-0.5,'yticklabel',cbar_label,'fontsize',12)
+    %     unique_IDs = unique(centroids.basin_ID);
+    %     cbar_label = unique_IDs(2:end);  % skipped 0, since not a valid basin ID
+    %     for i = 1:length(number_of_basins)
+    %         cbar_label(i) = unique_IDs(i+1);
+    %     end
+    %
+    %     set(h,'YTick',0.5:1:size(cmap,1)-0.5,'yticklabel',cbar_label,'fontsize',12)
     
 end % if check_plots
 

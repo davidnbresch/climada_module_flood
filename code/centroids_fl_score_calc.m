@@ -255,7 +255,7 @@ if ~isfield(centroids,'topo_wetness_index') || force_recalc
     centroids.flood_score(centroids.onLand==0)=0;
     centroids.flood_score(centroids.onLand==max(centroids.onLand)) = 0;
     centroids.topo_wetness_index(centroids.onLand==0)=0;
-    centroids.topo_wetness_index(centroids.onLand==max(centroids.onLand)) = 0;
+    %centroids.topo_wetness_index(centroids.onLand==max(centroids.onLand)) = 0;
     
     cprintf([23 158 58]/255,['Successfully completed calculation of '...
         'flood scores and topographic wetness indices.\n']);

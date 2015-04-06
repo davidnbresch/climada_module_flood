@@ -1,4 +1,4 @@
-function hazard = climada_fl_hazard_set(hazard_tr,centroids,fl_hazard_save_file, check_plots)
+function hazard = climada_fl_hazard_set(hazard_rf,centroids,hazard_set_file, check_plots)
 % Generate flood hazard set from tr hazard set
 % MODULE:
 %   flood
@@ -57,18 +57,18 @@ global climada_global
 if ~climada_init_vars, return; end
 
 % check arguments
-if ~exist('hazard_tr',          'var'),     hazard_tr       = [];   end
+if ~exist('hazard_rf',          'var'),     hazard_rf       = [];   end
 if ~exist('centroids',          'var'),     centroids       = [];   end
-if ~exist('check_plots',        'var'),     check_plots     = 0;   end
-if ~exist('fl_hazard_save_file',    'var'), fl_hazard_save_file = [];   end
+if ~exist('check_plots',        'var'),     check_plots     = 0;    end
+if ~exist('hazard_set_file',    'var'),     hazard_set_file = [];  	end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % prompt for TR hazard event set if not given
-if isempty(hazard_tr) % local GUI
+if isempty(hazard_rf) % local GUI
     hazard_tr_file=[module_data_dir filesep 'hazards' filesep '*.mat'];
     [filename, pathname] = uigetfile(hazard_tr_file,...
-        'Select a rainfall hazard event set:');
+        'Select a RF/TR/MA rainfall hazard event set:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
@@ -78,25 +78,25 @@ if isempty(hazard_tr) % local GUI
 end
 
 % prompt for fl_hazard_save_file if not given
-if isempty(fl_hazard_save_file) % local GUI
-    fl_hazard_save_file=[module_data_dir filesep 'hazards' ...
-        filesep 'test_FL_hazard.mat'];
-    [filename, pathname] = uiputfile(fl_hazard_save_file, ...
-        'Save new rainfall hazard event set as:');
+if isempty(hazard_set_file) % local GUI
+    hazard_set_file=[module_data_dir filesep 'hazards' ...
+        filesep 'FL_hazard.mat'];
+    [filename, pathname] = uiputfile(hazard_set_file, ...
+        'Save new flood hazard event set as:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
-        fl_hazard_save_file=fullfile(pathname,filename);
+        hazard_set_file=fullfile(pathname,filename);
     end
 end
 
-hazard                  =   hazard_tr;
+hazard                  =   hazard_rf;
 hazard.peril_ID         =   'FL';
 hazard.date             =   datestr(now);
-hazard.filename         =   fl_hazard_save_file;
+hazard.filename         =   hazard_set_file;
 hazard.matrix_density   =   [];
 hazard.comment          =   [];
-hazard.intensity        =   zeros(size(hazard_tr.intensity));
+hazard.intensity        =   zeros(size(hazard_rf.intensity));
 
 
 if isfield(hazard,'rainfield_comment')
@@ -116,6 +116,9 @@ end
 
 if ~isfield(centroids,'basin_ID')
     centroids = centroids_basinID_assign(centroids);
+end
+if ~isfield(centroids,'topo_wetness_index')
+    centroids = centroids_fl_score_calc(centroids,0,1);
 end
 
 basin_IDs           =   unique(centroids.basin_ID);
@@ -164,10 +167,10 @@ for basin_i = 1:n_basins
     fprintf(format_str_b,msgstr_b);
     
     % index of centroids belonging to basin_i
-    c_ndx       =   (centroids.basin_ID == basin_IDs(basin_i));% & (centroids.onLand==1);
+    c_ndx       =   (centroids.basin_ID == basin_IDs(basin_i)) & (centroids.onLand==1);
     
     % fl_score_sum                =   sum(centroids.flood_score(c_ndx));
-    wet_index_sum               =   sum(centroids.wetness_index(c_ndx));
+    wet_index_sum               =   sum(centroids.topo_wetness_index(c_ndx));
     
         % for progress mgmt
         mod_step    = 10;
@@ -177,7 +180,7 @@ for basin_i = 1:n_basins
         for event_i = 1 : n_events
             
             % index of rained-on centroids
-            r_ndx   = hazard_tr.intensity(event_i,:) > 0;
+            r_ndx   = hazard_rf.intensity(event_i,:) > 0;
             
             if ~any(r_ndx & c_ndx)
                 continue
@@ -187,40 +190,42 @@ for basin_i = 1:n_basins
             % elevation than highest r_ndx centroid
             fl_ndx  = c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
             
-            rain_sum                            =   sum(hazard_tr.intensity(event_i,r_ndx & c_ndx),2);
+            rain_sum                            =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
             %hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.flood_score(fl_ndx) ./ fl_score_sum);
             if wet_index_sum ~=0
-                hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.wetness_index(fl_ndx) ./ wet_index_sum);
+               
+                fudge = (centroids.elevation_m(fl_ndx) - min(centroids.elevation_m(fl_ndx)))./ (mean(centroids.elevation_m(fl_ndx))-min(centroids.elevation_m(fl_ndx)));
+                hazard.intensity(event_i,fl_ndx)     =   rain_sum .*...
+                    (centroids.topo_wetness_index(fl_ndx) ./ wet_index_sum);% .* (fudge.^-1);
+                    
             else
                 hazard.intensity(event_i,fl_ndx)     =   rain_sum / sum(fl_ndx);
             end
             
-            % progress mgmt
-            if mod(event_i,mod_step)==0
-                mod_step        = 100;
-                n_remaining     = n_events-event_i;
-                t_projected_sec = t_elapsed*n_remaining;
-                msgstr          = sprintf('%i/%i events', event_i, n_events);
-                fprintf(format_str,msgstr);
-                format_str=[repmat('\b',1,length(msgstr)) '%s'];
-             end
+%             % progress mgmt
+%             if mod(event_i,mod_step)==0
+%                 mod_step        = 100;
+%                 n_remaining     = n_events-event_i;
+%                 t_projected_sec = t_elapsed*n_remaining;
+%                 msgstr          = sprintf('%i/%i events', event_i, n_events);
+%                 fprintf(format_str,msgstr);
+%                 format_str=[repmat('\b',1,length(msgstr)) '%s'];
+%              end
         end
-        format_str_b = [repmat('\b',1,length(msgstr_b)+length(msgstr)) '%s'];
+%        format_str_b = [repmat('\b',1,length(msgstr_b)+length(msgstr)) '%s'];
 end
-<<<<<<< HEAD
     
-return
-=======
+
 
 % flood only makes sense on land
 % centroids field 'onLand':
 %   1 (or higher, if more than one country):    on land,
 %   0:                                          on sea,
 %   and maximum value stands for buffer zone
-hazard.intensity(centroids.onLand==0) = 0;
-hazard.intensity(centroids.onLand==max(centroids.onLand))=0;
+%hazard.intensity(centroids.onLand==0) = 0;
+%hazard.intensity(centroids.onLand==max(centroids.onLand))=0;
 
-fprintf('saving FL hazard set as %s\n',fl_hazard_save_file);
-save(fl_hazard_save_file,'hazard')
+fprintf('saving FL hazard set as %s\n',hazard_set_file);
+save(hazard_set_file,'hazard')
 
->>>>>>> c96da723f7f0c7ae195dbfbea7ac288807b4e569
+return
