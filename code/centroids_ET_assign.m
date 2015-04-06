@@ -168,7 +168,7 @@ if ~isfield(centroids,'evapotranspiration') || force_recalc
 
 else
     % centroids already have a field 'evapotranspiration'
-    cprintf([23 158 58]/255,['Skipped - centroids already have'...
+    cprintf([23 158 58]/255,['Skipped - centroids already have '...
         'evapotranspiration data.\n']);
 end % if isfield(centroids,'evapotranspiration')
    

@@ -158,7 +158,7 @@ if ~isfield(centroids,'water_holding_capacity') || force_recalc
 
 else
     % centroids already have a field 'field_capacity'
-    cprintf([23 158 58]/255,['Skipped - centroids already have'...
+    cprintf([23 158 58]/255,['Skipped - centroids already have '...
         'water holding capacity data.\n']);
 end % if isfield(centroids,'water_holding_capacity')
    
