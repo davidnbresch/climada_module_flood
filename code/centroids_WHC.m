@@ -36,7 +36,7 @@ function centroids=centroids_WHC(centroids, check_plots)
 %   already have a field 'water_holding_capacity' (default is 0)
 % OUTPUTS:
 %   centroids: The input centroids structure with an additional field
-%   'WHC' (water holding capacity), which contains the annual mean available
+%   'WHC_mm' (water holding capacity), which contains the annual mean available
 %   water holding capacity
 %   (in mm) of each centroid
 % NOTE:
@@ -50,8 +50,7 @@ if ~climada_init_vars,return;end;
 
 % check arguments
 if ~exist('centroids','var') || isempty(centroids), climada_centroids_load; end
-if ~exist('check_plots', 'var') || isempty(check_plots)
-    check_plots = 0;    end
+if ~exist('check_plots', 'var') || isempty(check_plots), check_plots = 0;   end
 
 % locate the module's data folder
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
@@ -74,8 +73,7 @@ max_North= 90;
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global ET map)
 % bbox=[minlon minlat maxlon maxlat]
-bbox = [min(centroids.lon), min(centroids.lat),...
-    max(centroids.lon), max(centroids.lat)];
+bbox = [min(centroids.lon), min(centroids.lat), max(centroids.lon), max(centroids.lat)];
 
 [fP,fN,~] = fileparts(WHC_file);
 WHC_file_mat = [fP filesep fN '.mat'];
@@ -118,14 +116,12 @@ X_1D = reshape(X,[1,numel(X)]);
 Y_1D = reshape(Y,[1,numel(Y)]);
 fprintf('assigning water holding capacity values to centroids...')
 for centroid_i=1:n_centroids
-    distances=climada_geo_distance(centroids.lon(centroid_i),...
-        centroids.lat(centroid_i),X_1D,Y_1D);
+    distances=climada_geo_distance(centroids.lon(centroid_i),centroids.lat(centroid_i),X_1D,Y_1D);
     [~,min_dist_index] = min(distances);
     [img_row, img_col] = ind2sub(size(X),min_dist_index);
     centroids.WHC_mm(centroid_i) = ...
         double(img(img_row, img_col));
 end
-
 fprintf(' done \n');
 
 if check_plots
@@ -144,7 +140,3 @@ if check_plots
     hold on
     set(gcf,'Color',[1 1 1]) % white figure background
 end
-
-
-
-

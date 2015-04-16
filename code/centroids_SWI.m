@@ -24,7 +24,7 @@ function centroids=centroids_SWI(centroids, check_plots)
 %       grayscale picture of the annual mean LAI needs to be produced
 %       manually adding monthly pictures and taking the average.
 % CALLING SEQUENCE:
-%   centroids = centroids_SWI_assign(centroids, check_plots, force_recalc)
+%   centroids = centroids_SWI_assign(centroids, check_plots)
 % EXAMPLE:
 %   centroids = centroids_SWI_assign(centroids)
 % INPUTS:

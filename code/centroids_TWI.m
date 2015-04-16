@@ -99,21 +99,31 @@ end
 % ignore the earth's slightly ellipsoid shape. The difference in
 % longitude (lon) is calculated based on:
 % length of 1 degree of lon = cosine(lat) * length of degree at equator
-[lon, lat] = meshgrid(unique(centroids.lon),unique(centroids.lat));
+lon_singleton = [min(centroids.lon):min(diff(unique(centroids.lon))):max(centroids.lon)];
+lat_singleton = [min(centroids.lat):min(diff(unique(centroids.lat))):max(centroids.lat)];
 
-dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
-dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
+[lon, lat] = meshgrid(lon_singleton,lat_singleton);
 
-z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat);
+% assume cos(lat) doesn't vary much within small study region and take cos
+% of mean latitude
+x = lon_singleton .* (cos(mean(mean(lat))*pi/180)* 111.12 * 1000); 
+y = lat_singleton .* (111.12 * 1000);
+
+dx = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
+dy = min(diff(unique(centroids.lat))) * (111.12 * 1000);
+
+% dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
+% dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
+
+z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'cubic');
 c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
-c_ID    = round(c_ID);
 
 % Calculate gradients in x and y direction in order to derive normal
 % vectors of the grid cells
 vx = zeros([size(z) 3]);
 vy = zeros([size(z) 3]);
 
-[dzdx, dzdy] = gradient(z, dx, dy);
+[dzdx, dzdy] = gradient(z, x, y);
 vx(:,:,3)=dzdx.*dx;     vx(:,:,1)=dx;
 vy(:,:,3)=dzdy.*dy;     vy(:,:,2)=dy;
 
@@ -127,7 +137,6 @@ for ndx=1:3, normal_vector(:,:,ndx)=normal_vector(:,:,ndx)./area; end;
 slope               =   acosd(normal_vector(:,:,3));
 aspect              =   atan2d(-1 .* normal_vector(:,:,2),normal_vector(:,:,1))+180;
 aspect(slope ==0)   =   nan;
-
 
 % Now we determine flow accumulation (which, in contrast to the local
 % parameters slope and aspect, can only be caluclated from the global
@@ -219,22 +228,19 @@ end
 total_flow_accumulation(isnan(total_flow_accumulation))=0;
 fprintf(' done\n')
 % Calculate wetness index
-slope(slope==0) = min(min(slope(slope>0))); % we don't want inf values for wet_index
+slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
 wet_index = log((1+total_flow_accumulation)./tand(slope));
 
 % ---------------------------
 % Add field flood_score to the centroids struct, i.e. loop over all
 % centroid IDs (which do not in all cases start at 1!) and assign the
 % respective flow accumulation numbers (the so-called flood scores)
-% fprintf(['assigning flood scores and topographic wetness indices '...
-%     'to centroids...'])
-% for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
-%     centroids_indices = c_ID == centroid_i;
-%     centroids.FL_score(centroid_i) = mean(total_flow_accumulation(centroids_indices));
-%     centroids.TWI(centroid_i) = mean(wet_index(centroids_indices));
-% end
-centroids.FL_score  = mean(total_flow_accumulation);
-centroids.TWI       = mean(wet_index);
+fprintf('assigning flood scores and topographic wetness indices to centroids...')
+for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
+    centroids_indices = c_ID == centroid_i;
+    centroids.FL_score(centroid_i) = mean(total_flow_accumulation(centroids_indices));
+    centroids.TWI(centroid_i) = mean(wet_index(centroids_indices));
+end
 
 centroids.FL_score(isnan(centroids.FL_score))=0;
 centroids.TWI(isnan(centroids.TWI))=0;
@@ -254,7 +260,7 @@ if check_plots
     
     % plot elevation data
     figure('Name','Elevation','Color',[1 1 1]);
-    dem(unique(lon),unique(lat),z)
+    climada_DEM_plot(unique(lon),unique(lat),z)
     
     % plot slope
     figure('Name','Slope','Color',[1 1 1]);
@@ -266,7 +272,6 @@ if check_plots
     [r, c] = size(slope);
     axis([1 c 1 r])
     set(gca,'TickDir','out')
-    
     
     % plot aspect angle
     figure('Name','Aspect','Color',[1 1 1]);

@@ -1,4 +1,4 @@
-function hazard = climada_rf_hazard_set(precip_file, centroids, x_fraction, ens_size, ens_amp, hazard_set_file, check_plots)
+function hazard = climada_rf_hazard_set(centroids, precip_file, x_fraction, ens_size, ens_amp, hazard_set_file, check_plots)
 % climada RF hazard event set
 % NAME:
 %   climada_RF_hazard_set
@@ -36,7 +36,7 @@ global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
-if ~exist('precip_file',        'var'), precip_file         ='DL';      end
+if ~exist('precip_file',        'var'), precip_file         ='';        end
 if ~exist('hazard_set_file',    'var'), hazard_set_file     ='';        end
 if ~exist('centroids',          'var'), centroids           =[];        end
 if ~exist('x_fraction',         'var'), x_fraction          =[];        end
@@ -54,7 +54,7 @@ if isempty(ens_amp),    ens_amp     = 0.05;                             end
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create the data dir, should it not exist (no further checking)
 
-if isempty(precip_file) || ~ischar(precip_file)
+if isempty(precip_file) || ~ischar(precip_file) || (~isempty(precip_file) && ~exist(precip_file, 'file'))
     precip_file  = 'GPCP_1DD_v1.2_199610-201407.nc';
     try
         precip_file = subdir([module_data_dir filesep precip_file]);
@@ -65,9 +65,13 @@ if isempty(precip_file) || ~ischar(precip_file)
     init_time = datenum(1990,01,01); % hard wired for GPCP
     
     if isempty(precip_file)
-        warn_msg = sprintf(['WARNING: GPCP precipitation data file not found \n' ...
-            '\t \t would you like to browse existing files (b) or download directly (d)?']);
-        response = input(warn_msg,'s');
+        if climada_global.waitbar
+            warn_msg = sprintf(['WARNING: GPCP precipitation data file not found \n' ...
+                '\t \t would you like to browse existing files (b) or download directly (d)?']);
+            response = input(warn_msg,'s');
+        else
+            response = 'd';
+        end
         switch response
             case 'd'
                 fprintf('downloading and unzipping global daily precipitation data from NASA''s GCPC data set... ')
@@ -89,44 +93,48 @@ if isempty(precip_file) || ~ischar(precip_file)
                 cprintf([1 0 0], 'ERROR: invalid response \n')
                 return
         end
+    else
+        precip_file = precip_file.name;
     end
     
     fprintf('reading global daily precipitation data... ')
-    precip_nc_info = ncinfo(precip_file.name);
+    precip_nc_info = ncinfo(precip_file);
     for fld_i =  1 : numel(precip_nc_info.Variables)
         var_name = precip_nc_info.Variables(fld_i).Name;
-        tmp_p_d.(var_name)=ncread(precip_file.name,var_name);
+        tmp_p_d.(var_name)=ncread(precip_file,var_name);
     end
     fprintf('done \n')
-else
-    if exist(precip_file, 'file')
-        [fP, fN, fE] = fileparts(precip_file);
-        if strcmp(fE,'.mat')
-            load(precip_file);
-        elseif strcmp(fE, '.nc')
-            fprintf('reading global dai precipitation data... ')
-            precip_nc_info = ncinfo(precip_file.name);
-            for fld_i =  1 : numel(precip_nc_info.Variables)
-                var_name = precip_nc_info.Variables(fld_i).Name;
-                tmp_p_d.(var_name)=ncread(precip_file.name,var_name);
-            end
-            fprintf('done\n')
+elseif exist(precip_file, 'file')
+    [fP, fN, fE] = fileparts(precip_file);
+    if strcmp(fE,'.mat')
+        load(precip_file);
+    elseif strcmp(fE, '.nc')
+        fprintf('reading global daily precipitation data... ')
+        precip_nc_info = ncinfo(precip_file);
+        for fld_i =  1 : numel(precip_nc_info.Variables)
+            var_name = precip_nc_info.Variables(fld_i).Name;
+            tmp_p_d.(var_name)=ncread(precip_file,var_name);
+        end
+        fprintf('done\n')
+        if climada_global.waitbar
             init_time   = input('specify start time yyyy/mm/dd of data set: ','s');
             init_time   = datenum(init_time,'yyyy/mm/dd');
-        else
-            cprintf([1 0 0], 'ERROR: invalid file type - input file must be .mat or .nc \n')
-            return
+        else 
+            init_time = datenum(1990,01,01); % hard wired for GPCP
         end
+    else
+        cprintf([1 0 0], 'ERROR: invalid file type - input file must be .mat or .nc \n')
+        return
     end
 end
 
 if ~isstruct(centroids)
     centroids = climada_centroids_load;
+    if ~isstruct(centroids),fprintf('abort \n'); return; end
 end
 
 % prep the region we need (rectangular region encompassing the hazard centroids)
-centroids_rect=[min(centroids.lon) max(centroids.lon)...
-    min(centroids.lat) max(centroids.lat)];
+centroids_rect=[min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)];
 
 % determine fields
 flds = fieldnames(tmp_p_d);
@@ -168,7 +176,7 @@ p_data.yyyy             = str2num(datestr(p_data.time,'yyyy'));
 p_data.mm               = str2num(datestr(p_data.time,'mm'));
 p_data.dd               = str2num(datestr(p_data.time,'dd'));
 
-orig_years  = p_data.yyyy(end) - p_data.yyyy(1) +1;
+orig_years  = max(p_data.yyyy) - min(p_data.yyyy) +1;
 
 % Construct p_data_x struct with x_fraction most extreme events
 p_data_x.lon                = double(p_data.lon);
@@ -179,7 +187,7 @@ p_data_x.time               = [];
 p_data_x.yyyy               = [];
 p_data_x.mm                 = [];
 p_data_x.dd                 = [];
-for year_i = p_data.yyyy(1):p_data.yyyy(end)
+for year_i = min(p_data.yyyy):max(p_data.yyyy)
     % subset for year_i
     p_data_year_i.precip    = p_data.precip (:,p_data.yyyy == year_i);
     p_data_year_i.time      = p_data.time   (  p_data.yyyy == year_i);
@@ -196,7 +204,9 @@ for year_i = p_data.yyyy(1):p_data.yyyy(end)
     
     for x_i = ndx(1:nx)
         % generate wiggle matrix by drawing random numbers from normal dist
-        wiggle_matrix   = normrnd(1,ens_amp,length(p_data.lon),ens_size);
+        % normrnd in stats toolbox, use randn
+        % wiggle_matrix   = normrnd(1,ens_amp,length(p_data.lon),ens_size);
+        wiggle_matrix   = 1 + ens_amp .* randn(length(p_data.lon),ens_size);
         p_data_x.precip(:,end+1)    = p_data_year_i.precip(:,x_i);
         p_data_x.precip(:,end+1:end+ens_size) = bsxfun(@times,p_data_year_i.precip(:,x_i),wiggle_matrix);
         
@@ -207,7 +217,7 @@ for year_i = p_data.yyyy(1):p_data.yyyy(end)
         p_data_x.yyyy(end+1:end+ens_size+1)   = p_data_year_i.yyyy(x_i);
         p_data_x.mm  (end+1:end+ens_size+1)   = p_data_year_i.mm  (x_i);
         p_data_x.dd  (end+1:end+ens_size+1)   = p_data_year_i.dd  (x_i);
-    end   
+    end
 end
 
 % set NaNs to zero

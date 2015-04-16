@@ -115,10 +115,13 @@ if check_plots
 end
 
 if ~isfield(centroids,'basin_ID')
-    centroids = centroids_basinID_assign(centroids);
+    centroids       = centroids_basin_ID(centroids);
 end
-if ~isfield(centroids,'topo_wetness_index')
-    centroids = centroids_fl_score_calc(centroids,0,1);
+if ~isfield(centroids,'elevation_m') && ~isempty(which('climada_read_srtm_DEM'))
+    [~,centroids]   = climada_read_srtm_DEM('DL',centroids);
+end   
+if ~isfield(centroids,'TWI')
+    centroids       = centroids_TWI(centroids);
 end
 
 basin_IDs           =   unique(centroids.basin_ID);
@@ -150,69 +153,51 @@ elev_res            =   min(diff(unique(centroids.elevation_m)));
 
 % for progress mgmt
 
-format_str_b	= '%s';
-t0_b            = clock;
+format_str	= '%s';
+t0            = clock;
 
 for basin_i = 1:n_basins
     % progress mgmt
-    t_elapsed       = etime(clock,t0_b)/basin_i;
+    t_elapsed       = etime(clock,t0)/basin_i;
     n_remaining     = n_basins-basin_i;
     t_projected_sec = t_elapsed*n_remaining;
-    msgstr          = ''; 
     if t_projected_sec<60
-        msgstr_b = sprintf('est. %3.0f sec left (%i/%i basins): ',t_projected_sec, basin_i, n_basins);
+        msgstr = sprintf('est. %3.0f sec left (%i/%i basins): ',t_projected_sec, basin_i, n_basins);
     else
-        msgstr_b = sprintf('est. %3.1f min left (%i/%i basins): ',t_projected_sec/60, basin_i, n_basins);
+        msgstr = sprintf('est. %3.1f min left (%i/%i basins): ',t_projected_sec/60, basin_i, n_basins);
     end
-    fprintf(format_str_b,msgstr_b);
+    fprintf(format_str,msgstr);
+    format_str = [repmat('\b',1,length(msgstr)) '%s'];
     
     % index of centroids belonging to basin_i
     c_ndx       =   (centroids.basin_ID == basin_IDs(basin_i)) & (centroids.onLand==1);
     
     % fl_score_sum                =   sum(centroids.flood_score(c_ndx));
-    wet_index_sum               =   sum(centroids.topo_wetness_index(c_ndx));
+    wet_index_sum               =   sum(centroids.TWI(c_ndx));
     
-        % for progress mgmt
-        mod_step    = 10;
-        format_str	= '%s';
-        t0          = clock;
-        n_events    = hazard.event_count;
-        for event_i = 1 : n_events
-            
-            % index of rained-on centroids
-            r_ndx   = hazard_rf.intensity(event_i,:) > 0;
-            
-            if ~any(r_ndx & c_ndx)
-                continue
-            end
-            
-            % index of floodable centroids, i.e. centroids lower in
-            % elevation than highest r_ndx centroid
-            fl_ndx  = c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
-            
-            rain_sum                            =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
-            %hazard.intensity(event_i,fl_ndx)     =   rain_sum .* (centroids.flood_score(fl_ndx) ./ fl_score_sum);
-            if wet_index_sum ~=0
-               
-                fudge = (centroids.elevation_m(fl_ndx) - min(centroids.elevation_m(fl_ndx)))./ (mean(centroids.elevation_m(fl_ndx))-min(centroids.elevation_m(fl_ndx)));
-                hazard.intensity(event_i,fl_ndx)     =   rain_sum .*...
-                    (centroids.topo_wetness_index(fl_ndx) ./ wet_index_sum);% .* (fudge.^-1);
-                    
-            else
-                hazard.intensity(event_i,fl_ndx)     =   rain_sum / sum(fl_ndx);
-            end
-            
-%             % progress mgmt
-%             if mod(event_i,mod_step)==0
-%                 mod_step        = 100;
-%                 n_remaining     = n_events-event_i;
-%                 t_projected_sec = t_elapsed*n_remaining;
-%                 msgstr          = sprintf('%i/%i events', event_i, n_events);
-%                 fprintf(format_str,msgstr);
-%                 format_str=[repmat('\b',1,length(msgstr)) '%s'];
-%              end
+    n_events = hazard_rf.event_count;
+    for event_i = 1 : n_events
+
+        % index of rained-on centroids
+        r_ndx   = hazard_rf.intensity(event_i,:) > 0;
+
+        if ~any(r_ndx & c_ndx)
+            continue
         end
-%        format_str_b = [repmat('\b',1,length(msgstr_b)+length(msgstr)) '%s'];
+
+        % index of floodable centroids, i.e. centroids lower in
+        % elevation than highest r_ndx centroid
+        fl_ndx  = c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
+
+        rain_sum  =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
+
+        if wet_index_sum ~=0
+                hazard.intensity(event_i,fl_ndx) = rain_sum .*(centroids.TWI(fl_ndx) ./ wet_index_sum);
+
+        else
+            hazard.intensity(event_i,fl_ndx)     =   rain_sum / sum(fl_ndx);
+        end
+    end
 end
     
 
@@ -224,8 +209,9 @@ end
 %   and maximum value stands for buffer zone
 %hazard.intensity(centroids.onLand==0) = 0;
 %hazard.intensity(centroids.onLand==max(centroids.onLand))=0;
-
-fprintf('saving FL hazard set as %s\n',hazard_set_file);
-save(hazard_set_file,'hazard')
+if hazard_set_file ~= 0
+    fprintf('saving FL hazard set as %s\n',hazard_set_file);
+    save(hazard_set_file,'hazard')
+end
 
 return
