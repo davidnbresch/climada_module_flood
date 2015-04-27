@@ -60,8 +60,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % PARAMETERS
 %
 % the file with the SWI data
-SWI_file=[module_data_dir filesep 'system' filesep ...
-    'SWI_global_mean_2013.png'];
+SWI_file=[module_data_dir filesep 'system' filesep 'SWI_global_mean_2013.png'];
 %
 %
 % Missing data value, to be found in the documentation here:
@@ -70,8 +69,8 @@ missing_data_value = 255;
 %
 % north south extension of the SWI image (longitude is covered in the full
 % range from -180 to 180)
-min_South=-90; % degree
-max_North= 90;
+min_lat=-90; % degree
+max_lat= 90;
 %
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global SWI map)
@@ -95,33 +94,45 @@ else
     return
 end
 
+
+% [fP,fN,~] = fileparts(SWI_file);
+% SWI_file_mat = [fP filesep fN '.mat'];
+% if exist(SWI_file_mat,'file') 
+%     % .mat file exists, we just have to load it
+%     load(SWI_file_mat);
+% elseif exist(ET_file,'file')
+%     % GeoTIFF file exists; read it
+%     fprintf('reading soil water data from %s\n',SWI_file)
+%     full_SWI_img = imread(SWI_file);
+%     fprintf('saving as .mat file...')
+%     save(SWI_file_mat,'full_SWI_img');
+%     fprintf('done \n')
+% else
+%     % Read the GeoTIFF file from the web
+%     fprintf('reading soil water data from web:%s\n',SWI_file_URL)
+%     full_SWI_img = imread(SWI_file_URL);
+%     fprintf('saving as .mat file...')
+%     save(SWI_file_mat,'full_SWI_img');
+%     fprintf('done \n')
+% end
+
 full_SWI_img=full_SWI_img(end:-1:1,:); % switch for correct order in latitude (images are saved 'upside down')
 
 % Crop the image to the centroids' bounding box (for speedup)
-xx = 360*(1:size(full_SWI_img,2))/size(full_SWI_img,2)+(-180); % -180..180
-yy = (max_North-min_South)*(1:size(full_SWI_img,1))/size(full_SWI_img,1)+min_South;
-pos_x = find(xx>=bbox(1) & xx<=bbox(3));
-pos_y = find(yy>=bbox(2) & yy<=bbox(4));
-img = full_SWI_img(pos_y,pos_x);
-xx = xx(pos_x);
-yy = yy(pos_y);
-[X,Y] = meshgrid(xx,yy); % construct regular grid
+lon         = 360*(1:size(full_SWI_img,2))/size(full_SWI_img,2)+(-180); % -180..180
+lat         = (max_lat-min_lat)*(1:size(full_SWI_img,1))/size(full_SWI_img,1)+min_lat;
+lon_crop_ndx= lon>=bbox(1) & lon<=bbox(3);
+lat_crop_ndx= lat>=bbox(2) & lat<=bbox(4);
+img         = full_SWI_img(lat_crop_ndx,lon_crop_ndx);
+lon         = lon(lon_crop_ndx);
+lat         = lat(lat_crop_ndx);
+[LON,LAT]	= meshgrid(lon,lat); % construct regular grid
 
 % Set the missing data to zero
 img(img==missing_data_value) = 0;
 
-% Determine the pixel closest to each centroid
-n_centroids = length(centroids.centroid_ID);
-X_1D = reshape(X,[1,numel(X)]);
-Y_1D = reshape(Y,[1,numel(Y)]);
-fprintf('assigning soil water indices to centroids...')
-for centroid_i=1:n_centroids
-    distances=climada_geo_distance(centroids.lon(centroid_i),...
-        centroids.lat(centroid_i),X_1D,Y_1D);
-    [~,min_dist_index] = min(distances);
-    [img_row, img_col] = ind2sub(size(X),min_dist_index);
-    centroids.SWI(centroid_i) = double(img(img_row, img_col));
-end
+fprintf('assigning evapotranspiration values to centroids... ')
+centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'nearest');
 
 % convert range of greyscale values into actual soil water indices
 % ranging from 0 to 100

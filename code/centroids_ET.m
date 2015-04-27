@@ -122,7 +122,7 @@ lat         = lat(lat_crop_ndx);
 
 fprintf('assigning evapotranspiration values to centroids... ')
 centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'nearest');
-fprintf(' done\n');
+
 
 % perhaps a better method fro .onLand
 centroids.onLand(centroids.ET_mm_day == 65534)      = 0;

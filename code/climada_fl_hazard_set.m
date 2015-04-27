@@ -68,7 +68,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 if isempty(hazard_rf) % local GUI
     hazard_tr_file=[module_data_dir filesep 'hazards' filesep '*.mat'];
     [filename, pathname] = uigetfile(hazard_tr_file,...
-        'Select a RF/TR/MA rainfall hazard event set:');
+        'Select a rainfall hazard event set:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else

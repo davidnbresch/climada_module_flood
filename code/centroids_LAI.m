@@ -23,9 +23,9 @@ function centroids=centroids_LAI(centroids, check_plots)
 % adding monthly pictures and taking the average.
 %
 % CALLING SEQUENCE:
-%   centroids = centroids_LAI_assign(centroids, LAI_img_filename)
+%   centroids = centroids_LAI(centroids,check_plots)
 % EXAMPLE:
-%   centroids = centroids_LAI_assign(centroids)
+%   centroids = centroids_LAI(centroids)
 % INPUTS:
 %  centroids: Climada centroids struct; the following fields are required:
 %         .lat:           Latitude

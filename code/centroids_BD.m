@@ -65,6 +65,8 @@ if check_plots
     colorbar
 end
 
+max_bulk_density = 0; % init
+
 for sd_i = 1:6
     
     flds{sd_i} = sprintf('sd%i',sd_i);
@@ -116,7 +118,7 @@ for sd_i = 1:6
     end
     
     %determine max density
-    max_BD = max(max_BD,max(max(full_BD_img.(flds{sd_i}))));
+    max_bulk_density = max(max_bulk_density,max(max(full_BD_img.(flds{sd_i}))));
     
     % full_BD_img.(flds{sd_i})=flipud(full_BD_img.(flds{sd_i})); % switch for correct order in latitude (images are saved 'upside down')
 
@@ -143,13 +145,17 @@ for sd_i = 1:6
         title(sprintf('Soil bulk density at %3.1f cm depth (kg/m^3)',depths(sd_i)));
     end
 end
-close fig
+if check_plots
+    close(fig)
+end
+
 img                 = double(img);
+max_bulk_density    = double(max_bulk_density);
 mean_bulk_density   = mean(img,3); % take mean over depths
 
 fprintf('assigning bulk density values to centroids...')
 centroids.BD_kg_m3  = interp2(LON,LAT,mean_bulk_density,centroids.lon,centroids.lat,'cubic');
-centroids.RD        = centroids.BD_kg_m3 ./max_BD; 
+centroids.RD        = centroids.BD_kg_m3 ./max_bulk_density; 
 fprintf(' done\n');
 
 if check_plots

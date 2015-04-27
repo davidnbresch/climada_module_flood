@@ -42,6 +42,8 @@ function centroids=centroids_WHC(centroids, check_plots)
 % NOTE:
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150325, initial
+% Gilles Stassen, gillesstassen@hotmail.com, 20150423, cleanup
+%-
 
 
 % import/setup global variables
@@ -67,8 +69,8 @@ missing_data_value = -2;
 %
 % north south range of the FC image (longitude is covered in the full
 % range from -180 to 180)
-min_South=-56.5; % degree
-max_North= 90;
+min_lat=-56.5; % degree
+max_lat= 90;
 %
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global ET map)
@@ -95,40 +97,33 @@ end
 full_WHC_img=full_WHC_img(end:-1:1,:); % switch for correct order in latitude (images are saved 'upside down')
 
 % Crop the image to the centroids' bounding box (for speedup)
-xx = 360*(1:size(full_WHC_img,2))/size(full_WHC_img,2)+(-180); % -180..180
-yy = (max_North-min_South)*(1:size(full_WHC_img,1))/size(full_WHC_img,1)+min_South;
-pos_x = find(xx>=bbox(1) & xx<=bbox(3));
-pos_y = find(yy>=bbox(2) & yy<=bbox(4));
-img = full_WHC_img(pos_y,pos_x);
-xx = xx(pos_x);
-yy = yy(pos_y);
-[X,Y] = meshgrid(xx,yy); % construct regular grid
+lon         = 360*(1:size(full_WHC_img,2))/size(full_WHC_img,2)+(-180); % -180..180
+lat         = (max_lat-min_lat)*(1:size(full_WHC_img,1))/size(full_WHC_img,1)+min_lat;
 
-% Set zeros to a fill value (defined by the median of all positive
-% data points in the section of the map we are looking at)
-img(img==0) = median(median(img(img>0)));
-% Set the NaNs (i.e. waterborne pixels) to zero
-img(img==missing_data_value) = 0;
+bb          = max(max(diff(lon)),max(diff(lat))); %buffer
 
-% Determine the pixel closest to each centroid
-n_centroids = length(centroids.centroid_ID);
-X_1D = reshape(X,[1,numel(X)]);
-Y_1D = reshape(Y,[1,numel(Y)]);
-fprintf('assigning water holding capacity values to centroids...')
-for centroid_i=1:n_centroids
-    distances=climada_geo_distance(centroids.lon(centroid_i),centroids.lat(centroid_i),X_1D,Y_1D);
-    [~,min_dist_index] = min(distances);
-    [img_row, img_col] = ind2sub(size(X),min_dist_index);
-    centroids.WHC_mm(centroid_i) = ...
-        double(img(img_row, img_col));
-end
+lon_crop_ndx= lon >= bbox(1)-bb & lon <= bbox(3)+bb;
+lat_crop_ndx= lat >= bbox(2)-bb & lat <= bbox(4)+bb;
+img         = full_WHC_img(lat_crop_ndx,lon_crop_ndx);
+lon         = lon(lon_crop_ndx);
+lat         = lat(lat_crop_ndx);
+[LON,LAT]   = meshgrid(lon,lat); % construct regular grid
+
+% % Set zeros to a fill value (defined by the median of all positive
+% % data points in the section of the map we are looking at)
+% img(img==0) = median(median(img(img>0)));
+% % Set the NaNs (i.e. waterborne pixels) to zero
+% img(img==missing_data_value) = 0;
+
+fprintf('assigning water holding capacity values to centroids... ')
+centroids.WHC_mm= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'linear');
 fprintf(' done \n');
 
 if check_plots
     % convert to double
     water_holding_cap=double(img);
     % plot the image (kind of 'georeferenced')
-    pcolor(X,Y,water_holding_cap); colorbar
+    pcolor(LON,LAT,water_holding_cap); colorbar
     shading flat
     if isfield(centroids,'admin0_name')
         title_string = sprintf(['Available water holding capacity'...

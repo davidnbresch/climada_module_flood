@@ -29,10 +29,10 @@ function centroids=centroids_SD(centroids, check_plots)
 %   already have a field 'soil depth' (default is 0)
 % OUTPUTS:
 %   centroids: The input centroids structure with an additional field
-%   'SD_mm' containing info about soil depth to bedrock in mm
+%   'SD_m' containing info about soil depth to bedrock in m
 % NOTE:
 % MODIFICATION HISTORY:
-% Gilles Stassen, gillesstassen@hotmaail.com, 20150414
+% Gilles Stassen, gillesstassen@hotmail.com, 20150414
 %-
 
 % import/setup global variables
@@ -100,18 +100,18 @@ lat         = lat(lat_crop_ndx);
 [LON,LAT]	= meshgrid(lon,lat); % construct regular grid
 
 % depth to bedrock up to a max of 240cm (see original documentation), hence
-% set all vals >240 to 0 and convert to mm
+% set all vals >240 to 0 and convert to m
 img = double(img);
 img(img>240) = 0;
-img = img .* 10;
+img = img ./ 100;
 
 fprintf('assigning soil depth values to centroids... ')
-centroids.SD_mm= interp2(LON,LAT,img,centroids.lon,centroids.lat,'cubic');
+centroids.SD_m= interp2(LON,LAT,img,centroids.lon,centroids.lat,'linear');
 fprintf(' done\n');
 
 if check_plots
     % convert to double (from uint16)
-    soil_depth=griddata(centroids.lon,centroids.lat,centroids.SD_mm,LON,LAT);%  double(img);
+    soil_depth=griddata(centroids.lon,centroids.lat,centroids.SD_m,LON,LAT);%  double(img);
     % plot the image (kind of 'georeferenced')
     figure('color', 'w')
     hold on

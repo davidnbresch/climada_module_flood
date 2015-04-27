@@ -79,7 +79,6 @@ if ~exist('force_recalc','var') || isempty(force_recalc),
     force_recalc = 0;       end
 if ~exist('save_file',   'var'),    save_file = 'AUTO';     end
 
-fprintf('Preparing %i centroids...\n', length(centroids.centroid_ID))
 % Step 1: Compute centroid elevation fro
 if ~isfield(centroids,'elevation_m')
     [~,centroids] = climada_read_srtm_DEM('DL',centroids,[],[],check_plots);
@@ -101,10 +100,10 @@ if ~isfield(centroids,'ET') || force_recalc
     centroids = centroids_ET(centroids, check_plots);
 end
 
-% Step 4: Assign soil wetness index (SWI)
-if ~isfield(centroids,'SWI') || force_recalc
-    centroids = centroids_SWI(centroids, check_plots);
-end
+% % Step 4: Assign soil wetness index (SWI)
+% if ~isfield(centroids,'SWI') || force_recalc
+%     centroids = centroids_SWI(centroids, check_plots);
+% end
 
 % Step 5: Assign available water-holding capacity of the soil (WHC)
 if ~isfield(centroids,'WHC_mm') || force_recalc
@@ -117,8 +116,13 @@ if ~isfield(centroids, 'BD_kg_m3')
 end
 
 % Step 7: add soil depth
-if ~isfield(centroids, 'SD_mm')
+if ~isfield(centroids, 'SD_m')
     centroids = centroids_SD(centroids,check_plots);
+end
+
+% Step 8: add leaf area index
+if ~isfield(centroids, 'LAI')
+    centroids = centroids_LAI(centroids,check_plots);
 end
 
 % save the new centroids struct

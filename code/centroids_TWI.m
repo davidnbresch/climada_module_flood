@@ -127,8 +127,8 @@ vy = zeros([size(z) 3]);
 vx(:,:,3)=dzdx.*dx;     vx(:,:,1)=dx;
 vy(:,:,3)=dzdy.*dy;     vy(:,:,2)=dy;
 
-normal_vector=cross(vx,vy);
-area=sqrt(sum(normal_vector.^2,3));
+normal_vector   =   cross(vx,vy);
+area            =   sqrt(sum(normal_vector.^2,3));
 
 %Normalize Vector
 for ndx=1:3, normal_vector(:,:,ndx)=normal_vector(:,:,ndx)./area; end;
@@ -137,6 +137,43 @@ for ndx=1:3, normal_vector(:,:,ndx)=normal_vector(:,:,ndx)./area; end;
 slope               =   acosd(normal_vector(:,:,3));
 aspect              =   atan2d(-1 .* normal_vector(:,:,2),normal_vector(:,:,1))+180;
 aspect(slope ==0)   =   nan;
+
+%%%% the following works well only for a regular grid of centroids
+% find sink centroid
+flow_dir            =   round(aspect./45);  % discretise aspect to 1 of 8 possible directions (neighbouring cells)
+flow_dir(flow_dir == 0)   = 8;              % direction 8 is equivalent to 0;
+flow_dir(isnan(aspect))   = 0;              % redefine zeroth direction as no outward flow
+
+sink_cID             =   c_ID; % init
+
+% direction unit vectors [e.g. flow_dir = 3 => vector = (di(3),dj(3))]
+di = [-1  0  1  1  1  0 -1 -1]; 
+dj = [ 1  1  1  0 -1 -1 -1  0];
+
+[n_j,n_i] = size(c_ID);
+i_ndx = [1:n_i]; j_ndx = [1:n_j];
+
+for dir_i = 1:8
+    % construct index reordering vector for i direction
+    tmp_i_ndx                   = i_ndx + di(dir_i);
+    % sink of boundary cell is itself, use expression after '%' for periodic
+    % boundary conditions
+    tmp_i_ndx(tmp_i_ndx <= 0)   = 1;    % n_i - tmp_i_ndx(tmp_i_ndx <= 0);
+    tmp_i_ndx(tmp_i_ndx > n_i)  = n_j;  % tmp_i_ndx(tmp_i_ndx > n_i) - n_i;
+    
+    % construct index reordering vector for i direction
+    tmp_j_ndx                   = j_ndx - dj(dir_i);
+    % sink of boundary cell is itself, use expression after '%' for periodic
+    % boundary conditions
+    tmp_j_ndx(tmp_j_ndx <= 0)   = 1;    % n_j - tmp_j_ndx(tmp_j_ndx <= 0);
+    tmp_j_ndx(tmp_j_ndx > n_j)  = n_j;  % tmp_j_ndx(tmp_j_ndx > n_j) - n_j;
+    
+    tmp_c_ID    = c_ID(tmp_j_ndx,tmp_i_ndx);
+    sink_cID(flow_dir == dir_i)  = tmp_c_ID(flow_dir == dir_i);
+end
+
+clear tmp_c_ID tmp_i_ndx tmp_j_ndx
+
 
 % Now we determine flow accumulation (which, in contrast to the local
 % parameters slope and aspect, can only be caluclated from the global
@@ -170,9 +207,7 @@ end
 % dividing it by the cell size
 
 for c = 1:2:7
-    gradients(:,:,c) = ...
-        (circshift(z,[shift_matrix(c,1) shift_matrix(c,2)])...
-        -z)/dx;
+    gradients(:,:,c) = (circshift(z,[shift_matrix(c,1) shift_matrix(c,2)])-z)/dx;
 end
 gradients = atan(gradients)/pi*2;
 
@@ -211,8 +246,7 @@ total_flow_accumulation = outflow_gradients_sum;
 temp_inflow = gradients*0;
 
 % Flow accumulation (terminates when there is no inflow):
-fprintf(['calculating flood scores and topographic wetness indices'...
-    'for %i centroids...'],length(centroids.centroid_ID));
+fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
 while sum(temp_inflow_sum(:))>0
     % iterate over inflow from all directions and store it in temp_inflow
     for i = 1:8
@@ -235,11 +269,15 @@ wet_index = log((1+total_flow_accumulation)./tand(slope));
 % Add field flood_score to the centroids struct, i.e. loop over all
 % centroid IDs (which do not in all cases start at 1!) and assign the
 % respective flow accumulation numbers (the so-called flood scores)
-fprintf('assigning flood scores and topographic wetness indices to centroids...')
+fprintf('assigning derived topographic properties to centroids...')
 for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
-    centroids_indices = c_ID == centroid_i;
-    centroids.FL_score(centroid_i) = mean(total_flow_accumulation(centroids_indices));
-    centroids.TWI(centroid_i) = mean(wet_index(centroids_indices));
+    centroids_ndx                   = c_ID == centroid_i;
+    centroids.FL_score(centroid_i)  = mean(total_flow_accumulation(centroids_ndx));
+    centroids.TWI(centroid_i)       = mean(wet_index(centroids_ndx));
+    centroids.slope_deg(centroid_i) = max (slope (centroids_ndx));
+    centroids.area_m2(centroid_i) 	= mean(area  (centroids_ndx));
+    centroids.aspect_deg(centroid_i)= mean(aspect(centroids_ndx));
+    centroids.sink(centroid_i)      = mean(sink_cID(centroids_ndx));
 end
 
 centroids.FL_score(isnan(centroids.FL_score))=0;
