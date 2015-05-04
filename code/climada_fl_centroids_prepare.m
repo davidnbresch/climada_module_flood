@@ -89,14 +89,14 @@ if ~isfield(centroids,'TWI') || force_recalc
     centroids = centroids_TWI(centroids, check_plots);
 end
 
-% Step 3: Assign basin IDs
+% Step 3: Delineate basins
 if ~isfield(centroids,'basin_ID') || force_recalc
     res = 15; % hardwired
     centroids = centroids_basin_ID(centroids, res, check_plots);
 end
 
-% Step 3: Assign evapotranspiration (ET)
-if ~isfield(centroids,'ET') || force_recalc
+% Step 3: Compute daily evapotranspiration (ET)
+if ~isfield(centroids,'ET_mm_day') || force_recalc
     centroids = centroids_ET(centroids, check_plots);
 end
 

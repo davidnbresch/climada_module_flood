@@ -153,8 +153,8 @@ img                 = double(img);
 max_bulk_density    = double(max_bulk_density);
 mean_bulk_density   = mean(img,3); % take mean over depths
 
-fprintf('assigning bulk density values to centroids...')
-centroids.BD_kg_m3  = interp2(LON,LAT,mean_bulk_density,centroids.lon,centroids.lat,'cubic');
+fprintf(format_str,'assigning bulk density values to centroids...');
+centroids.BD_kg_m3  = interp2(LON,LAT,mean_bulk_density,centroids.lon,centroids.lat,'spline');
 centroids.RD        = centroids.BD_kg_m3 ./max_bulk_density; 
 fprintf(' done\n');
 

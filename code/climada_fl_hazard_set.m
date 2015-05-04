@@ -103,6 +103,17 @@ if isfield(hazard,'rainfield_comment')
     hazard = rmfield(hazard, 'rainfield_comment');
 end
 
+centroids_n_flds = length(fieldnames(centroids));
+
+centroids = climada_fl_centroids_prepare(centroids,0,0,'NO_SAVE');
+
+% auto save if updated (i.e. new fields added)
+if isfield(centroids,'filename') && length(fieldnames(centroids)) > centroids_n_flds
+    fprintf('autosaving centroids with additional fields to %s \n',centroids.filename)
+    save(centroids.filename,'centroids')
+end
+clear centroids_n_flds
+
 if check_plots
     [x, y] = meshgrid(unique(centroids.lon),unique(centroids.lat));
     elev_tmp    = centroids.elevation_m; % init

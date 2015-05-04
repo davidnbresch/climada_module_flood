@@ -144,11 +144,11 @@ flow_dir            =   round(aspect./45);  % discretise aspect to 1 of 8 possib
 flow_dir(flow_dir == 0)   = 8;              % direction 8 is equivalent to 0;
 flow_dir(isnan(aspect))   = 0;              % redefine zeroth direction as no outward flow
 
-sink_cID             =   c_ID; % init
+sink_cID                =   c_ID; % init
 
 % direction unit vectors [e.g. flow_dir = 3 => vector = (di(3),dj(3))]
 di = [-1  0  1  1  1  0 -1 -1]; 
-dj = [ 1  1  1  0 -1 -1 -1  0];
+dj = fliplr([ 1  1  1  0 -1 -1 -1  0]);
 
 [n_j,n_i] = size(c_ID);
 i_ndx = [1:n_i]; j_ndx = [1:n_j];
@@ -171,7 +171,8 @@ for dir_i = 1:8
     tmp_c_ID    = c_ID(tmp_j_ndx,tmp_i_ndx);
     sink_cID(flow_dir == dir_i)  = tmp_c_ID(flow_dir == dir_i);
 end
-
+sink_cID(flow_dir == 0)     =   NaN;
+sink_cID(sink_cID == c_ID)  =   NaN;
 clear tmp_c_ID tmp_i_ndx tmp_j_ndx
 
 
@@ -262,8 +263,8 @@ end
 total_flow_accumulation(isnan(total_flow_accumulation))=0;
 fprintf(' done\n')
 % Calculate wetness index
-slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
-wet_index = log((1+total_flow_accumulation)./tand(slope));
+tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
+wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
 
 % ---------------------------
 % Add field flood_score to the centroids struct, i.e. loop over all
@@ -277,7 +278,7 @@ for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
     centroids.slope_deg(centroid_i) = max (slope (centroids_ndx));
     centroids.area_m2(centroid_i) 	= mean(area  (centroids_ndx));
     centroids.aspect_deg(centroid_i)= mean(aspect(centroids_ndx));
-    centroids.sink(centroid_i)      = mean(sink_cID(centroids_ndx));
+    centroids.sink_ID(centroid_i)   = sink_cID(centroids_ndx);
 end
 
 centroids.FL_score(isnan(centroids.FL_score))=0;
