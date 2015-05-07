@@ -159,7 +159,7 @@ for dir_i = 1:8
     % sink of boundary cell is itself, use expression after '%' for periodic
     % boundary conditions
     tmp_i_ndx(tmp_i_ndx <= 0)   = 1;    % n_i - tmp_i_ndx(tmp_i_ndx <= 0);
-    tmp_i_ndx(tmp_i_ndx > n_i)  = n_j;  % tmp_i_ndx(tmp_i_ndx > n_i) - n_i;
+    tmp_i_ndx(tmp_i_ndx > n_i)  = n_i;  % tmp_i_ndx(tmp_i_ndx > n_i) - n_i;
     
     % construct index reordering vector for i direction
     tmp_j_ndx                   = j_ndx - dj(dir_i);

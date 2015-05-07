@@ -208,7 +208,7 @@ mod_step    = 1;
 for event_i = 1 : n_events
 
     hazard.factor_of_safety(event_i,:) = climada_ms_cell_failure(centroids, soil_moisture(event_i,:));
-    
+    tmp_factor_of_safety = hazard.factor_of_safety;
     % sort by elevation
     [~,elev_ndx] = sort(centroids.elevation_m,'descend');
     
@@ -231,7 +231,12 @@ for event_i = 1 : n_events
 
         % if factor of safety is less than rand, failure occurs at
         % centroid_i
-        if hazard.factor_of_safety(event_i,centroid_i) < rand
+        if tmp_factor_of_safety(event_i,centroid_i) < rand
+            
+            % set specific temp FoS to 1, to avoid recheck for other
+            % clusters
+            tmp_factor_of_safety(event_i,centroid_i) = 1;
+            
             % index for centroids at lower elevation
             r = climada_geo_distance(centroids.lon(centroid_i),centroids.lat(centroid_i),...
                 centroids.lon,centroids.lat);
@@ -248,7 +253,12 @@ for event_i = 1 : n_events
                 cluster_size    = sum(cluster_ndx);
                 
                 sink_ndx        = centroids.centroid_ID == centroids.sink_ID(sink_ndx);
-                cluster_ndx     = cluster_ndx |(sink_ndx & (hazard.factor_of_safety(event_i,:)./cluster_size) < rand);
+                cluster_ndx     = cluster_ndx |(sink_ndx & (tmp_factor_of_safety(event_i,:)./cluster_size) < rand);
+                
+                % set specific temp FoS to 1, to avoid recheck for other
+                % clusters
+                tmp_factor_of_safety(event_i,cluster_ndx) = 1;
+                
                 
                 %                     % loop counter
                 %                     i = i+1;
@@ -267,6 +277,9 @@ for event_i = 1 : n_events
                 
             end % loop until cluster stops growing
             
+            % index of last cluster cell
+            cluster_end_ndx = sink_ndx;
+            
             % insist that at least 2 neighbouring cells must fail for a
             % mudslide to occur
             if cluster_size < 2
@@ -284,6 +297,7 @@ for event_i = 1 : n_events
                 sink_ndx     = (centroids.centroid_ID == centroids.sink_ID(sink_ndx));
                 slope        = centroids.slope_deg(sink_ndx);
                 slide_ndx    = slide_ndx | sink_ndx;
+                
                 %                     p = scatter(centroids.lon(deposit_ndx),centroids.lat(deposit_ndx),'filled');
                 %                     set(p,'markerFaceColor','g','markerEdgeColor','g')
             end
@@ -297,8 +311,21 @@ for event_i = 1 : n_events
             
             
             hazard.intensity(event_i,cluster_ndx) = - centroids.SD_m(cluster_ndx);
-            hazard.intensity(event_i,deposit_ndx) = sum(hazard.source(event_i,cluster_ndx)) ...
-                / sum(centroids.area_m2(deposit_ndx));
+            
+            % for better overview of the code
+            lon = centroids.lon;
+            lat = centroids.lat;
+            
+            % distances from end of cluster
+            dep_dist_m = climada_geo_distance(lon(cluster_end_ndx),lat(cluster_end_ndx),...
+                lon(deposit_ndx),lat(deposit_ndx));
+            
+            % deposit intensity factor depends on distance from end of cluster
+            int_factor = 2.* (1- dep_dist_m./max(dep_dist_m));
+            int_factor = 1;
+            
+            hazard.intensity(event_i,deposit_ndx) = int_factor .* ...
+            (sum(hazard.source(event_i,cluster_ndx))/sum(centroids.area_m2(deposit_ndx)));
             
             % vectors for easy plotting
             slide_data(event_i).X = [slide_data(event_i).X NaN centroids.lon(slide_ndx)];
@@ -357,6 +384,11 @@ if check_plots
     freezeColors
     hold on
     
+    if isfield(centroids,'rivers')
+        plot3(centroids.rivers.X,centroids.rivers.Y,ones(size(centroids.rivers.X)).*5,'b')
+    end
+    freezeColors
+    
     % use surface plot to show varying colour along mudslide
     x_ = slide_data(max_event).X;
     y_ = slide_data(max_event).Y;
@@ -377,7 +409,8 @@ if check_plots
     
     figure('Name', 'MS hazard set (largest event) 3D','color', 'w')
     surf(unique(hazard.lon),unique(hazard.lat),z./(111.12 * 1000));
-    colormap(landcolor)
+    %colormap(landcolor)
+    colormap(flipud(bone(50)))
     shading interp
     freezeColors
     hold on
@@ -388,8 +421,8 @@ if check_plots
     z_ = slide_data(max_event).Z ./(111.12 * 1000); % convert to degrees to use equal axis
     c_ = slide_data(max_event).C;
     s  = surface([x_;x_],[y_;y_],[z_;z_],[c_;c_],'edgecol','interp','linew',5, 'marker','o','markersize',1);
-    %colormap(climada_colormap('MS'))
-    colormap(copper)
+    colormap(climada_colormap('MS'))
+    %colormap(flipud(hot))
     caxis([min(hazard_intensity) max(hazard_intensity)])
     cb = colorbar;
     ylabel(cb,sprintf('mudslide depth [%s]',hazard.units))
