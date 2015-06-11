@@ -209,34 +209,36 @@ end
 shapes(~preselect_basin_IDs) = [];
 
 % Prepare input for basin_identify
-temp = struct2cell(shapes).'; lon_polygons = temp(:,3); clear temp;
+tmp = struct2cell(shapes).'; lon_polygons = tmp(:,3); clear tmp;
 lon_polygons = lon_polygons';
-temp = struct2cell(shapes).'; lat_polygons = temp(:,4); clear temp;
+tmp = struct2cell(shapes).'; lat_polygons = tmp(:,4); clear tmp;
 lat_polygons = lat_polygons';
-temp = struct2cell(shapes).'; basin_names = temp(:,5); clear temp;
+tmp = struct2cell(shapes).'; basin_names = tmp(:,5); clear tmp;
 basin_names = basin_names';
 
 % Assign basin ID to the centroids
 fprintf('assigning basin IDs to %i centroids... ',length(centroids.centroid_ID));
 % loop over basins and check which centroids belong to them
-% for basin_i=1:length(basin_names)
-%    
-%     basin_str = basin_names{basin_i};
-%     lon_polys_temp = lon_polygons{basin_i};
-%     lat_polys_temp = lat_polygons{basin_i};
-%     lon_polys_temp = [lon_polys_temp lon_polys_temp(1)];   %to wrap around
-%     lat_polys_temp = [lat_polys_temp lat_polys_temp(1)];
-%         
-%     basin_ndx = inpolygon(lon_pts,lat_pts,lon_polys_temp,lat_polys_temp);
-%     if(sum(basin_ndx)>0)
-%         basin_IDs(basin_ndx) = {basin_str};
-%     end
-%     clear i_basin
-%     
-% end
+for basin_i=1:length(basin_names)
+   
+    basin_str = basin_names{basin_i};
+    tmp_lon = lon_polygons{basin_i};
+    tmp_lat = lat_polygons{basin_i};
+    tmp_lon = [tmp_lon tmp_lon(1)];   %to wrap around
+    tmp_lat = [tmp_lat tmp_lat(1)];
+        
+    ndx = inpolygon(lon_pts,lat_pts,tmp_lon,tmp_lat);
+    if(sum(ndx)>0)
+        basin_IDs(ndx) = {basin_str};
+    end
+    clear ndx
+    
+end
 
+basin_IDs(cellfun(@isempty,basin_IDs)) = {0};
+basin_IDs = cell2mat(basin_IDs);
 
-basin_IDs = basin_identify(centroids.lon,centroids.lat,lon_polygons,lat_polygons,basin_names);
+% basin_IDs = basin_identify(centroids.lon,centroids.lat,lon_polygons,lat_polygons,basin_names);
 centroids.basin_ID = round(basin_IDs./100).*100;
 fprintf('done \n')
 
@@ -246,8 +248,7 @@ if check_plots
     % calculate figure parameters
     markersize = 5;
     show_colorbar = 0;
-    number_of_basins = length(unique(centroids.basin_ID));
-    cmap = jet(number_of_basins);
+    cmap = jet(length(unique(centroids.basin_ID)));
     title_string = sprintf('Centroids in %s, colored by basin ID',centroids.country_name{1});
     scale  = max(centroids.lon) - min(centroids.lon);
     ax_lim = [min(centroids.lon)-scale/30     max(centroids.lon)+scale/30 ...

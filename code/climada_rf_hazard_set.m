@@ -11,10 +11,11 @@ function hazard = climada_rf_hazard_set(centroids, precip_file, x_fraction, ens_
 %   The extent of the wiggle is determined by generating a random wiggle
 %   paramater from a normal distribution with standard deviation ens_amp.
 % CALLING SEQUENCE:
-%   hazard=climada_rf_hazard_set(precip_file, centroids, hazard_set_file, check_plots)
+%   hazard = climada_rf_hazard_set(centroids, precip_file, x_fraction, ens_size, ens_amp, hazard_set_file, check_plots)
 % EXAMPLE:
-%   hazard=climada_rf_hazard_set
-%   hazard=climada_rf_hazard_set([],centroids,[],1)
+%   hazard = climada_rf_hazard_set(centroids, '', 0.2, 9, 0.1, 'NO_SAVE', 1)
+%   hazard = climada_rf_hazard_set(centroids, '', 0.7, 1)
+%   hazard = climada_rf_hazard_set
 % INPUTS:
 %   hazard_set_file: the name of the newly created rainfall (RF) hazard
 %       > promted for if not given

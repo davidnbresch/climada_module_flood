@@ -148,7 +148,7 @@ for i = 0 : n_lon - 1
 end
 
 if shapes_check
-    if buffer_check
+    if buffer_check ==1
         % take only high resolution centroids for country
         country_ndx   = inpolygon(centroids.lon,centroids.lat,shapes(shape_index).X,shapes(shape_index).Y);
         centroids.lon = centroids.lon(country_ndx);
@@ -175,8 +175,12 @@ if shapes_check
         buffer_logical      = [zeros(size(centroids.lon)) ones(size(buffer.lon))];
         centroids.lon       = [centroids.lon buffer.lon];
         centroids.lat       = [centroids.lat buffer.lat];
+    elseif buffer_check == -1
+        % take only high resolution centroids for country
+        country_ndx   = inpolygon(centroids.lon,centroids.lat,shapes(shape_index).X,shapes(shape_index).Y);
+        centroids.lon = centroids.lon(country_ndx);
+        centroids.lat = centroids.lat(country_ndx);
     end
-    
     
     if exist('country_name','var') 
         for i = 1 : length(centroids.lon)
@@ -215,7 +219,7 @@ end
 % end
 fprintf('done \n')
 tf = clock;
-fprintf('generating %i centroids for %s took %3.2f seconds \n',length(centroids.centroid_ID),country_name, etime(tf,t0));
+fprintf('generating %i centroids for %s took %3.2f seconds \n',length(centroids.centroid_ID),char(country_name), etime(tf,t0));
 centroids.comment = sprintf('%3.2f km resolution centroids, created on %s', resolution_km,datestr(now,'dd/mm/yyyy'));
 
 if ischar(save_file) && ~strcmp(save_file,'NO_SAVE')

@@ -1,4 +1,4 @@
-function [DEM, centroids] = climada_read_srtm_DEM(srtm_dir, centroidsORcountry, DEM_save_file, smooth, check_plot)
+function [DEM, centroids] = climada_read_srtm_DEM(centroidsORcountry, srtm_dir, DEM_save_file, smooth, check_plot)
 % climada
 % MODULE:
 %   barisal_demo
@@ -8,16 +8,12 @@ function [DEM, centroids] = climada_read_srtm_DEM(srtm_dir, centroidsORcountry, 
 %   Read the digital elevation model data from the files in an existing
 %   srtm directory. Data can be downloaded from http://srtm.csi.cgiar.org/SELECTION/inputCoord.asp
 % CALLING SEQUENCE:
-%   DEM = climada_read_srtm_DEM(srtm_dir, centroids, DEM_save_file, smooth, check_plot)
+%   DEM = climada_read_srtm_DEM(centroids, srtm_dir, DEM_save_file, smooth, check_plot)
 % EXAMPLE:
-%   DEM = climada_read_srtm_DEM(srtm_dir,[],[],[],1)
+%   DEM = climada_read_srtm_DEM('Netherlands',[],[],[],1)
 %   DEM = climada_read_srtm_DEM
-%   [DEM, centroids] = climada_read_srtm_DEM(srtm_dir,[min_lon max_lon min_lat max_lat], DEM_save_file, 4,1)
+%   [DEM, centroids] = climada_read_srtm_DEM([min_lon max_lon min_lat max_lat],srtm_dir,DEM_save_file, 4,1)
 % INPUTS:
-%   srtm_dir:   The directory of an srtm data tile folder, containing at
-%               least a .hdr and a .tif file. Can also be set to 'DL' which
-%               will initiate automatic download from SRTM website
-%               according to the centroid_rect given as input.
 % OPTIONAL INPUT PARAMETERS:
 %   centroids:  If centroids are provided as an input, the DEM will contain
 %               elevation data sampled at the location of centroids, and
@@ -34,6 +30,10 @@ function [DEM, centroids] = climada_read_srtm_DEM(srtm_dir, centroidsORcountry, 
 %               as input if its resolution is significantly lower than that
 %               of the DEM, otherwise, it is much faster to generate
 %               centroids directly from the DEM.
+%   srtm_dir:   The directory of an srtm data tile folder, containing at
+%               least a .hdr and a .tif file. Can also be set to 'DL' 
+%               (default) which will initiate automatic download from SRTM 
+%               website according to the centroidsORcountry given as input.
 %   smooth:     Can either be set to an integer N (smooth by default filter
 %               specified by a matrix size NxN with values 1/N^2) or a
 %               smoothing filter. Default = [] (no smoothing).
@@ -73,21 +73,11 @@ if exist(climada_global.map_border_file, 'file')
 end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-
-% gui to select srtm data if not provided
-if ~exist('srtm_dir','var') || isempty(srtm_dir)
-    srtm_dir = uigetdir(module_data_dir,'Choose srtm tile(s)');
-end
-
-if ~strcmp(srtm_dir, 'DL') && ~exist(srtm_dir, 'dir')
-    cprintf([1 0 0], 'ERROR: Directory not found')
-    return;
-end
-
 if ~exist('centroidsORcountry', 'var'),     centroidsORcountry  = [];   end
+if ~exist('srtm_dir',           'var'),     srtm_dir            = 'DL'; end
 if ~exist('DEM_save_file',      'var'),     DEM_save_file       = [];   end
 if ~exist('smooth',             'var'),     smooth              = [];   end
-if ~exist('check_plot',         'var'),     check_plot          = 0;    end
+if ~exist('check_plot',         'var'),     check_plot          = 1;    end
 
 if ~isempty(centroidsORcountry)
     if isstruct(centroidsORcountry)
@@ -101,7 +91,7 @@ if ~isempty(centroidsORcountry)
             country_name = [];
         end
         rect        = [min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)];
-    elseif numel(centroidsORcountry) == 4
+    elseif isnumeric(centroidsORcountry) && numel(centroidsORcountry) == 4
         centroids   = [];
         rect        = centroidsORcountry; clear centroidsORcountry
     elseif ischar(centroidsORcountry)
@@ -121,6 +111,7 @@ if ~isempty(centroidsORcountry)
 else
     centroids   = []; clear centroidsORcountry
     [country_name,country_ISO3,shape_index] = climada_country_name('Single');
+    country_name = char(country_name);
     if isempty(country_name), return; end % error message already printed in climada_country_name
     % bb          = shapes(shape_index).BoundingBox;    % countries with colonies pose problems here...
     bb          = [min(shapes(shape_index).X) min(shapes(shape_index).Y)
@@ -131,10 +122,11 @@ if ~isempty(country_name), cntry_str = sprintf(' for %s',country_name'); else cn
 
 % conversion to srtm tile indices
 rect_buffer      = 0.5;     % set buffer to avoid missing data due to imperfect conversions below
-srtm_min_lon_ndx = ceil(72 * (rect(1)-rect_buffer + 180)/(179.28+180.00));
-srtm_max_lon_ndx = ceil(72 * (rect(2)+rect_buffer + 180)/(179.28+180.00));
-srtm_min_lat_ndx = ceil(24 * (60 - rect(3)+rect_buffer) /( 60.00+ 57.83));
-srtm_max_lat_ndx = ceil(24 * (60 - rect(4)-rect_buffer) /( 60.00+ 57.83));
+if rect(1) <-179.9,rect(1) = rect(1)+359.9; end
+srtm_min_lon_ndx = max(ceil(72 * (rect(1)-rect_buffer + 180)/(179.28+180.00)),1);
+srtm_max_lon_ndx = min(ceil(72 * (rect(2)+rect_buffer + 180)/(179.28+180.00)),72);
+srtm_min_lat_ndx = max(ceil(24 * (60 - rect(3)+rect_buffer) /( 60.00+ 57.83)),1);
+srtm_max_lat_ndx = min(ceil(24 * (60 - rect(4)-rect_buffer) /( 60.00+ 57.83)),24);
 
 [I,J]   = meshgrid([srtm_min_lon_ndx: srtm_max_lon_ndx],[srtm_max_lat_ndx: srtm_min_lat_ndx]);
 
@@ -170,7 +162,6 @@ if strcmp(srtm_dir, 'DL')
         else
             % delete existing folder to avoid any unzipping issues
             if exist(srtm_dir{tile_i},'dir'), rmdir(srtm_dir{tile_i},'s'); end
-            mkdir(srtm_dir{tile_i},'s');
             substr = sprintf('downloading and unzipping %s', srtm_fN{tile_i});
             skip_file = 0;
         end
@@ -188,8 +179,15 @@ if strcmp(srtm_dir, 'DL')
         format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
         
         if ~skip_file
-            unzip(srtm_URL{tile_i}, srtm_dir{tile_i})
-        else
+            try
+                mkdir(srtm_dir{tile_i});
+                unzip(srtm_URL{tile_i}, srtm_dir{tile_i});
+            catch
+                http_URL = ['http://droppr.org/srtm/v4.1/6_5x5_TIFs/' srtm_fN{tile_i} '.zip'];
+                urlwrite(http_URL,[srtm_dir{tile_i} '.zip']);
+                unzip([srtm_dir{tile_i} '.zip'],srtm_dir{tile_i});
+            end
+        else     
             pause(1)
         end
     end
@@ -292,12 +290,15 @@ if ~isempty(smooth) && any(smooth) && ~isnan(smooth)
 end
 
 % store as singleton arrays in DEM structure
-[elev, lon, lat] = climada_grid2array(DEM_grid', reference_box);
+% [elev, lon, lat] = climada_grid2array(DEM_grid', reference_box); % OLD
 
-% aspect, slope 
-%
-%
-%
+[LON, LAT] = meshgrid(linspace(reference_box(1),reference_box(2),size(DEM_grid,1)),...
+    linspace(reference_box(3),reference_box(4),size(DEM_grid,2)));
+
+lon = reshape(LON,numel(LON),1);
+lat = reshape(LAT,numel(LAT),1);
+elev = reshape(DEM_grid,numel(DEM_grid),1);
+
 fprintf('done \n')
 
 if isstruct(centroids)

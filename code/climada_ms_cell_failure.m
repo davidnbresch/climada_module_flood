@@ -48,6 +48,7 @@ EIF             =   25.*centroids.RD + 25; % (emperical relationship)
 
 % Calculate water table height (WTH) [temporal vector in metres]
 WTH             =   centroids.SD_m - (centroids.WHC_mm - soil_moisture)./1000;  %soil_moisture .* (SD / FC);
+% WTH             =   centroids.SD_m .* (centroids.WHC_mm ./ soil_moisture);  %soil_moisture .* (SD / FC);
 
 % Calculate specific weight of solids from soil bulk density
 solids_sw       =   centroids.BD_kg_m3 .* g;
@@ -59,7 +60,7 @@ moist_soil_sw   =   solids_sw .* (1 - porosity);
 sat_soil_sw     =   solids_sw .* (1 - porosity) + water_sw .* porosity;
 
 % Cohesion
-EC              =   1000 * mean(centroids.LAI,1);
+EC              =   12000 * mean(centroids.LAI,1);
 
 % Calculate shear strength and stress
 strength        =   EC + (moist_soil_sw.*(centroids.SD_m - WTH) + (sat_soil_sw - water_sw).*WTH).*tand(EIF).*(cosd(centroids.slope_deg)).^2;

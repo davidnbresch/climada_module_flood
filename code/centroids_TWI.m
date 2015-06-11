@@ -117,7 +117,7 @@ dy = min(diff(unique(centroids.lat))) * (111.12 * 1000);
 
 z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'cubic');
 c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
-
+% tmp     = [num2str(centroids.lon') num2str(centroids.lon')]; 
 % Calculate gradients in x and y direction in order to derive normal
 % vectors of the grid cells
 vx = zeros([size(z) 3]);

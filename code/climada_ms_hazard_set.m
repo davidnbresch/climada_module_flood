@@ -1,7 +1,7 @@
 function hazard = climada_ms_hazard_set(hazard_rf, centroids, hazard_set_file, check_plots)
 % Generate ms hazard set from rainfall hazard set
 % MODULE:
-%   mudslides
+%   flood
 % NAME:
 %   climada_ms_hazard_set
 % PURPOSE:
@@ -82,7 +82,7 @@ hazard.peril_ID         =   'MS';
 hazard.date             =   datestr(now);
 hazard.filename         =   hazard_set_file;
 hazard.matrix_density   =   []; % 0.03; % estimate
-hazard.comment          =   [];
+hazard.comment          =   '';
 % % allocate the hazard array (sparse, to manage memory)
 % hazard.intensity = spalloc(hazard.event_count,length(hazard.lon),...
 %     ceil(hazard.event_count*length(hazard.lon)*hazard.matrix_density));
@@ -147,6 +147,7 @@ for event_i = 1: n_events
     slide_data(event_i).Z = [];
     slide_data(event_i).C = [];
 end
+
 % for progress mgmt
 format_str	= '%s';
 t0          = clock;
@@ -291,7 +292,8 @@ for event_i = 1 : n_events
             slope           = centroids.slope_deg(centroid_i); %init
             sink_ndx        = centroids.centroid_ID == centroids.centroid_ID(centroid_i);
             i = 0;
-            while slope > 2 && ~isnan(centroids.sink_ID(sink_ndx)) && i < (3*sum(cluster_ndx))
+            while slope > 2 && ~isempty(centroids.sink_ID(sink_ndx)) && ...
+                    ~isnan(centroids.sink_ID(sink_ndx)) && i < (2*sum(cluster_ndx))
                 % loop counter
                 i = i+1;
                 sink_ndx     = (centroids.centroid_ID == centroids.sink_ID(sink_ndx));
@@ -355,6 +357,7 @@ end
 
 if ~isempty(hazard_set_file) && ~strcmp(hazard_set_file,'NO_SAVE')
     fprintf('saving MS hazard set as %s\n',hazard_set_file);
+    hazard.filename         =   hazard_set_file;
     save(hazard_set_file,'hazard')
 end
 
@@ -407,36 +410,36 @@ if check_plots
     ylabel('Latitude')
     hold off
     
-    figure('Name', 'MS hazard set (largest event) 3D','color', 'w')
-    surf(unique(hazard.lon),unique(hazard.lat),z./(111.12 * 1000));
-    %colormap(landcolor)
-    colormap(flipud(bone(50)))
-    shading interp
-    freezeColors
-    hold on
-    
-    % use surface plot to show varying colour along mudslide
-    x_ = slide_data(max_event).X;
-    y_ = slide_data(max_event).Y;
-    z_ = slide_data(max_event).Z ./(111.12 * 1000); % convert to degrees to use equal axis
-    c_ = slide_data(max_event).C;
-    s  = surface([x_;x_],[y_;y_],[z_;z_],[c_;c_],'edgecol','interp','linew',5, 'marker','o','markersize',1);
-    colormap(climada_colormap('MS'))
-    %colormap(flipud(hot))
-    caxis([min(hazard_intensity) max(hazard_intensity)])
-    cb = colorbar;
-    ylabel(cb,sprintf('mudslide depth [%s]',hazard.units))
-    
-   	title_str=sprintf('%s event %i on %s',hazard.peril_ID,event_i,datestr(hazard.datenum(event_i),'dddd dd mmmm yyyy'));
-    title(title_str)
-    xlabel('Longitude')
-    ylabel('Latitude')
-    
-    set(gca,'ztick',[], 'zcolor', 'w');
-    view(60,30)
-    axis equal
-    grid off
-    box off
+%     figure('Name', 'MS hazard set (largest event) 3D','color', 'w')
+%     surf(unique(hazard.lon),unique(hazard.lat),z./(111.12 * 1000));
+%     %colormap(landcolor)
+%     colormap(flipud(bone(50)))
+%     shading interp
+%     freezeColors
+%     hold on
+%     
+%     % use surface plot to show varying colour along mudslide
+%     x_ = slide_data(max_event).X;
+%     y_ = slide_data(max_event).Y;
+%     z_ = slide_data(max_event).Z ./(111.12 * 1000); % convert to degrees to use equal axis
+%     c_ = slide_data(max_event).C;
+%     s  = surface([x_;x_],[y_;y_],[z_;z_],[c_;c_],'edgecol','interp','linew',5, 'marker','o','markersize',1);
+%     colormap(climada_colormap('MS'))
+%     %colormap(flipud(hot))
+%     caxis([min(hazard_intensity) max(hazard_intensity)])
+%     cb = colorbar;
+%     ylabel(cb,sprintf('mudslide depth [%s]',hazard.units))
+%     
+%    	title_str=sprintf('%s event %i on %s',hazard.peril_ID,event_i,datestr(hazard.datenum(event_i),'dddd dd mmmm yyyy'));
+%     title(title_str)
+%     xlabel('Longitude')
+%     ylabel('Latitude')
+%     
+%     set(gca,'ztick',[], 'zcolor', 'w');
+%     view(60,30)
+%     axis equal
+%     grid off
+%     box off
     
 end
 
