@@ -66,23 +66,23 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % prompt for TR hazard event set if not given
 if isempty(hazard_rf) % local GUI
-    hazard_tr_file=[module_data_dir filesep 'hazards' filesep '*.mat'];
+    hazard_tr_file=[climada_global.data_dir filesep 'hazards' filesep '*.mat'];
     [filename, pathname] = uigetfile(hazard_tr_file,...
-        'Select a rainfall hazard event set:');
+        'Select a rainfall (eg TR) hazard event set:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
         hazard_tr_file =fullfile(pathname,filename);
     end
     load(hazard_tr_file);
+    hazard_rf=hazard;hazard=[];
 end
 
 % prompt for fl_hazard_save_file if not given
 if isempty(hazard_set_file) % local GUI
-    hazard_set_file=[module_data_dir filesep 'hazards' ...
-        filesep 'FL_hazard.mat'];
+    hazard_set_file=[climada_global.data_dir filesep 'hazards' filesep 'FL_hazard.mat'];
     [filename, pathname] = uiputfile(hazard_set_file, ...
-        'Save new flood hazard event set as:');
+        'Save new flood (FL) hazard event set as:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
@@ -101,6 +101,12 @@ hazard.intensity        =   zeros(size(hazard_rf.intensity));
 
 if isfield(hazard,'rainfield_comment')
     hazard = rmfield(hazard, 'rainfield_comment');
+end
+
+if isempty(centroids)
+    centroids.lon=hazard.lon';
+    centroids.lat=hazard.lat';
+    centroids.centroid_ID=hazard.centroid_ID;
 end
 
 centroids_n_flds = length(fieldnames(centroids));
