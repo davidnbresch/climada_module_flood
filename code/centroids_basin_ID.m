@@ -1,4 +1,4 @@
-function centroids = centroids_basin_ID(centroids, res, check_plots)
+function [centroids, extra_centroids] = centroids_basin_ID(centroids, res, check_plots)
 % assign basin ID to centroids
 % MODULE:
 %   tbd
@@ -41,6 +41,7 @@ function centroids = centroids_basin_ID(centroids, res, check_plots)
 % Gilles Stassen, gillesstassen@hotmail.com, 20150315, added use of subdir
 % Gilles Stassen, gillesstassen@hotmail.com, 20150327, automatic download functionality
 % Gilles Stassen, 20150408, clean up, the file finding piece in particular
+% Gilles Stassen, 20150701, extra_centroids added as arg out
 %-
 
 % set global variables
@@ -241,6 +242,14 @@ basin_IDs = cell2mat(basin_IDs);
 % basin_IDs = basin_identify(centroids.lon,centroids.lat,lon_polygons,lat_polygons,basin_names);
 centroids.basin_ID = round(basin_IDs./100).*100;
 fprintf('done \n')
+
+if nargout >1
+    for i = 1:length(shapes)
+        res_km = climada_geo_distance(min(shapes(i).X),min(shapes(i).Y),max(shapes(i).X),max(shapes(i).Y))/10000;
+        extra_centroids(i) = climada_generate_centroids(shapes(i),res_km,-1,'NO_SAVE',0);
+    end
+end
+
 
 % If required, generate a plot of the centroids highlighting the centroids
 % that have been assigned a basin ID, as well as the basin outlines

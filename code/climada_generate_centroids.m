@@ -28,7 +28,8 @@ function centroids = climada_generate_centroids(centroids_rectORcountry_nameORsh
 %   buffer_check:   specifies whether a lower resolution grid of centroids 
 %                   is generated outside the boundary defined by shapes,
 %                   or if the high resolution centroids fill the entire
-%                   boudning box (default = 1)
+%                   boudning box (default = 1). Can also be set to -1, for
+%                   centroids that only fill the shape
 %   save_file:      full pathname of save location. If set to 'AUTO',
 %                   centroids are automatically saved in the climada global 
 %                   data directory. If set to 'NO_SAVE', centroids will not 
@@ -65,7 +66,7 @@ end
 
 country_check = 0;
 country_name = '' ; ISO3 = ''; % init
-if ~exist('centroids_rectORcountry_nameORshapes','var')
+if ~exist('centroids_rectORcountry_nameORshapes','var') || isempty(centroids_rectORcountry_nameORshapes)
     if ~shapes_check
         % need shapes for country input
         fprintf('ERROR: no world border info found \n')

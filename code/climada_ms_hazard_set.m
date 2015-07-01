@@ -99,6 +99,10 @@ if isfield(hazard,'rainfield_comment')
     hazard = rmfield(hazard, 'rainfield_comment');
 end
 
+if isempty(centroids)
+    centroids = climada_generate_centroids([],0.09,0);
+end
+
 centroids_n_flds = length(fieldnames(centroids));
 
 centroids = climada_fl_centroids_prepare(centroids,0,0,'NO_SAVE');

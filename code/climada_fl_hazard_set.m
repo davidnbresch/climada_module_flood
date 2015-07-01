@@ -1,4 +1,4 @@
-function hazard = climada_fl_hazard_set(hazard_rf,centroids,hazard_set_file, check_plots)
+function hazard = climada_fl_hazard_set(centroids,hazard_rf,hazard_set_file, check_plots)
 % Generate flood hazard set from tr hazard set
 % MODULE:
 %   flood
@@ -110,8 +110,12 @@ if isempty(centroids)
 end
 
 centroids_n_flds = length(fieldnames(centroids));
+%-----
+% TWI basin ID, elevation, ET etc.
+%centroids = climada_fl_centroids_prepare(centroids,0,0,'NO_SAVE');
+climada_rf_hazard_set(centroids+centroids_extra)
 
-centroids = climada_fl_centroids_prepare(centroids,0,0,'NO_SAVE');
+
 
 % auto save if updated (i.e. new fields added)
 if isfield(centroids,'filename') && length(fieldnames(centroids)) > centroids_n_flds
@@ -204,15 +208,14 @@ for basin_i = 1:n_basins
 
         % index of floodable centroids, i.e. centroids lower in
         % elevation than highest r_ndx centroid
-        fl_ndx  = c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
+        fl_ndx      =   c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
 
-        rain_sum  =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
+        rain_sum    =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
 
         if wet_index_sum ~=0
-                hazard.intensity(event_i,fl_ndx) = rain_sum .*(centroids.TWI(fl_ndx) ./ wet_index_sum);
-
+            hazard.intensity(event_i,fl_ndx)    =   rain_sum *(centroids.TWI(fl_ndx) ./ wet_index_sum);
         else
-            hazard.intensity(event_i,fl_ndx)     =   rain_sum / sum(fl_ndx);
+            hazard.intensity(event_i,fl_ndx)    =   rain_sum / sum(fl_ndx);
         end
     end
 end
