@@ -51,6 +51,7 @@ function centroids = climada_generate_centroids(centroids_rectORcountry_nameORsh
 % Gilles Stassen, 20150408, increased buffer size
 % Gilles Stassen, 20150416, save functionality, general shape input
 % Gilles Stassen, 20150423, documentation updated
+% Gilles Stassen, 20150703, struct array shape input
 %-
 centroids = [];
 
@@ -76,10 +77,17 @@ if ~exist('centroids_rectORcountry_nameORshapes','var') || isempty(centroids_rec
     if length(shapes) == 1 && isfield(shapes,'BoundingBox')
         centroids_rect =[shapes.BoundingBox(:,1)' shapes.BoundingBox(:,2)'];
     else
+        if isfield(climada_global,'climada_global_ori')
+            tmp_climada_global = climada_global;
+            climada_global = climada_global.climada_global_ori;
+            load(climada_global.map_border_file)
+        end
         [country_name,ISO3,shape_index] = climada_country_name('Single');
+        if exist('tmp_climada_global','var'), climada_global = tmp_climada_global; clear tmp_climada_global;  end
+        shapes         = shapes(shape_index);
         if isempty(country_name), return; end % error message already printed in climada_country_name
-        bb             = [min(shapes(shape_index).X) min(shapes(shape_index).Y)
-                          max(shapes(shape_index).X) max(shapes(shape_index).Y)];
+        bb             = [min([shapes(:).X]) min([shapes(:).Y])
+                          max([shapes(:).X]) max([shapes(:).Y])];
         centroids_rect = [bb(:,1)' bb(:,2)']; clear bb
         country_check  = 1;
     end
@@ -92,11 +100,17 @@ elseif ischar(centroids_rectORcountry_nameORshapes)
     end
     %input is country name
     country_name = centroids_rectORcountry_nameORshapes; clear centroids_rectORcountry_name
+    if isfield(climada_global,'climada_global_ori')
+        tmp_climada_global = climada_global;
+        climada_global = climada_global.climada_global_ori;
+        load(climada_global.map_border_file)
+    end
     [country_name,ISO3,shape_index] = climada_country_name(country_name);
+    if exist('tmp_climada_global','var'), climada_global = tmp_climada_global; clear tmp_climada_global;  end
     if isempty(country_name),   return;             end % error message already printed in climada_country_name
-    if length(shapes) == 1,     shape_index = 1;    end
-    bb             = [min(shapes(shape_index).X) min(shapes(shape_index).Y)
-                      max(shapes(shape_index).X) max(shapes(shape_index).Y)];
+    shapes         = shapes(shape_index);
+    bb             = [min([shapes(:).X]) min([shapes(:).Y])
+                      max([shapes(:).X]) max([shapes(:).Y])];
     centroids_rect = [bb(:,1)' bb(:,2)']; clear bb
     country_check  = 1;
 elseif isnumeric(centroids_rectORcountry_nameORshapes) && length(centroids_rectORcountry_nameORshapes) == 4
@@ -105,12 +119,11 @@ elseif isnumeric(centroids_rectORcountry_nameORshapes) && length(centroids_rectO
     buffer_check   = 0;
 elseif isstruct(centroids_rectORcountry_nameORshapes)
     %input is shapes
-    shapes = centroids_rectORcountry_nameORshapes;
+    shapes = centroids_rectORcountry_nameORshapes; clear centroids_rectORcountry_name
     if isfield(shapes,'X') && isfield(shapes,'Y')
         shapes_check = 1;
-        shape_index  = 1;
-        bb             =   [min(shapes(shape_index).X) min(shapes(shape_index).Y)
-                            max(shapes(shape_index).X) max(shapes(shape_index).Y)];
+        bb             =   [min([shapes(:).X]) min([shapes(:).Y])
+                            max([shapes(:).X]) max([shapes(:).Y])];
         centroids_rect = [bb(:,1)' bb(:,2)']; clear bb
     else
         fprintf('ERROR: invalid input argument, shapes must have fields ''X'' and ''Y'' \n')
@@ -131,46 +144,62 @@ if ~exist('buffer_check',   'var'),     buffer_check    = 1;        end
 if ~exist('save_file','var')||isempty(save_file),save_file = 'AUTO';end
 if ~exist('check_plot',     'var'),     check_plot      = 0;        end
 
-min_lon = centroids_rect(1);
-max_lon = centroids_rect(2);
-min_lat = centroids_rect(3);
-max_lat = centroids_rect(4);
+min_lon = centroids_rect(1)-2*resolution_ang;
+max_lon = centroids_rect(2)+2*resolution_ang;
+min_lat = centroids_rect(3)-2*resolution_ang;
+max_lat = centroids_rect(4)+2*resolution_ang;
 
-n_lon = round((max_lon - min_lon)/(resolution_ang)) + 1;
-n_lat = round((max_lat - min_lat)/(resolution_ang)) + 1;
+lon = [min_lon:resolution_ang:max_lon];
+lat = [min_lat:resolution_ang:max_lat];
 
-fprintf(sprintf('generating centroids at %3.2f km resolution... ', resolution_km));
-t0 = clock;
-% construct regular grid
-for i = 0 : n_lon - 1
-    ndx = i * n_lat;
-    centroids.lat(1,ndx + 1 : ndx + n_lat)= (1:n_lat) .* resolution_ang + min_lat;
-    centroids.lon(1,ndx + 1 : ndx + n_lat)= (n_lon - i) .* resolution_ang + min_lon;
-end
+[lon, lat] = meshgrid(lon,lat);
+
+centroids.lon = reshape(lon,1,numel(lon));
+centroids.lat = reshape(lat,1,numel(lat));
+
+% n_lon = round((max_lon - min_lon)/(resolution_ang)) + 1;
+% n_lat = round((max_lat - min_lat)/(resolution_ang)) + 1;
+% 
+% % construct regular grid
+% for i = 0 : n_lon - 1
+%     ndx = i * n_lat;
+%     centroids.lat(1,ndx + 1 : ndx + n_lat)= (1:n_lat) .* resolution_ang + min_lat;
+%     centroids.lon(1,ndx + 1 : ndx + n_lat)= (n_lon - i) .* resolution_ang + min_lon;
+% end
 
 if shapes_check
     if buffer_check ==1
         % take only high resolution centroids for country
-        country_ndx   = inpolygon(centroids.lon,centroids.lat,shapes(shape_index).X,shapes(shape_index).Y);
-        centroids.lon = centroids.lon(country_ndx);
-        centroids.lat = centroids.lat(country_ndx);
+        in   = zeros(size(centroids.lon));
+        for i = 1:length(shapes)
+            in   = in | inpolygon(centroids.lon,centroids.lat,shapes(i).X,shapes(i).Y);
+        end
+        centroids.lon = centroids.lon(in);
+        centroids.lat = centroids.lat(in);
         
         % generate coarser grid for buffer centroids (resolution reduced by
         % factor of 4)
         buffer_resolution_ang = resolution_ang * 4;
-        n_lon = round((max_lon - min_lon)/(buffer_resolution_ang)) + 2;
-        n_lat = round((max_lat - min_lat)/(buffer_resolution_ang)) + 3;
+        min_lon = centroids_rect(1)-buffer_resolution_ang;
+        max_lon = centroids_rect(2)+buffer_resolution_ang;
+        min_lat = centroids_rect(3)-buffer_resolution_ang;
+        max_lat = centroids_rect(4)+buffer_resolution_ang;
 
-        for i = 0 : n_lon + 1
-            ndx = i * n_lat;
-            buffer.lat(1,ndx + 1 : ndx + n_lat)= (-1 : n_lat-2) .* buffer_resolution_ang + min_lat;
-            buffer.lon(1,ndx + 1 : ndx + n_lat)= (n_lon - i) .* buffer_resolution_ang + min_lon;
-        end
+        lon = [min_lon:buffer_resolution_ang:max_lon];
+        lat = [min_lat:buffer_resolution_ang:max_lat];
+
+        [lon, lat] = meshgrid(lon,lat);
+
+        buffer.lon = reshape(lon,1,numel(lon));
+        buffer.lat = reshape(lat,1,numel(lat));
         
         % take only buffer centroids outside country border
-        buffer_ndx = inpolygon(buffer.lon,buffer.lat,shapes(shape_index).X,shapes(shape_index).Y);
-        buffer.lon = buffer.lon(~buffer_ndx);
-        buffer.lat = buffer.lat(~buffer_ndx);
+        out = ones(size(buffer.lon));
+        for i = 1:length(shapes)
+            out     = out & ~inpolygon(buffer.lon,buffer.lat,shapes(i).X,shapes(i).Y);
+        end
+        buffer.lon = buffer.lon(out);
+        buffer.lat = buffer.lat(out);
         
         % concatenate
         buffer_logical      = [zeros(size(centroids.lon)) ones(size(buffer.lon))];
@@ -178,12 +207,15 @@ if shapes_check
         centroids.lat       = [centroids.lat buffer.lat];
     elseif buffer_check == -1
         % take only high resolution centroids for country
-        country_ndx   = inpolygon(centroids.lon,centroids.lat,shapes(shape_index).X,shapes(shape_index).Y);
-        centroids.lon = centroids.lon(country_ndx);
-        centroids.lat = centroids.lat(country_ndx);
+        in   = zeros(size(centroids.lon));
+        for i = 1:length(shapes)
+            in   = in | inpolygon(centroids.lon,centroids.lat,shapes(i).X,shapes(i).Y);
+        end
+        centroids.lon = centroids.lon(in);
+        centroids.lat = centroids.lat(in);
     end
     
-    if exist('country_name','var') 
+    if ~isempty(country_name) 
         for i = 1 : length(centroids.lon)
             centroids.country_name{i} = country_name;
         end
@@ -197,6 +229,15 @@ if shapes_check
         end
         if isfield(shapes,'ADM0_A3')
             centroids.admin0_ISO3 = shapes.ADM0_A3;
+        end
+        if isfield(shapes,'NAME_0')
+            for i = 1 : length(centroids.lon)
+                centroids.country_name{i} = shapes(1).NAME_0;
+            end
+            centroids.admin0_name = shapes(1).NAME_0;
+        end
+        if isfield(shapes,'ISO')
+            centroids.admin0_ISO3 = shapes(1).ISO;
         end
     end
 end
@@ -218,9 +259,6 @@ end
 % else
 %     fprintf('WARNING: coastline info not found, .onLand set to NaN \n')
 % end
-fprintf('done \n')
-tf = clock;
-fprintf('generating %i centroids for %s took %3.2f seconds \n',length(centroids.centroid_ID),char(country_name), etime(tf,t0));
 centroids.comment = sprintf('%3.2f km resolution centroids, created on %s', resolution_km,datestr(now,'dd/mm/yyyy'));
 
 if ischar(save_file) && ~strcmp(save_file,'NO_SAVE')
@@ -249,7 +287,7 @@ if check_plot
     if exist('country_name','var') && ~isempty(country_name)
         title(sprintf('Centroids for %s',country_name));
     end
-    axis([min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)])
+    axis([min_lon max_lon min_lat max_lat])
     xlabel('Longitude')
     ylabel('Latitude')
 end
