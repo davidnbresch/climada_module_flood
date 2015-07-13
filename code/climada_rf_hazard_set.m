@@ -1,4 +1,4 @@
-function hazard = climada_rf_hazard_set(centroids, precip_file, x_fraction, ens_size, ens_amp, hazard_set_file, check_plots)
+function hazard = climada_rf_hazard_set(centroids, precip_file, hazard_set_file,x_fraction, ens_size, ens_amp, check_plots)
 % climada RF hazard event set
 % NAME:
 %   climada_RF_hazard_set
@@ -61,7 +61,7 @@ if isempty(precip_file) || ~ischar(precip_file) || (~isempty(precip_file) && ~ex
         precip_file = subdir([module_data_dir filesep precip_file]);
     catch
         precip_file = subdir([root_dir filesep precip_file]);
-        precip_dir = fileparts(precip_file.name);
+        precip_dir  = fileparts(precip_file.name);
     end
     init_time = datenum(1990,01,01); % hard wired for GPCP
     
@@ -146,19 +146,26 @@ for fld_i = 1: numel(flds)
 end
 
 % restructure gridded data in array format
-[p_data.precip, p_data.lon, p_data.lat]=climada_grid2array(permute(tmp_p_d.precip,[1 2 3]), tmp_p_d.lon, tmp_p_d.lat);
+[lon,lat] = meshgrid(tmp_p_d.lon,tmp_p_d.lat);
+p_data.lon      = reshape(lon,[numel(lon) 1]);
+p_data.lat      = reshape(lat,[numel(lat) 1]);
+p_data.precip   = reshape(tmp_p_d.precip,[numel(lon) size(tmp_p_d.precip,3)]);
+
+% old:
+% [p_data.precip, p_data.lon, p_data.lat]=climada_grid2array(permute(tmp_p_d.precip,[1 2 3]), tmp_p_d.lon, tmp_p_d.lat);
+
 if max(p_data.lon) > 180, p_data.lon = p_data.lon - 180; end
 
-p_data.time = tmp_p_d.time + init_time;
+p_data.time = double(tmp_p_d.time) + init_time;
 
 % select relevant spatial region
 bb = 0.5;   % buffer
 s_ndx = (p_data.lon >= floor(centroids_rect(1))-bb & p_data.lon <= ceil(centroids_rect(2))+bb) & ...
     (p_data.lat >= floor(centroids_rect(3))-bb & p_data.lat <= ceil(centroids_rect(4))+bb);
 
-p_data.lon      = p_data.lon(s_ndx);
-p_data.lat      = p_data.lat(s_ndx);
-p_data.precip   = p_data.precip(s_ndx,:);
+p_data.lon      = double(p_data.lon(s_ndx));
+p_data.lat      = double(p_data.lat(s_ndx));
+p_data.precip   = double(p_data.precip(s_ndx,:));
 clear s_ndx tmp_p_d
 
 
@@ -179,46 +186,51 @@ p_data.dd               = str2num(datestr(p_data.time,'dd'));
 
 orig_years  = max(p_data.yyyy) - min(p_data.yyyy) +1;
 
-% Construct p_data_x struct with x_fraction most extreme events
-p_data_x.lon                = double(p_data.lon);
-p_data_x.lat                = double(p_data.lat);
-p_data_x.precip             = [];
-p_data_x.orig_event_flag    = [];
-p_data_x.time               = [];
-p_data_x.yyyy               = [];
-p_data_x.mm                 = [];
-p_data_x.dd                 = [];
-for year_i = min(p_data.yyyy):max(p_data.yyyy)
-    % subset for year_i
-    p_data_year_i.precip    = p_data.precip (:,p_data.yyyy == year_i);
-    p_data_year_i.time      = p_data.time   (  p_data.yyyy == year_i);
-    p_data_year_i.yyyy      = p_data.yyyy   (  p_data.yyyy == year_i);
-    p_data_year_i.mm        = p_data.mm     (  p_data.yyyy == year_i);
-    p_data_year_i.dd        = p_data.dd     (  p_data.yyyy == year_i);
-    
-    % number of non-zero rain events per year
-    nz      = sum(sum(p_data_year_i.precip,1)~=0);
-    % number of extreme events of interest
-    nx      = ceil(x_fraction * nz);
-    
-    [~,ndx] = sort(sum(p_data_year_i.precip,1),'descend');
-    
-    for x_i = ndx(1:nx)
-        % generate wiggle matrix by drawing random numbers from normal dist
-        % normrnd in stats toolbox, use randn
-        % wiggle_matrix   = normrnd(1,ens_amp,length(p_data.lon),ens_size);
-        wiggle_matrix   = 1 + ens_amp .* randn(length(p_data.lon),ens_size);
-        p_data_x.precip(:,end+1)    = p_data_year_i.precip(:,x_i);
-        p_data_x.precip(:,end+1:end+ens_size) = bsxfun(@times,p_data_year_i.precip(:,x_i),wiggle_matrix);
-        
-        p_data_x.orig_event_flag(end+1)                 = 1;
-        p_data_x.orig_event_flag(end+1:end+ens_size)    = 0;
-        
-        p_data_x.time(end+1:end+ens_size+1)   = p_data_year_i.time(x_i);
-        p_data_x.yyyy(end+1:end+ens_size+1)   = p_data_year_i.yyyy(x_i);
-        p_data_x.mm  (end+1:end+ens_size+1)   = p_data_year_i.mm  (x_i);
-        p_data_x.dd  (end+1:end+ens_size+1)   = p_data_year_i.dd  (x_i);
+if ens_size >0
+    % Construct p_data_x struct with x_fraction most extreme events
+    p_data_x.lon                = p_data.lon;
+    p_data_x.lat                = p_data.lat;
+    p_data_x.precip             = [];
+    p_data_x.orig_event_flag    = [];
+    p_data_x.time               = [];
+    p_data_x.yyyy               = [];
+    p_data_x.mm                 = [];
+    p_data_x.dd                 = [];
+    for year_i = min(p_data.yyyy):max(p_data.yyyy)
+        % subset for year_i
+        p_data_year_i.precip    = p_data.precip (:,p_data.yyyy == year_i);
+        p_data_year_i.time      = p_data.time   (  p_data.yyyy == year_i);
+        p_data_year_i.yyyy      = p_data.yyyy   (  p_data.yyyy == year_i);
+        p_data_year_i.mm        = p_data.mm     (  p_data.yyyy == year_i);
+        p_data_year_i.dd        = p_data.dd     (  p_data.yyyy == year_i);
+
+        % number of non-zero rain events per year
+        nz      = sum(sum(p_data_year_i.precip,1)~=0);
+        % number of extreme events of interest
+        nx      = ceil(x_fraction * nz);
+
+        [~,ndx] = sort(sum(p_data_year_i.precip,1),'descend');
+
+        for x_i = ndx(1:nx)
+            % generate wiggle matrix by drawing random numbers from normal dist
+            % normrnd in stats toolbox, use randn
+            % wiggle_matrix   = normrnd(1,ens_amp,length(p_data.lon),ens_size);
+            wiggle_matrix   = 1 + ens_amp .* randn(length(p_data.lon),ens_size);
+            p_data_x.precip(:,end+1)    = p_data_year_i.precip(:,x_i);
+            p_data_x.precip(:,end+1:end+ens_size) = bsxfun(@times,p_data_year_i.precip(:,x_i),wiggle_matrix);
+
+            p_data_x.orig_event_flag(end+1)                 = 1;
+            p_data_x.orig_event_flag(end+1:end+ens_size)    = 0;
+
+            p_data_x.time(end+1:end+ens_size+1)   = p_data_year_i.time(x_i);
+            p_data_x.yyyy(end+1:end+ens_size+1)   = p_data_year_i.yyyy(x_i);
+            p_data_x.mm  (end+1:end+ens_size+1)   = p_data_year_i.mm  (x_i);
+            p_data_x.dd  (end+1:end+ens_size+1)   = p_data_year_i.dd  (x_i);
+        end
     end
+else
+    p_data_x                 	= p_data;
+    p_data_x.orig_event_flag	= ones(size(p_data.time));
 end
 
 % set NaNs to zero
@@ -235,11 +247,11 @@ hazard.orig_years       = orig_years;
 hazard.orig_event_count = sum   (p_data_x.orig_event_flag);
 hazard.event_count      = length(p_data_x.orig_event_flag);
 hazard.event_ID         = 1:hazard.event_count;
-hazard.orig_event_flag  = p_data_x.orig_event_flag;
-hazard.yyyy             = p_data_x.yyyy;
-hazard.mm               = p_data_x.mm;
-hazard.dd               = p_data_x.dd;
-hazard.datenum          = p_data_x.time;
+hazard.orig_event_flag  = p_data_x.orig_event_flag';
+hazard.yyyy             = p_data_x.yyyy';
+hazard.mm               = p_data_x.mm';
+hazard.dd               = p_data_x.dd';
+hazard.datenum          = p_data_x.time';
 
 event_frequency         = 1/(orig_years*(ens_size+1));
 hazard.frequency        = ones(1,hazard.event_count)*event_frequency;
