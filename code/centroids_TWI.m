@@ -194,14 +194,15 @@ gradients = zeros(a,b,8);
 
 % For southeastern, southwestern, northwestern and northeastern neighbours,
 % the gradient is calculated by taking the elevation difference of the two
-% cells and dividing it by sqrt(2*grid_cell_size)
+% cells and dividing it by sqrt(2)*grid_cell_size
 % For the time being, we use dx as a mean value for grid cell size; for
 % NOAA's global 1 arc-minute ETOPO1 data, the horizontal resolution at the
 % equator would be approximately 1.85 kilometers):
+% 070715 - diagonal from pythagoras
 for c = 2:2:8
-    average_grid_cell_size = (dx+dy)/2;
+    cell_diag = sqrt(dx^2+dy^2);
     gradients(:,:,c) = (circshift(z,[shift_matrix(c,1) shift_matrix(c,2)])...
-        -z)/sqrt(2*average_grid_cell_size);
+        -z)/cell_diag;
 end
 % For eastern, western, southern, and northern neighbours, the gradient is
 % simply calculated by taking the elevation difference of the two cells and
@@ -210,7 +211,7 @@ end
 for c = 1:2:7
     gradients(:,:,c) = (circshift(z,[shift_matrix(c,1) shift_matrix(c,2)])-z)/dx;
 end
-gradients = atan(gradients)/pi*2;
+gradients = atand(gradients);%/pi*2;
 
 %----------------------
 % Prep for the calculation of flow accumulation (resulting in flood
@@ -222,6 +223,7 @@ gradients = atan(gradients)/pi*2;
 % factor.
 % Flow of positive gradients is set to zero.
 outflow_weighted = (gradients.*(-1*gradients<0)).^weighting_factor;
+% outflow_weighted = (abs(gradients)).^weighting_factor;
 
 % 2) Sum up gradients such that for each grid cell, outflow_gradients_sum
 % contains the sum of the gradients to the grid cell's 8 neighbouring cells
@@ -297,42 +299,42 @@ fprintf(' done\n');
 % angle, and flow accumulation
 if check_plots
     
-    % plot elevation data
-    figure('Name','Elevation','Color',[1 1 1]);
-    climada_DEM_plot(unique(lon),unique(lat),z)
-    
-    % plot slope
-    figure('Name','Slope','Color',[1 1 1]);
-    h = pcolor(slope);
-    colormap(jet), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Slope [degrees]')
-    [r, c] = size(slope);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-    
-    % plot aspect angle
-    figure('Name','Aspect','Color',[1 1 1]);
-    h=pcolor(aspect);
-    colormap(hsv),colorbar
-    set(h,'Linestyle','none')
-    axis equal
-    title('Aspect')
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
-    
-    % Plot flow accumulation
-    figure('Name','Flood scores','Color',[1 1 1]);
-    h = pcolor(log(1+total_flow_accumulation));
-    %h = pcolor(total_flow_accumulation);
-    colormap(flipud(jet)), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Flood scores')
-    [r, c] = size(total_flow_accumulation);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
+%     % plot elevation data
+%     figure('Name','Elevation','Color',[1 1 1]);
+%     climada_DEM_plot(unique(lon),unique(lat),z)
+%     
+%     % plot slope
+%     figure('Name','Slope','Color',[1 1 1]);
+%     h = pcolor(slope);
+%     colormap(jet), colorbar
+%     set(h,'LineStyle','none')
+%     axis equal
+%     title('Slope [degrees]')
+%     [r, c] = size(slope);
+%     axis([1 c 1 r])
+%     set(gca,'TickDir','out')
+%     
+%     % plot aspect angle
+%     figure('Name','Aspect','Color',[1 1 1]);
+%     h=pcolor(aspect);
+%     colormap(hsv),colorbar
+%     set(h,'Linestyle','none')
+%     axis equal
+%     title('Aspect')
+%     axis([1 c 1 r])
+%     set(gca,'TickDir','out')
+%     
+%     % Plot flow accumulation
+%     figure('Name','Flood scores','Color',[1 1 1]);
+%     h = pcolor(log(1+total_flow_accumulation));
+%     %h = pcolor(total_flow_accumulation);
+%     colormap(flipud(jet)), colorbar
+%     set(h,'LineStyle','none')
+%     axis equal
+%     title('Flood scores')
+%     [r, c] = size(total_flow_accumulation);
+%     axis([1 c 1 r])
+%     set(gca,'TickDir','out')
     
     % Plot wetness index
     figure('Name','Topographic wetness index','Color',[1 1 1]);

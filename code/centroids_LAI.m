@@ -74,8 +74,7 @@ min_lat=-90; % degree, defined on the webpage above
 max_lat= 90; % defined on the webpage above
 %
 % prepare bounding box 
-bbox = [min(centroids.lon), min(centroids.lat), max(centroids.lon), max(centroids.lat)];
-
+bbox = [min(centroids.lon)-1, min(centroids.lat)-1,max(centroids.lon)+1, max(centroids.lat)+1];
 % for progress mgmt
 t0 = clock;
 format_str = '%s';
@@ -142,7 +141,7 @@ for month_i = 1 : 12
         drawnow
     end
     
-    centroids.LAI(month_i,:)=interp2(X, Y, double(full_img),centroids.lon,centroids.lat);
+    centroids.LAI(month_i,:)=interp2(X, Y, double(full_img),centroids.lon,centroids.lat,'linear');
     
     t_elapsed_month   = etime(clock,t0)/month_i;
     months_remaining  = 12-month_i;

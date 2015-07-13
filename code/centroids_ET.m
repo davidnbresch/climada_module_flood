@@ -81,7 +81,7 @@ max_lat= 80;
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global ET map)
 % bbox=[minlon minlat maxlon maxlat]
-bbox = [min(centroids.lon), min(centroids.lat),max(centroids.lon), max(centroids.lat)];
+bbox = [min(centroids.lon)-1, min(centroids.lat)-1,max(centroids.lon)+1, max(centroids.lat)+1];
 
 [fP,fN,~] = fileparts(ET_file);
 ET_file_mat = [fP filesep fN '.mat'];
@@ -121,7 +121,7 @@ lat         = lat(lat_crop_ndx);
 [LON,LAT]	= meshgrid(lon,lat); % construct regular grid
 
 fprintf('assigning evapotranspiration values to centroids... ')
-centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'nearest');
+centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'linear');
 
 
 % perhaps a better method fro .onLand
@@ -143,7 +143,7 @@ centroids.ET_mm_day = centroids.ET_mm_day./65500;
 % convert range of greyscale values (uint16, i.e. values range from 0
 % to 65535) into actual evapotranspiration (in mm/day). (the factor 0.1
 % is taken from MODIS website)
-centroids.ET_mm_day = centroids.ET_mm_day.*0.1 ./365;
+centroids.ET_mm_day = centroids.ET_mm_day./0.1;
 fprintf(' done\n');
 
 if check_plots

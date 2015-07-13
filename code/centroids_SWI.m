@@ -21,7 +21,7 @@ function centroids=centroids_SWI(centroids, check_plots)
 %   The image needs to be placed in data/system of the climada module flood
 %
 %   NOTE: Since only daily data are provided under the link above, a
-%       grayscale picture of the annual mean LAI needs to be produced
+%       grayscale picture of the annual mean SWI needs to be produced
 %       manually adding monthly pictures and taking the average.
 % CALLING SEQUENCE:
 %   centroids = centroids_SWI_assign(centroids, check_plots)
@@ -75,8 +75,7 @@ max_lat= 90;
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global SWI map)
 % bbox=[minlon minlat maxlon maxlat]
-bbox = [min(centroids.lon), min(centroids.lat),...
-    max(centroids.lon), max(centroids.lat)];
+bbox = [min(centroids.lon)-1, min(centroids.lat)-1,max(centroids.lon)+1, max(centroids.lat)+1];
 
 [fP,fN,~] = fileparts(SWI_file);
 SWI_file_mat = [fP filesep fN '.mat'];
@@ -132,7 +131,7 @@ lat         = lat(lat_crop_ndx);
 img(img==missing_data_value) = 0;
 
 fprintf('assigning evapotranspiration values to centroids... ')
-centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'nearest');
+centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'cubic');
 
 % convert range of greyscale values into actual soil water indices
 % ranging from 0 to 100

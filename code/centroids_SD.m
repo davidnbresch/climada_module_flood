@@ -63,7 +63,7 @@ max_lat= 90;
 %
 % prepare bounding box (for speedup; we only want to look at a section of
 % the global SD map)
-bbox = [min(centroids.lon), min(centroids.lat),max(centroids.lon), max(centroids.lat)];
+bbox = [min(centroids.lon)-1, min(centroids.lat)-1,max(centroids.lon)+1, max(centroids.lat)+1];
 
 [fP,fN,~] = fileparts(SD_file);
 SD_file_mat = [fP filesep fN '.mat'];
