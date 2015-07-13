@@ -1,4 +1,4 @@
-function [centroids, extra_centroids] = centroids_basin_ID(centroids, res, check_plots)
+function [centroids, shapes] = centroids_basin_ID(centroids, res, check_plots)
 % assign basin ID to centroids
 % MODULE:
 %   tbd
@@ -41,7 +41,6 @@ function [centroids, extra_centroids] = centroids_basin_ID(centroids, res, check
 % Gilles Stassen, gillesstassen@hotmail.com, 20150315, added use of subdir
 % Gilles Stassen, gillesstassen@hotmail.com, 20150327, automatic download functionality
 % Gilles Stassen, 20150408, clean up, the file finding piece in particular
-% Gilles Stassen, 20150701, extra_centroids added as arg out
 %-
 
 % set global variables
@@ -132,7 +131,7 @@ if isfield(centroids, 'admin0_ISO3')
         return;
     end
     shapefile_name = sprintf('%s_bas_%s_beta',fields{continent_ndx},res_string);
-    % special cases
+    % special cases !!!!THERE ARE PROBABLY MORE THAN THE TWO BELOW!!!!
     % Mexico would otherwise be assinged to North America
     if strcmp(centroids.admin0_ISO3,'MEX') || strcmp(centroids.admin0_ISO3,'SLV')
         shapefile_name = sprintf('ca_bas_%s_beta',res_string);
@@ -207,7 +206,7 @@ for basin_i = 1: length(shapes)
     end
 end
 
-shapes(~preselect_basin_IDs) = [];
+shapes(~preselect_basin_IDs) = [];  % relevant shapes, also for arg out
 
 % Prepare input for basin_identify
 tmp = struct2cell(shapes).'; lon_polygons = tmp(:,3); clear tmp;
@@ -228,7 +227,7 @@ for basin_i=1:length(basin_names)
     tmp_lon = [tmp_lon tmp_lon(1)];   %to wrap around
     tmp_lat = [tmp_lat tmp_lat(1)];
         
-    ndx = inpolygon(lon_pts,lat_pts,tmp_lon,tmp_lat);
+    ndx = inpolygon(centroids.lon,centroids.lat,tmp_lon,tmp_lat);
     if(sum(ndx)>0)
         basin_IDs(ndx) = {basin_str};
     end
@@ -242,13 +241,6 @@ basin_IDs = cell2mat(basin_IDs);
 % basin_IDs = basin_identify(centroids.lon,centroids.lat,lon_polygons,lat_polygons,basin_names);
 centroids.basin_ID = round(basin_IDs./100).*100;
 fprintf('done \n')
-
-if nargout >1
-    for i = 1:length(shapes)
-        res_km = climada_geo_distance(min(shapes(i).X),min(shapes(i).Y),max(shapes(i).X),max(shapes(i).Y))/10000;
-        extra_centroids(i) = climada_generate_centroids(shapes(i),res_km,-1,'NO_SAVE',0);
-    end
-end
 
 
 % If required, generate a plot of the centroids highlighting the centroids
