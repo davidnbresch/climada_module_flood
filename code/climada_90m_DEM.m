@@ -1,4 +1,4 @@
-function [DEM, centroids] = climada_read_srtm_DEM(centroidsORcountry, srtm_dir, DEM_save_file, smooth, check_plot)
+function [centroids, DEM] = climada_90m_DEM(centroidsORcountry, srtm_dir, DEM_save_file, smooth, check_plot)
 % climada
 % MODULE:
 %   barisal_demo
@@ -8,11 +8,11 @@ function [DEM, centroids] = climada_read_srtm_DEM(centroidsORcountry, srtm_dir, 
 %   Read the digital elevation model data from the files in an existing
 %   srtm directory. Data can be downloaded from http://srtm.csi.cgiar.org/SELECTION/inputCoord.asp
 % CALLING SEQUENCE:
-%   DEM = climada_read_srtm_DEM(centroids, srtm_dir, DEM_save_file, smooth, check_plot)
+%   [centroids,DEM] = climada_90m_DEM(centroids, srtm_dir, DEM_save_file, smooth, check_plot)
 % EXAMPLE:
-%   DEM = climada_read_srtm_DEM('Netherlands',[],[],[],1)
-%   DEM = climada_read_srtm_DEM
-%   [DEM, centroids] = climada_read_srtm_DEM([min_lon max_lon min_lat max_lat],srtm_dir,DEM_save_file, 4,1)
+%   [centroids,DEM] = climada_90m_DEM('Netherlands',[],[],[],1)
+%   [~,DEM] = climada_90m_DEM
+%   [centroids,DEM] = climada_90m_DEM([min_lon max_lon min_lat max_lat],srtm_dir,DEM_save_file, 4,1)
 % INPUTS:
 % OPTIONAL INPUT PARAMETERS:
 %   centroids:  If centroids are provided as an input, the DEM will contain
@@ -61,6 +61,9 @@ function [DEM, centroids] = climada_read_srtm_DEM(centroidsORcountry, srtm_dir, 
 %                               and added messages to warn of DEM edges
 %   Gilles Stassen 20150225     cleanup and added automatic download and
 %                               unzip feature
+%   Gilles Stassen 20150707     renamed climada_read_srtm_DEM->climada_90m_DEM
+%                               usage of climada_grid2array replaced with
+%                               reshape, some further bug fixes
 %-
 
 DEM =[];
@@ -77,7 +80,7 @@ if ~exist('centroidsORcountry', 'var'),     centroidsORcountry  = [];   end
 if ~exist('srtm_dir',           'var'),     srtm_dir            = 'DL'; end
 if ~exist('DEM_save_file',      'var'),     DEM_save_file       = [];   end
 if ~exist('smooth',             'var'),     smooth              = [];   end
-if ~exist('check_plot',         'var'),     check_plot          = 1;    end
+if ~exist('check_plot',         'var'),     check_plot          = 0;    end
 
 if ~isempty(centroidsORcountry)
     if isstruct(centroidsORcountry)
@@ -295,6 +298,8 @@ end
 [LON, LAT] = meshgrid(linspace(reference_box(1),reference_box(2),size(DEM_grid,1)),...
     linspace(reference_box(3),reference_box(4),size(DEM_grid,2)));
 
+LAT = flipud(LAT);
+
 lon = reshape(LON,numel(LON),1);
 lat = reshape(LAT,numel(LAT),1);
 elev = reshape(DEM_grid,numel(DEM_grid),1);
@@ -437,7 +442,7 @@ else
 end
 clear elev lon lat
 
-if ~isempty(DEM_save_file)
+if ~isempty(DEM_save_file) && ~strcmp(DEM_save_file,'NO_SAVE')
     save(DEM_save_file,'DEM');
 end
 

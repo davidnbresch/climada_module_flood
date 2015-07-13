@@ -81,7 +81,7 @@ if ~exist('save_file',   'var'),    save_file = 'AUTO';     end
 
 % Step 1: Compute centroid elevation fro
 if ~isfield(centroids,'elevation_m')
-    [~,centroids] = climada_read_srtm_DEM('DL',centroids,[],[],check_plots);
+    [~,centroids] = climada_90m_DEM(centroids,'DL',[],[],check_plots);
 end
 
 % Step 2: Calculate topographic wetness index (TWI) 
