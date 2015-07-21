@@ -48,6 +48,8 @@ function centroids = centroids_TWI(centroids, check_plots)
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
 % Gilles Stassen, gillesstassen@hotmail.com, 20150407, clean up
+% Lea Mueller, muellele@gmail.com, 20150720, bugfix, quick+dirty workaround
+%              to create meshgrid and allocate FL_score, @Gilles: please check and correct
 %-
 
 global climada_global
@@ -99,8 +101,11 @@ end
 % ignore the earth's slightly ellipsoid shape. The difference in
 % longitude (lon) is calculated based on:
 % length of 1 degree of lon = cosine(lat) * length of degree at equator
-lon_singleton = [min(centroids.lon):min(diff(unique(centroids.lon))):max(centroids.lon)];
-lat_singleton = [min(centroids.lat):min(diff(unique(centroids.lat))):max(centroids.lat)];
+% lon_singleton = [min(centroids.lon):min(diff(unique(centroids.lon))):max(centroids.lon)];
+% lat_singleton = [min(centroids.lat):min(diff(unique(centroids.lat))):max(centroids.lat)];
+factor_f = 1;
+lon_singleton = [min(centroids.lon):diff(centroids.lat(1:2))*factor_f:max(centroids.lon)];
+lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centroids.lat)];
 
 [lon, lat] = meshgrid(lon_singleton,lat_singleton);
 
@@ -109,8 +114,10 @@ lat_singleton = [min(centroids.lat):min(diff(unique(centroids.lat))):max(centroi
 x = lon_singleton .* (cos(mean(mean(lat))*pi/180)* 111.12 * 1000); 
 y = lat_singleton .* (111.12 * 1000);
 
-dx = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
-dy = min(diff(unique(centroids.lat))) * (111.12 * 1000);
+% dx = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
+% dy = min(diff(unique(centroids.lat))) * (111.12 * 1000);
+dx = diff(centroids.lat(1:2))*factor_f * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
+dy = diff(centroids.lat(1:2))*factor_f * (111.12 * 1000);
 
 % dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
 % dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
@@ -273,14 +280,27 @@ wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
 % centroid IDs (which do not in all cases start at 1!) and assign the
 % respective flow accumulation numbers (the so-called flood scores)
 fprintf('assigning derived topographic properties to centroids...')
+% init
+centroids.FL_score   = zeros(size(centroids.lon));
+centroids.TWI        = zeros(size(centroids.lon));
+centroids.slope_deg  = zeros(size(centroids.lon));
+centroids.area_m2    = zeros(size(centroids.lon));
+centroids.aspect_deg = zeros(size(centroids.lon));
+centroids.sink_ID    = zeros(size(centroids.lon));
 for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
     centroids_ndx                   = c_ID == centroid_i;
-    centroids.FL_score(centroid_i)  = mean(total_flow_accumulation(centroids_ndx));
-    centroids.TWI(centroid_i)       = mean(wet_index(centroids_ndx));
-    centroids.slope_deg(centroid_i) = max (slope (centroids_ndx));
-    centroids.area_m2(centroid_i) 	= mean(area  (centroids_ndx));
-    centroids.aspect_deg(centroid_i)= mean(aspect(centroids_ndx));
-    centroids.sink_ID(centroid_i)   = sink_cID(centroids_ndx);
+    centroids.FL_score(centroid_i)  = nanmean(total_flow_accumulation(centroids_ndx));
+    centroids.TWI(centroid_i)       = nanmean(wet_index(centroids_ndx));
+    % please check and correct
+    if sum(centroids_ndx(:))==1
+        centroids.slope_deg(centroid_i) = max(slope(centroids_ndx));
+    end
+        centroids.area_m2(centroid_i) 	= nanmean(area  (centroids_ndx));
+        centroids.aspect_deg(centroid_i)= nanmean(aspect(centroids_ndx));
+    % please check and correct
+    if sum(centroids_ndx(:))==1 
+        centroids.sink_ID(centroid_i)= sink_cID(centroids_ndx);
+    end
 end
 
 centroids.FL_score(isnan(centroids.FL_score))=0;
