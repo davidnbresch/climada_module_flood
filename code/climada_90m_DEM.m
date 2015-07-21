@@ -64,7 +64,9 @@ function [centroids, DEM] = climada_90m_DEM(centroidsORcountry, srtm_dir, DEM_sa
 %   Gilles Stassen 20150707     renamed climada_read_srtm_DEM->climada_90m_DEM
 %                               usage of climada_grid2array replaced with
 %                               reshape, some further bug fixes
-%-
+%   Lea Mueller, muellele@gmail.com, 20150720, @Gilles, please correct,
+%   code does not work, srtm_19_10 is a .tif.aux.xml, not a .tif, probably
+%   file was not copied from your drive to the shared drive
 
 DEM =[];
 
@@ -154,11 +156,11 @@ if strcmp(srtm_dir, 'DL')
     t0 = clock;
     format_str = '%s';
     for tile_i = 1 : n_tiles
-        srtm_fN {tile_i}    = strcat('srtm_',num2str(I(tile_i),'%02.0f'),'_',num2str(J(tile_i),'%02.0f'));
+        srtm_fN{tile_i}     = strcat('srtm_',num2str(I(tile_i),'%02.0f'),'_',num2str(J(tile_i),'%02.0f'));
         srtm_dir{tile_i}    = [module_data_dir filesep 'system' filesep srtm_fN{tile_i}];
         srtm_URL{tile_i}    = ['ftp://srtm.csi.cgiar.org/SRTM_V41/SRTM_Data_GeoTiff/' srtm_fN{tile_i} '.zip'];
         
-        if exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.tif'],'file') && ...
+        if ...%exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.tif'],'file') && ...
                 exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.hdr'],'file')
             substr = sprintf('%s already exists - skipping', srtm_fN{tile_i});
             skip_file = 1;
@@ -257,7 +259,7 @@ for tile_i = 1 : n_tiles
     for file_i = 1 : numel(srtm_files)
         [~, ~, fE] = fileparts(srtm_files(file_i).name);
         
-        if strcmp(fE, '.tif')
+        if strcmp(fE, '.tif') || strcmp(fE, '.tif.aux.xml')
             raw(I(tile_i),J(tile_i)).grid = imread([srtm_dir{tile_i} filesep srtm_files(file_i).name]);
             break;
         end
