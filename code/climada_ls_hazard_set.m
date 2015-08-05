@@ -71,7 +71,7 @@ if ~climada_init_vars, return; end
 if ~exist('hazardORcentroids',  'var'),     hazardORcentroids   = [];   end
 if ~exist('focus_areas',        'var'),     focus_areas         = [];   end
 if ~exist('hazard_set_file',    'var'),     hazard_set_file     = [];   end
-if ~exist('check_plots',        'var'),     check_plots         = 0;    end
+if ~exist('check_plots',        'var'),     check_plots         = 1;    end
 if ~exist('chrono_check',       'var'),     chrono_check        = 1;    end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
@@ -129,7 +129,7 @@ end
 % for testing purposes
 % snapshot_year = [2004 2005]; % 2006 2007];
 % hazard_rf = climada_hazard_extract_event(hazard_rf,hazard_rf.event_ID(ismember(hazard_rf.yyyy, snapshot_year)));
-% hazard_rf = climada_hazard_extract_event(hazard_rf,[151:200]);
+% hazard_rf = climada_hazard_extract_event(hazard_rf,-[1:10]);
 
 hazard                  =   hazard_rf;
 hazard.peril_ID         =   'LS';
@@ -204,11 +204,15 @@ if ~isfield(centroids, 'LAI')
     centroids = centroids_LAI(centroids,0);
 end
 
-% auto save if updated (i.e. new fields added)
-if isfield(centroids,'filename') && length(fieldnames(centroids)) > centroids_n_flds
-    fprintf('autosaving centroids with additional fields to %s \n',centroids.filename)
-    save(centroids.filename,'centroids')
+if ~isfield(centroids, 'EC_Pa')
+    centroids.EC_Pa  =   6400 * ones(size(centroids.centroid_ID)); %1900 * mean(centroids.LAI,1); %proxy
 end
+
+% auto save if updated (i.e. new fields added)
+% if isfield(centroids,'filename') && length(fieldnames(centroids)) > centroids_n_flds
+%     fprintf('autosaving centroids with additional fields to %s \n',centroids.filename)
+%     save(centroids.filename,'centroids')
+% end
 clear centroids_n_flds
 
 
@@ -260,21 +264,21 @@ else
 end
 
 % soil moisture
-soil_moisture = zeros(size(hazard_rf.intensity)); % init
-ET_mm_day       = centroids.ET_mm_day; ET_mm_day(isnan(ET_mm_day)) = max(ET_mm_day(~isnan(ET_mm_day)))/2; % proxy
+soil_moisture = NaN(size(hazard_rf.intensity)); % init
+ET_mm_day     = ones(size(centroids.centroid_ID)).*2;% ET_mm_day(isnan(ET_mm_day)) = min(ET_mm_day(~isnan(ET_mm_day)))/2; % proxy
 for basin_i = 1: n_basins
     
     % index of centroids belonging to basin_i
     c_ndx       =   (centroids.basin_ID == basin_IDs(basin_i)) & (centroids.onLand==1);
     
     % fl_score_sum                =   sum(centroids.flood_score(c_ndx));
-    wet_index_sum               =   sum(centroids.TWI(c_ndx));
+    wet_index_sum               =   sum(centroids.TWI(c_ndx & ~isnan(centroids.TWI)));
     
     for event_i = 1 : n_events
         
         if event_i>1 && chrono % since soil moisture has been initialised to zero for first event
             dt = hazard_rf.datenum(event_i) - hazard_rf.datenum(event_i-1);
-            soil_moisture(event_i,c_ndx) = max(soil_moisture(event_i-1,c_ndx) - ET_mm_day(c_ndx) .* dt,zeros(1,sum(c_ndx)));
+            soil_moisture(event_i,c_ndx) = nanmax(soil_moisture(event_i-1,c_ndx) - ET_mm_day(c_ndx) .* dt,zeros(1,sum(c_ndx)));
         end
         
         % progress mgmt
@@ -327,11 +331,6 @@ fprintf(format_str,...
     sprintf('processing soil moisture at %i centroids for %i rainfall events took %i minutes\n',...
     n_centroids, n_events,round(etime(clock,t0)/60)));
 
-% for progress mgmt
-t0          = clock;
-mod_step    = 1;
-format_str  = '%s';
-
 % sort by elevation (work down the mountain)
 [~,elev_ndx] = sort(centroids.elevation_m,'descend');
 
@@ -355,10 +354,18 @@ catch % so loop over events if matlab unable to handle
 end
 
 % land slides
+hazard.intensity        =   zeros(size(hazard_rf.intensity)); %init
+
+% for progress mgmt
+t0          = clock;
+mod_step    = 1;
+format_str  = '%s';
+
 for event_i = 1 : n_events
 
     tmp_factor_of_safety = hazard.factor_of_safety(event_i,:);
     if ~any(tmp_factor_of_safety(~isnan(tmp_factor_of_safety)) < 1),  continue;   end
+    tmp_factor_of_safety(tmp_factor_of_safety < 1) = 0.0;
     
     % progress mgmt
     if mod(event_i,mod_step) ==0
@@ -413,11 +420,13 @@ for event_i = 1 : n_events
             % index of last cluster cell for start of deposit
             cluster_end_ndx = sink_ndx;
             
+            % ************************************************************
             % insist that at least 2 neighbouring cells must fail for a
             % land slide to occur
             if cluster_size < 2
                 continue;
             end
+            % ************************************************************
             
             % deposition of slide
             slide_ndx       = false(size(centroids.centroid_ID));
@@ -428,13 +437,20 @@ for event_i = 1 : n_events
                     && ~isempty(centroids.sink_ID(sink_ndx))...     % there exists a sink to deposit into
                     && ~isnan(centroids.sink_ID(sink_ndx)) ...      % the sink is defined
                     && i < (2*sum(cluster_ndx)) ...                 % limit deposition length to twice the source length
-                    && slide_ndx(centroids.sink_ID(sink_ndx)) ==0    % there must not already be a land slide at the next sink
+                    && slide_ndx(centroids.sink_ID(sink_ndx)) ==0   % there must not already be a land slide at the next sink
                 
                 % loop counter
                 i = i+1;
                 sink_ndx     = (centroids.centroid_ID == centroids.sink_ID(sink_ndx));  % find next sink
                 slope        = centroids.slope_deg(sink_ndx);                           
                 slide_ndx    = slide_ndx | sink_ndx;    % add sink to slide
+
+%                 if     ~isempty(centroids.sink_ID(sink_ndx))...     % there exists a sink to deposit into
+%                     && ~isnan(centroids.sink_ID(sink_ndx)) ...      % the sink is defined
+%                     && i < (2*sum(cluster_ndx)) ...                 % limit deposition length to twice the source length
+%                     && slide_ndx(centroids.sink_ID(sink_ndx)) ==0   % there must not already be a land slide at the next sink
+%                     break;
+%                 end
                 
                 % p = scatter(centroids.lon(deposit_ndx),centroids.lat(deposit_ndx),'filled');
                 % set(p,'markerFaceColor','g','markerEdgeColor','g')
@@ -442,6 +458,10 @@ for event_i = 1 : n_events
             
             % set temp FoS to 1 for entire slide, to avoid recalculation
             tmp_factor_of_safety(1,cluster_ndx) = 1;
+            
+            if any(isnan(centroids.area_m2(slide_ndx)))
+                centroids.area_m2(isnan(centroids.area_m2) & slide_ndx) = nanmean(centroids.area_m2(slide_ndx));
+            end
             
             % for testing purposes
             deposit_ndx = slide_ndx & ~cluster_ndx;
@@ -467,11 +487,36 @@ for event_i = 1 : n_events
             hazard.intensity(event_i,deposit_ndx) = int_factor .* ...
             (sum(hazard.source(event_i,cluster_ndx))/sum(centroids.area_m2(deposit_ndx)));
             
+            X  = centroids.lon(slide_ndx);
+            Y  = centroids.lat(slide_ndx);
+            Z  = centroids.elevation_m(slide_ndx);
+            C  = hazard.intensity(event_i,slide_ndx);
+            
+            % attempt to smooth out the land slides - doesn't work so
+            % well...
+            smooth_factor = 1;
+            if smooth_factor >1
+                X_ = []; Y_ = []; Z_ = []; C_ = []; S = 0; Sq =[];
+                % parameterise length along slide
+                for s_i = 2:sum(slide_ndx)
+                    S(end+1) = S(end) + sqrt((X(s_i)-X(s_i-1))^2 + (Y(s_i) - Y(s_i-1))^2 + (Z(s_i) - Z(s_i-1))^2);
+                end
+                for s_i = 1:length(S)-1
+                    Sq(end+1:end+smooth_factor) = linspace(S(s_i),S(s_i+1),smooth_factor);
+                end
+                X_ = interp1(S,X,Sq,'spline');
+                Y_ = interp1(S,Y,Sq,'spline');
+                Z_ = interp1(S,Z,Sq,'spline');
+                C_ = interp1(S,C,Sq,'spline');
+                
+                X = X_; Y = Y_; Z = Z_; C = C_;clear X_ Y_ Z_ C_
+            end
+        
             % vectors for easy plotting
-            slide_data(event_i).X = [slide_data(event_i).X NaN centroids.lon(slide_ndx)];
-            slide_data(event_i).Y = [slide_data(event_i).Y NaN centroids.lat(slide_ndx)];
-            slide_data(event_i).Z = [slide_data(event_i).Z NaN centroids.elevation_m(slide_ndx)];
-            slide_data(event_i).C = [slide_data(event_i).C NaN hazard.intensity(event_i,slide_ndx)];
+            slide_data(event_i).X = [slide_data(event_i).X NaN X];
+            slide_data(event_i).Y = [slide_data(event_i).Y NaN Y];
+            slide_data(event_i).Z = [slide_data(event_i).Z NaN Z];
+            slide_data(event_i).C = [slide_data(event_i).C NaN C];
         end
     end
 end
@@ -482,15 +527,17 @@ fprintf(format_str,...
     sprintf('generating land slides at %i centroids for %i rainfall events took %i minutes\n',...
     n_centroids, n_events,round(etime(clock,t0)/60)));
 
+% filter out all-zero events
+nz_events_ndx = find(sum(abs(hazard.intensity),2) ~= 0);
+if length(nz_events_ndx) < hazard.event_count
+    fprintf('filtering hazard set for %i non-zero events... ',length(nz_events_ndx))
+    hazard = climada_hazard_extract_event(hazard,nz_events_ndx);
+    fprintf('done\n')
+end
 
-% TO DO: filter out all-zero events
-% nz_events_ndx = sum(abs(hazard.intensity),2) ~= 0;
-% hazard.intensity = hazard.intensity(nz_events_ndx,:);
-% flds = fieldnames(hazard);
-% for f_i=1:length(flds)
-%   TO DO
-% end
-
+[~, centroids_name, ~] = fileparts(centroids.filename);
+if ~isfield(centroids,'admin0_name'), centroids.admin0_name = ''; end
+hazard.comment = sprintf('LS hazard set %s, centroids: %s, created on: %s',centroids.admin0_name, centroids_name,datestr(now,'HH:MM ddmmyyyy'));
 
 % prompt for ms_hazard_save_file if not given
 if isempty(hazard_set_file) % local GUI
@@ -507,10 +554,20 @@ if ~isempty(hazard_set_file) && ~strcmp(hazard_set_file,'NO_SAVE')
     fprintf('saving LS hazard set as %s\n',hazard_set_file);
     hazard.filename         =   hazard_set_file;
     save(hazard_set_file,'hazard')
+    file_dir = dir(hazard_set_file);
+    if isempty(file_dir) || file_dir.datenum < now -1 % one day
+        fprintf('attempting to save using ''-v7.3'' switch... ')
+        save(hazard_set_file,'hazard','-v7.3')
+        if ~isempty(file_dir) && ~(file_dir.datenum < now -1)
+            fprintf('success\n')
+        else
+            fprintf('failed\n')
+        end
+    end
 end
 
-if check_plots
-    
+% Plots
+if check_plots 
     figure('Name', 'LS hazard set (largest event)','color', 'w')
     
     % get largest event
@@ -522,7 +579,12 @@ if check_plots
     % also plot DEM for land slide hazard
     % construct regular grid
     [x, y]  = meshgrid(unique(hazard.lon),unique(hazard.lat));
-    z       = griddata(hazard.lon,hazard.lat,centroids.elevation_m,x,y);
+    z       = griddata(hazard.lon,hazard.lat,centroids.elevation_m,x,y,'linear');
+    xy(:,:,1) = x;  xy(:,:,2) = y; lonlat(:,1) = hazard.lon; lonlat(:,2) = hazard.lat;
+    for y_i = 1:size(y,1); 
+        nanpts(y_i,:) = ~ismember(squeeze(xy(y_i,:,:)),lonlat,'rows');
+    end
+    z(nanpts) = NaN;
     [C,h]   = contourf(unique(hazard.lon),unique(hazard.lat),z,10);
     l_h     = clabel(C,h);
     for i=1:length(l_h)
@@ -546,13 +608,13 @@ if check_plots
     c_ = slide_data(max_event).C; % (slide_data(max_event).C + min(slide_data(max_event).C(~isnan(slide_data(max_event).C))))./max(slide_data(max_event).C(~isnan(slide_data(max_event).C)));
     z_ = ones(size(x_));
     s  = surface([x_;x_],[y_;y_],[z_;z_],[c_;c_],'edgecol','interp','linew',5, 'marker','o','markersize',1);
-    colormap(climada_colormap('LS'))
+    colormap(climada_colormap('MS'))
     %colormap(hot)
     caxis([min(hazard_intensity) max(hazard_intensity)])
     cb = colorbar;
     ylabel(cb,sprintf('landslide depth [%s]',hazard.units))
     
-   	title_str=sprintf('%s event %i on %s',hazard.peril_ID,event_i,datestr(hazard.datenum(event_i),'dddd dd mmmm yyyy'));
+   	title_str=sprintf('%s event %i on %s',hazard.peril_ID,max_event,datestr(hazard.datenum(max_event),'dddd dd mmmm yyyy'));
     title(title_str)
     xlabel('Longitude')
     ylabel('Latitude')
@@ -572,13 +634,13 @@ if check_plots
     z_ = slide_data(max_event).Z ./(111.12 * 1000); % convert to degrees to use equal axis
     c_ = slide_data(max_event).C;
     s  = surface([x_;x_],[y_;y_],[z_;z_],[c_;c_],'edgecol','interp','linew',5, 'marker','o','markersize',1);
-    colormap(climada_colormap('LS'))
+    colormap(climada_colormap('MS'))
     %colormap(flipud(hot))
     caxis([min(hazard_intensity) max(hazard_intensity)])
     cb = colorbar;
     ylabel(cb,sprintf('landslide depth [%s]',hazard.units))
     
-   	title_str=sprintf('%s event %i on %s',hazard.peril_ID,event_i,datestr(hazard.datenum(event_i),'dddd dd mmmm yyyy'));
+   	title_str=sprintf('%s event %i on %s',hazard.peril_ID,max_event,datestr(hazard.datenum(max_event),'dddd dd mmmm yyyy'));
     title(title_str)
     xlabel('Longitude')
     ylabel('Latitude')

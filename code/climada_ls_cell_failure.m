@@ -49,7 +49,7 @@ g = 9.81;
 % calculate soil moisture
 water_sw        =   1000 * g;   % Calculate specific weight of water from density (1000 kg/m^3)
 PD_kg_m3        =   2650;       % typical particle density in kg/m^3
-porosity        =   1 - BD_kg_m3./PD_kg_m3; % wiki
+porosity        =   max(1 - BD_kg_m3./PD_kg_m3,0); % wiki
 %porosity        =   centroids.WHC_mm ./ centroids.SD_mm;    % Calculate porosity as ratio max soil storage to soil depth
 
 % Calculate effective internal angle of friction (Meyerhoff 1956)
@@ -69,7 +69,7 @@ moist_soil_sw   =   solids_sw .* (1 - porosity);
 sat_soil_sw     =   solids_sw .* (1 - porosity) + water_sw .* porosity;
 
 % Cohesion
-EC              =   1500 * repmat(mean(centroids.LAI,1),[n_events 1]); % soil cohesion from leaf area index (proxy)
+EC              =   repmat(centroids.EC_Pa,[n_events 1]); % soil cohesion from leaf area index (proxy)
 
 % Calculate shear strength and stress
 strength        =   EC + (moist_soil_sw.*(SD_m - WTH_m) + (sat_soil_sw - water_sw).*WTH_m).*tand(EIF).*(cosd(slope_deg)).^2;

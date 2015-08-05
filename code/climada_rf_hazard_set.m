@@ -158,8 +158,13 @@ if max(p_data.lon) > 180, p_data.lon = p_data.lon - 180; end
 
 p_data.time = double(tmp_p_d.time) + init_time;
 
+% for testing purposes
+% cprintf([1 0.5 0],'WARNING: only first two years of rainfall data taken for testing purposes - line 162 in climada_rf_hazard_set\n')
+% p_data.precip   = p_data.precip(:,1:730);
+% p_data.time     = p_data.time  (  1:730);
+
 % select relevant spatial region
-bb = 0.5;   % buffer
+bb = 0.5*min(diff(p_data.lon));   % buffer
 s_ndx = (p_data.lon >= floor(centroids_rect(1))-bb & p_data.lon <= ceil(centroids_rect(2))+bb) & ...
     (p_data.lat >= floor(centroids_rect(3))-bb & p_data.lat <= ceil(centroids_rect(4))+bb);
 
@@ -259,7 +264,7 @@ hazard.frequency        = ones(1,hazard.event_count)*event_frequency;
 hazard.peril_ID         = 'RF';
 hazard.comment          =sprintf('RF hazard event set, generated %s',datestr(now));
 
-%hazard.intensity        = spalloc(hazard.event_count,length(hazard.lon),ceil(hazard.event_count*length(hazard.lon)*0.3));
+% hazard.intensity        = spalloc(hazard.event_count,length(hazard.lon),ceil(hazard.event_count*length(hazard.lon)*0.3));
 hazard.intensity        = zeros(hazard.event_count,numel(centroids.centroid_ID));
 fprintf('processing RF precipitation at centroids for %i events...\n',hazard.event_count)
 mod_step = 10; format_str = '%s'; t0 = clock;
@@ -268,8 +273,16 @@ mod_step = 10; format_str = '%s'; t0 = clock;
 
 for event_i = 1:hazard.event_count
     if any(any(p_data_x.precip(:,event_i)))
-        gridded_p_x = griddata(p_data_x.lon,p_data_x.lat,p_data_x.precip(:,event_i),LON,LAT);
-        hazard.intensity(event_i,:)=interp2(LON, LAT, squeeze(gridded_p_x),hazard.lon,hazard.lat);
+        
+        if length(p_data_x.lon) >1
+            % gridded_p_x = griddata(p_data_x.lon,p_data_x.lat,p_data_x.precip(:,event_i),LON,LAT);
+            % hazard.intensity(event_i,:)=interp2(LON, LAT, squeeze(gridded_p_x),hazard.lon,hazard.lat,'linear');
+        
+            F_p_x = scatteredInterpolant(p_data_x.lon,p_data_x.lat,p_data_x.precip(:,event_i),'linear','nearest');
+            hazard.intensity(event_i,:)=F_p_x(hazard.lon,hazard.lat);
+        else
+            hazard.intensity(event_i,:)= ones(size(centroids.centroid_ID)).* p_data_x.precip(:,event_i);
+        end
     end
     % the progress management
     if mod(event_i,mod_step)==0
