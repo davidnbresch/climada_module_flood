@@ -100,9 +100,9 @@ lat         = lat(lat_crop_ndx);
 [LON,LAT]	= meshgrid(lon,lat); % construct regular grid
 
 % depth to bedrock up to a max of 240cm (see original documentation), hence
-% set all vals >240 to 0 and convert to m
+% set all vals >240 to NaN and convert to m
 img = double(img);
-img(img>240) = 0;
+img(img>240) = NaN;
 img = img ./ 100;
 
 fprintf('assigning soil depth values to centroids... ')

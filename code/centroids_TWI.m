@@ -50,6 +50,7 @@ function centroids = centroids_TWI(centroids, check_plots)
 % Gilles Stassen, gillesstassen@hotmail.com, 20150407, clean up
 % Lea Mueller, muellele@gmail.com, 20150720, bugfix, quick+dirty workaround
 %              to create meshgrid and allocate FL_score, @Gilles: please check and correct
+% Jacob Anz, 280715, fixed shift_matrix
 %-
 
 global climada_global
@@ -73,7 +74,7 @@ weighting_factor = 1.1;
 % Get elevation data if centroids do not come equipped with them
 if ~isfield(centroids, 'elevation_m')
     cprintf([1,0.5,0],['WARNING: centroid elevation data missing, ' ...
-        'using etopo.\n \tConsider running climada_read_srtm_DEM for ultra high resolution topography.\n'])
+        'using etopo.\n \tConsider running climada_90m_DEM for ultra high resolution topography.\n'])
     % prep the region we need (rectangular region encompassing the hazard
     % centroids)
     centroids_rect=[min(centroids.lon) max(centroids.lon) ...
@@ -114,16 +115,22 @@ lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centro
 x = lon_singleton .* (cos(mean(mean(lat))*pi/180)* 111.12 * 1000); 
 y = lat_singleton .* (111.12 * 1000);
 
-% dx = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
-% dy = min(diff(unique(centroids.lat))) * (111.12 * 1000);
+dx_ = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
+dy_ = min(diff(unique(centroids.lat))) * (111.12 * 1000);
 dx = diff(centroids.lat(1:2))*factor_f * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
 dy = diff(centroids.lat(1:2))*factor_f * (111.12 * 1000);
 
 % dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
 % dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
-
-z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'cubic');
+z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'linear');
 c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
+
+if dx_ ~= dx || dy_ ~= dy || numel(z) > numel(centroids.centroid_ID)
+    cprintf([1 0.5 0],'WARNING: centroids not defined by uniform rectangular grid - code will continue, but may encounter issues. Please check fields:\n')
+    cprintf([1 0.5 0],'\t\t consider generating centroids on a uniform grid before running centroids_TWI\n')
+    cprintf([1 0.5 0],'\t\t see climada_generate_centroids\n')
+end
+
 % tmp     = [num2str(centroids.lon') num2str(centroids.lon')]; 
 % Calculate gradients in x and y direction in order to derive normal
 % vectors of the grid cells
@@ -193,7 +200,8 @@ clear tmp_c_ID tmp_i_ndx tmp_j_ndx
 
 % shift_matrix contains indices that will be used to access the
 % neighbouring cells
-shift_matrix = [0 -1;-1 -1;-1 0;1 -1;0 1;1 1;1 0;-1 1];
+% shift_matrix = [0 -1;-1 -1;-1 0;1 -1;0 1;1 1;1 0;-1 1];   % ori Melanie Bieli
+shift_matrix = [0 -1;-1 -1;-1 0;-1 1;0 1;1 1;1 0;-1 1];   % Jacob Anz 280715
 [a, b]=size(z);
 % gradients are stored in a 3D-matrix - gradients(:,:,1) refers to the
 % eastern neighbour, gradients(:,:,2) to the southeastern neighbour etc.
@@ -269,7 +277,7 @@ while sum(temp_inflow_sum(:))>0
     temp_inflow_sum = sum(temp_inflow.*outflow_weighting_factors.*gradients>0,3);
     total_flow_accumulation = total_flow_accumulation + temp_inflow_sum;
 end
-total_flow_accumulation(isnan(total_flow_accumulation))=0;
+% total_flow_accumulation(isnan(total_flow_accumulation))=0;
 fprintf(' done\n')
 % Calculate wetness index
 tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
@@ -288,29 +296,34 @@ centroids.area_m2    = zeros(size(centroids.lon));
 centroids.aspect_deg = zeros(size(centroids.lon));
 centroids.sink_ID    = zeros(size(centroids.lon));
 for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
-    centroids_ndx                   = c_ID == centroid_i;
-    centroids.FL_score(centroid_i)  = nanmean(total_flow_accumulation(centroids_ndx));
-    centroids.TWI(centroid_i)       = nanmean(wet_index(centroids_ndx));
-    % please check and correct
-    if sum(centroids_ndx(:))==1
-        centroids.slope_deg(centroid_i) = max(slope(centroids_ndx));
-    end
-        centroids.area_m2(centroid_i) 	= nanmean(area  (centroids_ndx));
-        centroids.aspect_deg(centroid_i)= nanmean(aspect(centroids_ndx));
-    % please check and correct
+    centroids_ndx                   = c_ID == centroid_i;    
     if sum(centroids_ndx(:))==1 
-        centroids.sink_ID(centroid_i)= sink_cID(centroids_ndx);
+        
+        centroids.area_m2(centroid_i) 	= area      (centroids_ndx);
+        centroids.aspect_deg(centroid_i)= aspect    (centroids_ndx);
+        centroids.FL_score(centroid_i)  = total_flow_accumulation(centroids_ndx);
+        centroids.sink_ID(centroid_i)   = sink_cID  (centroids_ndx);
+        centroids.slope_deg(centroid_i) = slope     (centroids_ndx);
+        centroids.TWI(centroid_i)       = wet_index (centroids_ndx);
+    else
+        centroids.area_m2(centroid_i) 	= NaN;
+        centroids.aspect_deg(centroid_i)= NaN;
+        centroids.FL_score(centroid_i)  = NaN;
+        centroids.sink_ID(centroid_i)   = NaN; %mode(mode(sink_cID(centroids_ndx)));
+        centroids.slope_deg(centroid_i) = NaN;
+        centroids.TWI(centroid_i)       = NaN;
     end
 end
 
-centroids.FL_score(isnan(centroids.FL_score))=0;
-centroids.TWI(isnan(centroids.TWI))=0;
+% centroids.FL_score(isnan(centroids.FL_score))=0;
+% centroids.TWI(isnan(centroids.TWI))=0;
 % set flood scores and wetness indices to 0 for centroids in the ocean
 % and in the buffer zone
-centroids.FL_score(centroids.onLand==0)=0;
-centroids.FL_score(centroids.onLand==max(centroids.onLand)) = 0;
-centroids.TWI(centroids.onLand==0)=0;
-%centroids.TWI(centroids.onLand==max(centroids.onLand)) = 0;
+centroids.FL_score(centroids.onLand==0)=NaN; %0;
+centroids.FL_score(centroids.onLand==2) = NaN;%0;
+centroids.TWI(centroids.onLand==0)=NaN; %0;
+centroids.TWI(centroids.TWI<0)=NaN; %0;
+%centroids.TWI(centroids.onLand==2)) = 0;
 
 fprintf(' done\n');
 

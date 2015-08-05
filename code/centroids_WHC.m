@@ -109,11 +109,11 @@ lon         = lon(lon_crop_ndx);
 lat         = lat(lat_crop_ndx);
 [LON,LAT]   = meshgrid(lon,lat); % construct regular grid
 
-% % Set zeros to a fill value (defined by the median of all positive
-% % data points in the section of the map we are looking at)
-% img(img==0) = median(median(img(img>0)));
-% % Set the NaNs (i.e. waterborne pixels) to zero
-% img(img==missing_data_value) = 0;
+% Set zeros to a fill value (defined by the median of all positive
+% data points in the section of the map we are looking at)
+img(img==0) = NaN;
+% Set the NaNs (i.e. waterborne pixels) to zero
+img(img==missing_data_value) = NaN;
 
 fprintf('assigning water holding capacity values to centroids... ')
 centroids.WHC_mm= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'linear');

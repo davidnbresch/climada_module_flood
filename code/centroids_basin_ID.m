@@ -208,6 +208,11 @@ end
 
 shapes(~preselect_basin_IDs) = [];  % relevant shapes, also for arg out
 
+if isempty(shapes) % incorrect shapefile found (probably)
+    cprintf([1 0 0], 'ERROR: could not determine basin shapes for the centroids given\n')
+    return
+end
+
 % Prepare input for basin_identify
 tmp = struct2cell(shapes).'; lon_polygons = tmp(:,3); clear tmp;
 lon_polygons = lon_polygons';

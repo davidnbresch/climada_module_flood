@@ -115,7 +115,7 @@ lon         = 360*(1:size(full_ET_img,2))/size(full_ET_img,2)+(-180); % -180..18
 lat         = (max_lat-min_lat)*(1:size(full_ET_img,1))/size(full_ET_img,1)+min_lat;
 lon_crop_ndx= lon>=bbox(1) & lon<=bbox(3);
 lat_crop_ndx= lat>=bbox(2) & lat<=bbox(4);
-img         = full_ET_img(lat_crop_ndx,lon_crop_ndx);
+img         = full_ET_img(lat_crop_ndx,lon_crop_ndx); img(img>65500) = nanmean(nanmean(img))./2;
 lon         = lon(lon_crop_ndx);
 lat         = lat(lat_crop_ndx);
 [LON,LAT]	= meshgrid(lon,lat); % construct regular grid
@@ -125,7 +125,7 @@ centroids.ET_mm_day= interp2(LON,LAT,double(img),centroids.lon,centroids.lat,'li
 
 
 % perhaps a better method fro .onLand
-centroids.onLand(centroids.ET_mm_day == 65534)      = 0;
+% centroids.onLand(centroids.ET_mm_day == 65534)      = 0;
 centroids.ET_mm_day(centroids.ET_mm_day > 65500)    = NaN;
 centroids.ET_mm_day = centroids.ET_mm_day./65500;
 % % Determine the pixel closest to each centroid

@@ -42,6 +42,7 @@ if ~climada_init_vars,return;end;
 
 % check arguments
 if ~exist('centroids',  'var') || isempty(centroids),   climada_centroids_load; end
+if isempty(centroids),  return; end
 if ~exist('check_plots','var') || isempty(check_plots), check_plots = 0;        end
 
 % locate the module's data folder
@@ -149,13 +150,14 @@ if check_plots
     close(fig)
 end
 
+img(img ==0)        = NaN;
 img                 = double(img);
 max_bulk_density    = double(max_bulk_density);
 mean_bulk_density   = mean(img,3); % take mean over depths
-
+mean_bulk_density(mean_bulk_density == 0) = NaN;
 fprintf(format_str,'assigning bulk density values to centroids...');
 centroids.BD_kg_m3  = interp2(LON,LAT,mean_bulk_density,centroids.lon,centroids.lat,'linear');
-centroids.RD        = centroids.BD_kg_m3 ./max_bulk_density; 
+centroids.RD        = centroids.BD_kg_m3 ./max_bulk_density; % ratio of soil density to its density in its most tightly packed state
 fprintf(' done\n');
 
 if check_plots
