@@ -120,6 +120,9 @@ elseif isnumeric(centroids_rectORcountry_nameORshapes) && length(centroids_rectO
 elseif isstruct(centroids_rectORcountry_nameORshapes)
     %input is shapes
     shapes = centroids_rectORcountry_nameORshapes; clear centroids_rectORcountry_name
+    if isfield(shapes,'lon') && isfield(shapes,'lat')
+        shapes.X = shapes.lon; shapes.Y = shapes.lat;
+    end
     if isfield(shapes,'X') && isfield(shapes,'Y')
         shapes_check = 1;
         bb             =   [min([shapes(:).X]) min([shapes(:).Y])
@@ -290,6 +293,7 @@ if check_plot
     axis([min_lon max_lon min_lat max_lat])
     xlabel('Longitude')
     ylabel('Latitude')
+    box on
 end
 
 return

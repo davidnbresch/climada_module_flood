@@ -144,7 +144,7 @@ if strcmp(srtm_dir, 'DL')
     clear srtm_dir
     
     % construct filenames
-    if n_tiles > 9
+    if n_tiles > 9 % is this the limit??
         warn_msg = sprintf('WARNING: Your specified region of interest requires %i DEM tiles. \n\t \t Computation may be slow and Matlab may crash. Are you sure you wish to continue? (y/n) ',n_tiles);
         response = input(warn_msg,'s');
         if ~strcmp(response,'y')
@@ -160,7 +160,7 @@ if strcmp(srtm_dir, 'DL')
         srtm_dir{tile_i}    = [module_data_dir filesep 'system' filesep srtm_fN{tile_i}];
         srtm_URL{tile_i}    = ['ftp://srtm.csi.cgiar.org/SRTM_V41/SRTM_Data_GeoTiff/' srtm_fN{tile_i} '.zip'];
         
-        if ...%exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.tif'],'file') && ...
+        if exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.tif'],'file') && ...
                 exist([srtm_dir{tile_i} filesep srtm_fN{tile_i} '.hdr'],'file')
             substr = sprintf('%s already exists - skipping', srtm_fN{tile_i});
             skip_file = 1;

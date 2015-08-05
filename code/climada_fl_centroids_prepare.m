@@ -68,6 +68,12 @@ function centroids = climada_fl_centroids_prepare(centroids, check_plots, force_
 
 global climada_global
 
+
+if isfield(climada_global,'climada_global_ori')
+    climada_global_mod = climada_global;
+    climada_global = climada_global.climada_global_ori;
+end
+
 % check input arguments
 if ~climada_init_vars; return; end
 if ~exist('centroids','var') || isempty(centroids)
@@ -123,6 +129,10 @@ end
 % Step 8: add leaf area index
 if ~isfield(centroids, 'LAI')
     centroids = centroids_LAI(centroids,check_plots);
+end
+
+if exist('climada_global_mod','var')
+    climada_global = climada_global_mod; clear climada_global_mod
 end
 
 % save the new centroids struct
