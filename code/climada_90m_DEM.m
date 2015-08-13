@@ -1,4 +1,4 @@
-function [centroids, DEM] = climada_90m_DEM(centroidsORcountry, srtm_dir, DEM_save_file, smooth, check_plot)
+function [centroids, DEM] = climada_90m_DEM(centroidsORcountryORshapes, srtm_dir, DEM_save_file, smooth, check_plot)
 % climada
 % MODULE:
 %   barisal_demo
@@ -78,17 +78,18 @@ if exist(climada_global.map_border_file, 'file')
 end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-if ~exist('centroidsORcountry', 'var'),     centroidsORcountry  = [];   end
+if ~exist('centroidsORcountryORshapes', 'var'),     centroidsORcountryORshapes  = [];   end
 if ~exist('srtm_dir',           'var'),     srtm_dir            = 'DL'; end
 if ~exist('DEM_save_file',      'var'),     DEM_save_file       = [];   end
 if ~exist('smooth',             'var'),     smooth              = [];   end
 if ~exist('check_plot',         'var'),     check_plot          = 0;    end
 
-if ~isempty(centroidsORcountry)
-    if isstruct(centroidsORcountry)
-        centroids   = centroidsORcountry; clear centroidsORcountry
+if ~isempty(centroidsORcountryORshapes)
+    if isstruct(centroidsORcountryORshapes) && isfield(centroidsORcountryORshapes,'centroid_ID')
+        % input is centroids
+        centroids   = centroidsORcountryORshapes; clear centroidsORcountryORshapes
         if isfield(centroids,'countryname')
-            country_name    =   centroids.countryname;
+            country_name    =   centroids.country_name;
             [country_name, ~, occurrence]=unique(country_name);
             country_name    =   country_name(mode(occurrence));
             country_name    =   country_name{1};
@@ -96,12 +97,21 @@ if ~isempty(centroidsORcountry)
             country_name = [];
         end
         rect        = [min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)];
-    elseif isnumeric(centroidsORcountry) && numel(centroidsORcountry) == 4
+    elseif isstruct(centroidsORcountryORshapes) && (isfield(centroidsORcountryORshapes,'X') || isfield(centroidsORcountryORshapes,'lon'))
+        % input is probably shapes
+        shapes = centroidsORcountryORshapes; clear centroidsORcountryORshapes
+        if isfield(shapes,'lon'),   shapes.X  =shapes.lon; shapes.Y = shapes.lat; end
+        bb          = [min([shapes(:).X]) min([shapes(:).Y])
+                       max([shapes(:).X]) max([shapes(:).Y])];
+        rect        = [bb(:,1)' bb(:,2)']; clear bb
+    elseif isnumeric(centroidsORcountryORshapes) && numel(centroidsORcountryORshapes) == 4
+        % input is centroids_rect
         centroids   = [];
-        rect        = centroidsORcountry; clear centroidsORcountry
-    elseif ischar(centroidsORcountry)
+        rect        = centroidsORcountryORshapes; clear centroidsORcountryORshapes
+    elseif ischar(centroidsORcountryORshapes)
+        % input is country name
         centroids   = [];
-        country_name= centroidsORcountry; clear centroidsORcountry
+        country_name= centroidsORcountryORshapes; clear centroidsORcountryORshapes
         [country_name,country_ISO3,shape_index] = climada_country_name(country_name);
         if isempty(shape_index)
             cprintf([1 0 0],'ERROR: invalid country name \n')
@@ -123,7 +133,13 @@ else
         max(shapes(shape_index).X) max(shapes(shape_index).Y)];
     rect        = [bb(:,1)' bb(:,2)']; clear bb
 end
-if ~isempty(country_name), cntry_str = sprintf(' for %s',country_name'); else cntry_str = ''; end
+
+% country string for fprintf and fig title
+if exist('country_name','var') && ~isempty(country_name)
+    cntry_str = sprintf(' for %s',country_name'); 
+else
+    cntry_str = ''; 
+end
 
 % conversion to srtm tile indices
 rect_buffer      = 0.5;     % set buffer to avoid missing data due to imperfect conversions below
@@ -308,7 +324,7 @@ elev = reshape(DEM_grid,numel(DEM_grid),1);
 
 fprintf('done \n')
 
-if isstruct(centroids)
+if exist('centroids','var') && isstruct(centroids)
     % crop to rect
     lon_crop_ndx    = rect(1) <= lon & lon <= rect(2);
     lat_crop_ndx    = rect(3) <= lat & lat <= rect(4);
@@ -417,12 +433,12 @@ elseif ~isempty(rect)
         % files downloaded from http://www.diva-gis.org/gdata
         if isfield(shapes,'NAME')  && length(shapes) == 1
             for i = 1 : n_centroids
-                centroids.countryname{i} = shapes.NAME;
+                centroids.country_name{i} = shapes.NAME;
             end
             centroids.admin0_name = shapes.NAME;
         elseif exist('country_name','var')
             for i = 1 : n_centroids
-                centroids.countryname{i} = country_name;
+                centroids.country_name{i} = country_name;
             end
             centroids.admin0_name = country_name;
         end
@@ -430,7 +446,7 @@ elseif ~isempty(rect)
             centroids.admin0_ISO3 = shapes.ADM0_A3;
         elseif exist('country_name','var')
             for i = 1 : n_centroids
-                centroids.countryname{i} = country_ISO3;
+                centroids.country_name{i} = country_ISO3;
             end
             centroids.admin0_name = country_ISO3;
         end
@@ -453,6 +469,7 @@ if isfield(centroids, 'filename')
 end
 
 if check_plot
+    fprintf('plotting DEM (might take a while)... ')
     % relief plot
     figure('Name', '2D Relief Plot', 'color', 'w');
     hold on
@@ -481,7 +498,11 @@ if check_plot
     axis equal
     axis(rect)
     set(gca,'Ydir','normal')
+    
+    shape_plotter(shapes,[],[],[],'linewidth',2,'color','r')
+    
     hold off
+    fprintf('done\n')
 end
 
 return
