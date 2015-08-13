@@ -82,7 +82,8 @@ gridded_DEM = griddata(lon,lat,centroids.elevation_m,x,y,'linear');
 gridded_DEM = gridded_DEM - min(min(gridded_DEM));
 gridded_DEM = (gridded_DEM./ max(max(gridded_DEM))).*1; % factor for little gap between layers
 s(3) = surf(x,y,gridded_DEM, 'edgecolor','none'); 
-colormap(getelements(landcolor(200),1:100))
+% colormap(getelements(landcolor(200),1:100))
+colormap(gray)
 [C, h] = contour3(x,y,gridded_DEM,5);
 % set(s(1),'edgecolor','none');
 l_h     = clabel(C,h);
@@ -121,8 +122,8 @@ if susc_check
 end
 
 
-l = legend(s(1:3),'Topographic wetness index','Steepness','Digital elevation model');
-set(l,'box','off','Location','NorthEast')
+% l = legend(s(1:3),'Topographic wetness index','Steepness','Digital elevation model');
+% set(l,'box','off','Location','NorthEast')
 % shading interp
 
 ylabel('Latitude')
@@ -130,7 +131,7 @@ xlabel('Longitude')
 set(gca,'ZTick',[], 'ZColor', 'w');
 axis tight
 axis([min(lon) max(lon) min(lat) max(lat)])
-
+axis off
 title({'Multi-layered Approach to Land Slide Simulation',''},'fontsize',18)
 
 
