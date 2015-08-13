@@ -1,4 +1,4 @@
-function hazard = climada_ls_hazard_set(hazardORcentroids, hazard_set_file, focus_areas, check_plots, chrono_check)
+function [hazard, centroidsORhazard] = climada_ls_hazard_set(hazardORcentroids, hazard_set_file, focus_areas, check_plots, chrono_check, bool_hazard_check)
 % Generate ls hazard set from rainfall hazard set
 % MODULE:
 %   flood
@@ -55,6 +55,13 @@ function hazard = climada_ls_hazard_set(hazardORcentroids, hazard_set_file, focu
 %       matrix_density: the density of the sparse array hazard.intensity
 %       filename: the filename of the hazard event set (if passed as a
 %           struct, this is often useful)
+%   centroidsORhazard:  if rainfall hazard set is provided as input arg,
+%                       then output is the centroids struct which is
+%                       constructed from this hazard set, and to which
+%                       topographic parameters have been assigned. If
+%                       centroids are given as input, then output is the
+%                       rainfall hazard set which has been calculated for
+%                       these centroids.
 % MODIFICATION HISTORY:
 %   Gilles Stassen, gillesstassen@hotmail.com, 20150330
 %   Gilles Stassen, 20150708, renamed MS->LS, time-dependent soil moisture, linear decay according to ET_mm_day, separate input args combined into hazardORcentroids
@@ -62,7 +69,7 @@ function hazard = climada_ls_hazard_set(hazardORcentroids, hazard_set_file, focu
 %   Gilles Stassen, 20150713, focus_areas added as input
 % -
 
-hazard = []; % init
+hazard = []; centroidsORhazard = [];    % init
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -73,14 +80,21 @@ if ~exist('focus_areas',        'var'),     focus_areas         = [];   end
 if ~exist('hazard_set_file',    'var'),     hazard_set_file     = [];   end
 if ~exist('check_plots',        'var'),     check_plots         = 1;    end
 if ~exist('chrono_check',       'var'),     chrono_check        = 1;    end
+if ~exist('bool_hazard_check',  'var'),     bool_hazard_check   = 0;    end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 if isempty(hazardORcentroids) || ~isstruct(hazardORcentroids)
     res = input('would you like to auto-generate a rainfall hazard set (a); or browse files (b)?\t','s');
 
-    if strcmp(res,'a')   
-        centroids = climada_generate_centroids([],0.09,0);
+    if strcmp(res,'a') 
+        [admin_name, admin_shapes, ~, admin_shape_ndx,country_name] = climada_admin_name;
+        % centroids = climada_generate_centroids([],0.09,0); % hard-wired 90m resolution for srtm DEM
+        centroids = climada_90m_DEM(admin_shapes(admin_shape_ndx),'DL','NO_SAVE');
+        
+        [country_name, country_ISO3] = climada_country_name(country_name);
+        centroids.country_name = repmat({country_name},size(centroids.centroid_ID));
+        centroids.admin0_ISO3 = country_ISO3;   centroids.admin0_name = country_name;
         hazard_rf = climada_rf_hazard_set(centroids,[],'NO_SAVE',1);
     elseif strcmp(res,'b') 
         % prompt for RF hazard event set if not given
@@ -94,15 +108,24 @@ if isempty(hazardORcentroids) || ~isstruct(hazardORcentroids)
         end
         load(hazard_rf_file);
         hazard_rf = hazard; clear hazard
+        % construct centroids from RF hazard
+        centroids.lon = hazard_rf.lon;  
+        centroids.lat = hazard_rf.lat;
+        centroids.centroid_ID = hazard_rf.centroid_ID;
+        centroids.comment = ['centroids created from: ' hazard_rf.comment];
     end
 elseif isfield(hazardORcentroids,'intensity') && isfield(hazardORcentroids,'peril_ID') % input is hazard set
+    % input is 
     hazard_rf = hazardORcentroids; clear hazardORcentroids
-    centroids.lon = hazard_rf.lon;  centroids.lat = hazard_rf.lat;
+    % construct centroids from RF hazard
+    centroids.lon = hazard_rf.lon;  
+    centroids.lat = hazard_rf.lat;
     centroids.centroid_ID = hazard_rf.centroid_ID;
     centroids.comment = ['centroids created from: ' hazard_rf.comment];
 else % input is centroids (probably) so auto-generate rainfall hazard
     centroids = hazardORcentroids; clear hazardORcentroids
     hazard_rf = climada_rf_hazard_set(centroids,[],'NO_SAVE',1);
+    centroidsORhazard = hazard_rf;
 end
 
 if ~isempty(focus_areas)
@@ -204,9 +227,10 @@ if ~isfield(centroids, 'LAI')
     centroids = centroids_LAI(centroids,0);
 end
 
-if ~isfield(centroids, 'EC_Pa')
-    centroids.EC_Pa  =   6400 * ones(size(centroids.centroid_ID)); %1900 * mean(centroids.LAI,1); %proxy
-end
+% if ~isfield(centroids, 'EC_Pa')
+    % centroids.EC_Pa  =   6400 * ones(size(centroids.centroid_ID)); %1900 * mean(centroids.LAI,1); %proxy
+    centroids.EC_Pa  =   7250 * ones(size(centroids.centroid_ID));
+% end
 
 % auto save if updated (i.e. new fields added)
 % if isfield(centroids,'filename') && length(fieldnames(centroids)) > centroids_n_flds
@@ -305,7 +329,8 @@ for basin_i = 1: n_basins
         
         % index of potentially moist centroids, i.e. centroids lower in
         % elevation than highest r_ndx centroid
-        ls_ndx  = c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
+        ls_ndx    =     c_ndx & (centroids.elevation_m <= max(centroids.elevation_m(r_ndx & c_ndx)));
+        ls_ndx    =     ls_ndx & ~isnan(centroids.TWI);
         
         rain_sum  =   sum(hazard_rf.intensity(event_i,r_ndx & c_ndx),2);
         
@@ -345,6 +370,8 @@ if ~isempty(focus_areas)
     hazard.focus_areas(in)  = 1; % for identification later
 end
 
+% calculate factor of safety for each event
+fprintf('calculating factor of safety for all events... ')
 try % vectorised first, since faster, but takes a lot of memory for many centroids
     hazard.factor_of_safety = climada_ls_cell_failure(centroids, soil_moisture);
 catch % so loop over events if matlab unable to handle
@@ -352,6 +379,7 @@ catch % so loop over events if matlab unable to handle
         hazard.factor_of_safety(event_i,:) = climada_ls_cell_failure(centroids,soil_moisture(event_i,:));
     end
 end
+fprintf('done\n')
 
 % land slides
 hazard.intensity        =   zeros(size(hazard_rf.intensity)); %init
@@ -365,7 +393,7 @@ for event_i = 1 : n_events
 
     tmp_factor_of_safety = hazard.factor_of_safety(event_i,:);
     if ~any(tmp_factor_of_safety(~isnan(tmp_factor_of_safety)) < 1),  continue;   end
-    tmp_factor_of_safety(tmp_factor_of_safety < 1) = 0.0;
+    % tmp_factor_of_safety(tmp_factor_of_safety < 1) = 0.0;
     
     % progress mgmt
     if mod(event_i,mod_step) ==0
@@ -423,9 +451,9 @@ for event_i = 1 : n_events
             % ************************************************************
             % insist that at least 2 neighbouring cells must fail for a
             % land slide to occur
-            if cluster_size < 2
-                continue;
-            end
+%             if cluster_size < 2
+%                 continue;
+%             end
             % ************************************************************
             
             % deposition of slide
@@ -527,24 +555,42 @@ fprintf(format_str,...
     sprintf('generating land slides at %i centroids for %i rainfall events took %i minutes\n',...
     n_centroids, n_events,round(etime(clock,t0)/60)));
 
+if bool_hazard_check % only ones (land slide) and zeroes (no land slide)
+    hazard.intensity(hazard.intensity ~=0) = 1;
+    hazard.unit = '';
+end
+
 % filter out all-zero events
 nz_events_ndx = find(sum(abs(hazard.intensity),2) ~= 0);
 if length(nz_events_ndx) < hazard.event_count
     fprintf('filtering hazard set for %i non-zero events... ',length(nz_events_ndx))
-    hazard = climada_hazard_extract_event(hazard,nz_events_ndx);
+    hazard      = climada_hazard_extract_event(hazard,nz_events_ndx);
+    slide_data  = slide_data(nz_events_ndx);
     fprintf('done\n')
 end
+hazard.frequency = ones(size(hazard.event_ID))./hazard.event_count;
 
 [~, centroids_name, ~] = fileparts(centroids.filename);
 if ~isfield(centroids,'admin0_name'), centroids.admin0_name = ''; end
 hazard.comment = sprintf('LS hazard set %s, centroids: %s, created on: %s',centroids.admin0_name, centroids_name,datestr(now,'HH:MM ddmmyyyy'));
+
+if exist('res','var') && nargout == 2
+    % neither centroids nor RF hazard were provided as input, so return both
+    % in cell array
+    centroidsORhazard = {centroids; hazard_rf};
+elseif isfield(centroids,'comment') && ...
+        strcmp(centroids.comment,['centroids created from: ' hazard_rf.comment])
+    % centroids created from hazard input
+    centroidsORhazard = centroids;
+end
 
 % prompt for ms_hazard_save_file if not given
 if isempty(hazard_set_file) % local GUI
     hazard_set_file=[module_data_dir filesep 'hazards' filesep 'LS_hazard.mat'];
     [filename, pathname] = uiputfile(hazard_set_file, 'Save new land slide hazard event set as:');
     if isequal(filename,0) || isequal(pathname,0)
-        return; % cancel
+        hazard_set_file = 'NO_SAVE'; % cancel
+        cprintf([0 0 1],'NOTE: hazard not saved\n')
     else
         hazard_set_file=fullfile(pathname,filename);
     end
@@ -553,11 +599,15 @@ end
 if ~isempty(hazard_set_file) && ~strcmp(hazard_set_file,'NO_SAVE')
     fprintf('saving LS hazard set as %s\n',hazard_set_file);
     hazard.filename         =   hazard_set_file;
-    save(hazard_set_file,'hazard')
+    try
+        save(hazard_set_file,'hazard')
+    end
     file_dir = dir(hazard_set_file);
     if isempty(file_dir) || file_dir.datenum < now -1 % one day
         fprintf('attempting to save using ''-v7.3'' switch... ')
-        save(hazard_set_file,'hazard','-v7.3')
+        try
+            save(hazard_set_file,'hazard','-v7.3')
+        end
         if ~isempty(file_dir) && ~(file_dir.datenum < now -1)
             fprintf('success\n')
         else
