@@ -1,4 +1,4 @@
-function factor_of_safety = climada_ls_cell_failure(centroids, soil_moisture)
+function factor_of_safety = climada_ls_cell_failure(centroids, soil_moisture,moist_mod,slope_mod)
 % compute the factor of safety
 % MODULE:
 %   flood
@@ -25,6 +25,7 @@ function factor_of_safety = climada_ls_cell_failure(centroids, soil_moisture)
 % MODIFICATION HISTORY:
 %   Gilles Stassen, gillesstassen@hotmail.com, 20150330 init
 %   Gilles Stassen, 20150710, soil moisture as 2d matrix with one time dimension
+%   Gilles Stassen, 20150806, moisture and slope modifiers
 %-
 
 global climada_global
@@ -34,6 +35,8 @@ if ~exist('centroids',      'var') ||  ~exist('soil_moisture',  'var')
     cprintf([1 0 0], 'ERROR: centroids and soil moisture are both required inputs')
     return;
 end
+if ~exist('moist_mod',      'var') || isempty(moist_mod),   moist_mod = 1.0;    end
+if ~exist('slope_mod',      'var') || isempty(slope_mod),   slope_mod = 1.0;    end
 
 n_events = size(soil_moisture,1);
 
@@ -42,6 +45,10 @@ RD          = repmat(centroids.RD,          [n_events 1]);
 WHC_mm      = repmat(centroids.WHC_mm,      [n_events 1]);
 SD_m        = repmat(centroids.SD_m,        [n_events 1]);
 slope_deg   = repmat(centroids.slope_deg,   [n_events 1]);
+
+% modifiers
+slope_deg       = slope_mod .* slope_deg;
+soil_moisture   = moist_mod .* soil_moisture; 
 
 % gravity
 g = 9.81;
