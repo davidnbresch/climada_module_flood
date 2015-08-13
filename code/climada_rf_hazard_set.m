@@ -20,15 +20,29 @@ function hazard = climada_rf_hazard_set(centroids, precip_file, hazard_set_file,
 %   hazard_set_file: the name of the newly created rainfall (RF) hazard
 %       > promted for if not given
 % OPTIONAL INPUT PARAMETERS:
-%   check_plots: whether to show plots (default = 1)
+%   x_fraction:     The fraction of most extreme events to take from input.
+%                   e.g. if x_fraction = 0.05 => take 5% most extreme
+%                   events (default)
+%   ens_size:       Number of probabilistic events to be generated for each
+%                   extreme event. Default is set to depend on x_fraction,
+%                   such that if x_fraction = 0.1, then ens_size = 9, so
+%                   that the total number of events (historical &
+%                   probabilistic) is the same as number of days of input
+%                   data.
+%   ens_amp:        The standard deviation of the normal distribution from
+%                   which the random "wiggle_matrix" is constructed. For each
+%                   event, the wiggle matrix alters the intensity at each
+%                   centroid point to create the probabilistic events. See
+%                   help randn.
+%   check_plots:    Whether to show plots (default = 1)
 % OUTPUTS:
-%   hazard:     a hazard event set, see core climada doc
-%               also written to a .mat file (see hazard_set_file)
+%   hazard:         a hazard event set, see core climada doc
+%                   also written to a .mat file (see hazard_set_file)
 % MODIFICATION HISTORY:
 % Gilles Stassen, gillesstassen@hotmail.com, 20150316
-% Gilles Stassen, gillesstassen@hotmail.com, 20150406 overhaul to daily
-%                   precipitation data, including auto download functionality, and
-%                   probabilistic set of extreme events
+% Gilles Stassen, 20150406 overhaul to daily precipitation data, including 
+%                          auto download functionality, and probabilistic set of extreme events
+% Gilles Stassen, 20150627 buffer size 0.5 -> precip data resolution
 %-
 
 hazard = []; % init
@@ -164,7 +178,7 @@ p_data.time = double(tmp_p_d.time) + init_time;
 % p_data.time     = p_data.time  (  1:730);
 
 % select relevant spatial region
-bb = 0.5*min(diff(p_data.lon));   % buffer
+bb = 1.0;   % buffer
 s_ndx = (p_data.lon >= floor(centroids_rect(1))-bb & p_data.lon <= ceil(centroids_rect(2))+bb) & ...
     (p_data.lat >= floor(centroids_rect(3))-bb & p_data.lat <= ceil(centroids_rect(4))+bb);
 
@@ -266,7 +280,7 @@ hazard.comment          =sprintf('RF hazard event set, generated %s',datestr(now
 
 % hazard.intensity        = spalloc(hazard.event_count,length(hazard.lon),ceil(hazard.event_count*length(hazard.lon)*0.3));
 hazard.intensity        = zeros(hazard.event_count,numel(centroids.centroid_ID));
-fprintf('processing RF precipitation at centroids for %i events...\n',hazard.event_count)
+fprintf('processing RF precipitation at centroids for %i events... \n',hazard.event_count)
 mod_step = 10; format_str = '%s'; t0 = clock;
 
 [LON, LAT]  = meshgrid(unique(p_data_x.lon),unique(p_data_x.lat));
