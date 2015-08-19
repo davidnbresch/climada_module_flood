@@ -13,6 +13,8 @@
 % respective default folders; no error checking is done!
 % Modification history: 
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150331, initial
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
+%-
 
 % initialize output
 fl_country_risk = [];
@@ -35,7 +37,7 @@ for country_i=1:length(country_list)
     fl_country_risk(country_i).res.country_ISO3 = country_ISO3;
     
     % define easy to read filenames
-    centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+    centroids_file     = [country_data_dir filesep 'centroids' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
     entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
 
     load(centroids_file)

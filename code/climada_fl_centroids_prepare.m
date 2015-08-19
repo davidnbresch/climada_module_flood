@@ -64,6 +64,7 @@ function centroids = climada_fl_centroids_prepare(centroids, check_plots, force_
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150325, added SWI and WHC;
 % Gilles Stassen, gillesstassen@hotmail.com, 20150414, cleanup
 % Gilles Stassen, 20150416, added save functionality, added BD, SD
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 global climada_global
@@ -143,9 +144,9 @@ if strcmp(save_file,'AUTO')
     else
         if isfield(centroids, 'admin0_ISO3')
             ISO3 = centroids.admin0_ISO3;
-            save_file = [climada_global.data_dir filesep 'system' filesep 'centroids_' ISO3 '_' datestr(now,'ddmmyy') '.mat'];
+            save_file = [climada_global.centroids_dir filesep 'centroids_' ISO3 '_' datestr(now,'ddmmyy') '.mat'];
         else
-            save_file = [climada_global.data_dir filesep 'system' filesep 'centroids_' datestr(now,'ddmmyy') '.mat'];
+            save_file = [climada_global.centroids_dir filesep 'centroids_' datestr(now,'ddmmyy') '.mat'];
         end
         fprintf('autosaving centroids as %s \n', save_file)
         centroids.filename = save_file;

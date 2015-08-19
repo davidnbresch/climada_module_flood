@@ -52,6 +52,7 @@ function centroids = climada_generate_centroids(centroids_rectORcountry_nameORsh
 % Gilles Stassen, 20150416, save functionality, general shape input
 % Gilles Stassen, 20150423, documentation updated
 % Gilles Stassen, 20150703, struct array shape input
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 centroids = [];
 
@@ -267,9 +268,9 @@ centroids.comment = sprintf('%3.2f km resolution centroids, created on %s', reso
 if ischar(save_file) && ~strcmp(save_file,'NO_SAVE')
     if strcmp(save_file,'AUTO')
         if country_check
-            save_file = [climada_global.data_dir filesep 'system' filesep 'centroids_' ISO3 '_' datestr(now,'ddmmyy') '.mat'];
+            save_file = [climada_global.centroids_dir filesep 'centroids_' ISO3 '_' datestr(now,'ddmmyy') '.mat'];
         else
-            save_file = [climada_global.data_dir filesep 'system' filesep 'centroids_' datestr(now,'ddmmyy') '.mat'];
+            save_file = [climada_global.centroids_dir filesep 'centroids_' datestr(now,'ddmmyy') '.mat'];
         end
         fprintf('autosaving centroids as %s \n', save_file)
         centroids.filename = save_file;
