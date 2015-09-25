@@ -255,7 +255,7 @@ if check_plots
     markersize = 5;
     show_colorbar = 0;
     cmap = jet(length(unique(centroids.basin_ID)));
-    title_string = sprintf('Centroids in %s, colored by basin ID',centroids.country_name{1});
+    title_string = sprintf('Centroids in %s, colored by basin ID',centroids.admin0_ISO3);
     scale  = max(centroids.lon) - min(centroids.lon);
     ax_lim = [min(centroids.lon)-scale/30     max(centroids.lon)+scale/30 ...
         max(min(centroids.lat),-60)-scale/30  min(max(centroids.lat),80)+scale/30];

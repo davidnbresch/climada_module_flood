@@ -67,6 +67,7 @@ function [hazard, centroidsORhazard] = climada_ls_hazard_set(hazardORcentroids, 
 %   Gilles Stassen, 20150708, renamed MS->LS, time-dependent soil moisture, linear decay according to ET_mm_day, separate input args combined into hazardORcentroids
 %   Gilles Stassen, 20150710, factor of safety calculation vectorised over events
 %   Gilles Stassen, 20150713, focus_areas added as input
+%   Lea Mueller, muellele@gmail.com, 20150920, workaround if centroids.filename does not exist
 % -
 
 hazard = []; centroidsORhazard = [];    % init
@@ -570,6 +571,7 @@ if length(nz_events_ndx) < hazard.event_count
 end
 hazard.frequency = ones(size(hazard.event_ID))./hazard.event_count;
 
+if ~isfield(centroids,'filename'); centroids.filename = ''; end
 [~, centroids_name, ~] = fileparts(centroids.filename);
 if ~isfield(centroids,'admin0_name'), centroids.admin0_name = ''; end
 hazard.comment = sprintf('LS hazard set %s, centroids: %s, created on: %s',centroids.admin0_name, centroids_name,datestr(now,'HH:MM ddmmyyyy'));
@@ -584,7 +586,7 @@ elseif isfield(centroids,'comment') && ...
     centroidsORhazard = centroids;
 end
 
-% prompt for ms_hazard_save_file if not given
+% prompt for ls_hazard_save_file if not given
 if isempty(hazard_set_file) % local GUI
     hazard_set_file=[module_data_dir filesep 'hazards' filesep 'LS_hazard.mat'];
     [filename, pathname] = uiputfile(hazard_set_file, 'Save new land slide hazard event set as:');

@@ -51,6 +51,7 @@ function centroids = centroids_TWI(centroids, check_plots)
 % Lea Mueller, muellele@gmail.com, 20150720, bugfix, quick+dirty workaround
 %              to create meshgrid and allocate FL_score, @Gilles: please check and correct
 % Jacob Anz, 280715, fixed shift_matrix
+% Lea Mueller, muellele@gmail.com, 20150925, add process management/waitbar
 %-
 
 global climada_global
@@ -287,7 +288,20 @@ wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
 % Add field flood_score to the centroids struct, i.e. loop over all
 % centroid IDs (which do not in all cases start at 1!) and assign the
 % respective flow accumulation numbers (the so-called flood scores)
-fprintf('assigning derived topographic properties to centroids...')
+% fprintf('assigning derived topographic properties to centroids...')
+
+% process managemagent
+msgstr   = sprintf('Assigning topographic properties to %i centroids ... ',centroids.centroid_ID(end));
+mod_step = 10; % first time estimate after 10 assets, then every 100
+if climada_global.waitbar
+    fprintf('%s (updating waitbar with estimation of time remaining every 100th centroid)\n',msgstr);
+    h        = waitbar(0,msgstr);
+    set(h,'Name','Assigning TWI');
+else
+    fprintf('%s (waitbar suppressed)\n',msgstr);
+    format_str='%s';
+end
+
 % init
 centroids.FL_score   = zeros(size(centroids.lon));
 centroids.TWI        = zeros(size(centroids.lon));
@@ -295,6 +309,7 @@ centroids.slope_deg  = zeros(size(centroids.lon));
 centroids.area_m2    = zeros(size(centroids.lon));
 centroids.aspect_deg = zeros(size(centroids.lon));
 centroids.sink_ID    = zeros(size(centroids.lon));
+
 for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
     centroids_ndx                   = c_ID == centroid_i;    
     if sum(centroids_ndx(:))==1 
@@ -312,6 +327,17 @@ for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
         centroids.sink_ID(centroid_i)   = NaN; %mode(mode(sink_cID(centroids_ndx)));
         centroids.slope_deg(centroid_i) = NaN;
         centroids.TWI(centroid_i)       = NaN;
+    end
+    % the progress management
+    if mod(centroid_i,mod_step)==0
+        mod_step = 100;
+        msgstr = sprintf('%i/%i centroids',centroid_i,centroids.centroid_ID(end));
+        if climada_global.waitbar
+            waitbar(centroid_i/centroids.centroid_ID(end),h,msgstr); % update waitbar
+        else
+            fprintf(format_str,msgstr); % write progress to stdout
+            format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
+        end
     end
 end
 
