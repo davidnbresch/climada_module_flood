@@ -1,7 +1,7 @@
 function [centroids, DEM] = climada_90m_DEM(centroidsORcountryORshapes, srtm_dir, DEM_save_file, smooth, check_plot)
 % climada
 % MODULE:
-%   barisal_demo
+%   flood
 % NAME:
 %   climada_read_srtm_DEM
 % PURPOSE:

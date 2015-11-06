@@ -1,7 +1,7 @@
 function centroids = centroids_TWI(centroids, check_plots)
 % Calculate flood scores and topographic wetness indices
 % MODULE:
-%   tbd
+%   flood
 % NAME:
 %	centroids_TWI
 % PURPOSE:
@@ -39,11 +39,13 @@ function centroids = centroids_TWI(centroids, check_plots)
 %   force_recalc: if set to 1, flood scores are calculated even if they
 %   already exist (default is 0)
 % OUTPUTS:
-%   centroids: centroids with two additional fields:
-%       'FL_score', which assigns a number for flow accumulation to
-%       each centroid, and
-%       'TWI', which assigns a topographic wetness index to
-%       each centroid
+%   centroids: centroids with additional fields:
+%       .FL_score:   assigns a number for flow accumulation to each centroid, and
+%       .TWI:        assigns a topographic wetness index to each centroid
+%       .slope_deg:  slope of every centroid, in degree
+%       .area_m2:    area of every centroid, in square meters
+%       .aspect_deg: aspect of every centroid, in degree
+%       .sink_ID:    sink of every centroid, links to centroid_ID
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
@@ -52,6 +54,7 @@ function centroids = centroids_TWI(centroids, check_plots)
 %              to create meshgrid and allocate FL_score, @Gilles: please check and correct
 % Jacob Anz, 280715, fixed shift_matrix
 % Lea Mueller, muellele@gmail.com, 20150925, add process management/waitbar
+% Lea Mueller, muellele@gmail.com, 20151105, improve output documentation
 %-
 
 global climada_global

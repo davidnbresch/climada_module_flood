@@ -1,7 +1,7 @@
 function [data, x, y] = climada_grid2array(data_grid, x_vector, y_vector)
 % climada
 % MODULE:
-%   barisal_demo
+%   flood
 % NAME:
 %   climada_grid2array
 % PURPOSE:
