@@ -5,6 +5,7 @@ function hazard = climada_hazard_encode_distance(hazard,entityORassetsORcentroid
 % NAME:
 %   climada_hazard_encode_distance
 % PURPOSE:
+%   This is a function that is usually called from climada_ls_hazard_set.
 %   Convert landslide hazard intensity (landslide depth(m))
 %   into distance between an asset and the nearest centroid with nonzero
 %   intensity. Distance is transformed into intensity in the form of (y = mx+b), 
