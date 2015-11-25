@@ -63,6 +63,7 @@ function [hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,
 % Lea Mueller, muellele@gmail.com, 20151124, return centroids as output, use climada_hazard_focus_area
 % Lea Mueller, muellele@gmail.com, 20151124, call from climada_ls_hazard_set
 % Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_hazard_crop from climada_hazard_focus_area
 % -
 
 hazard = []; % init
@@ -307,7 +308,7 @@ end
 % restrict hazard landslides to a given focus area (delete locations outside this area, .lon, .lat, .intensity)
 if ~isempty(focus_area)
     fprintf('Filter out landslides in the given focus area.\n')
-    hazard = climada_hazard_focus_area(hazard, focus_area);
+    hazard = climada_hazard_crop(hazard, focus_area);
     
 %     if isfield(focus_area,'lon') && isfield(focus_area,'lat')
 %         polygon = climada_concatenate_lon_lat(focus_area(1).lon, focus_area(1).lat);
