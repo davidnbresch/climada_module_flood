@@ -50,6 +50,8 @@ function hazard = climada_fl_hazard_set(centroids,hazard_rf,hazard_set_file, che
 % MODIFICATION HISTORY:
 % Gilles Stassen, gillesstassen@hotmail.com, 20150310, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150312, adjustments in rainfall distribution
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
+%-
 
 hazard = []; % init
 
@@ -142,7 +144,7 @@ if ~isfield(centroids,'elevation_m') && ~isempty(which('climada_read_srtm_DEM'))
     [~,centroids]   = climada_read_srtm_DEM('DL',centroids);
 end   
 if ~isfield(centroids,'TWI')
-    centroids       = centroids_TWI(centroids);
+    centroids       = climada_centroids_TWI_calc(centroids);
 end
 
 basin_IDs           =   unique(centroids.basin_ID);

@@ -1,5 +1,8 @@
 function climada_ls_multi_layer_plot(hazard,centroids,susc_check)
 
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
+%-
+
 global climada_global
 if ~climada_init_vars,  return;     end
 
@@ -39,7 +42,7 @@ if isempty(centroids)
     else
         centroids = climada_90m_DEM(centroids,'DL','NO_SAVE',4,0);
     end
-    centroids               = centroids_TWI(centroids,0);
+    centroids               = climada_centroids_TWI_calc(centroids,0);
 end
 
 climada_figuresize(1,2)

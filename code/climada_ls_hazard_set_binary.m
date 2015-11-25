@@ -62,6 +62,7 @@ function [hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,
 % Lea Mueller, muellele@gmail.com, 20150920, add polygon_correction with a random trigger condition, to reduce landslides in a given polygon
 % Lea Mueller, muellele@gmail.com, 20151124, return centroids as output, use climada_hazard_focus_area
 % Lea Mueller, muellele@gmail.com, 20151124, call from climada_ls_hazard_set
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 % -
 
 hazard = []; % init
@@ -158,7 +159,7 @@ hazard.matrix_density   =  0.01; % estimate
 
 if ~isfield(centroids,'slope_deg')
     fprintf('Add topographical characteristics to the centroids, based on elevation\n')
-    centroids = centroids_TWI(centroids);
+    centroids = climada_centroids_TWI_calc(centroids);
 end
 
 % calculate slope_factor as cos(slope)/sin(slope)

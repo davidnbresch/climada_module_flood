@@ -25,8 +25,8 @@ function [data, x, y] = climada_grid2array(data_grid, x_vector, y_vector)
 %   x:          The x data structured as singleton array, same length as data array
 %   y:          The y data structured as singleton array, same length as data array
 % MODIFICATION HISTORY:
-%   Gilles Stassen 20150107
-%   Gilles Stassen 20150224 major cleanup
+% Gilles Stassen 20150107
+% Gilles Stassen 20150224 major cleanup
 %-
 data = [];      x = [];     y = []; %init
 

@@ -23,9 +23,9 @@ function factor_of_safety = climada_ls_cell_failure(centroids, soil_moisture,moi
 %   factor_of_safety:   a 2d matrix the same size as the soil_moisture
 %                       input.
 % MODIFICATION HISTORY:
-%   Gilles Stassen, gillesstassen@hotmail.com, 20150330 init
-%   Gilles Stassen, 20150710, soil moisture as 2d matrix with one time dimension
-%   Gilles Stassen, 20150806, moisture and slope modifiers
+% Gilles Stassen, gillesstassen@hotmail.com, 20150330 init
+% Gilles Stassen, 20150710, soil moisture as 2d matrix with one time dimension
+% Gilles Stassen, 20150806, moisture and slope modifiers
 %-
 
 global climada_global

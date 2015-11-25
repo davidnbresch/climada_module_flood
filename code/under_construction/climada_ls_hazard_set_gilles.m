@@ -1,4 +1,4 @@
-function [hazard, centroidsORhazard] = climada_ls_hazard_set(hazardORcentroids, hazard_set_file, focus_areas, check_plots, chrono_check, bool_hazard_check)
+function [hazard, centroidsORhazard] = climada_ls_hazard_set_gilles(hazardORcentroids, hazard_set_file, focus_areas, check_plots, chrono_check, bool_hazard_check)
 % Generate ls hazard set from rainfall hazard set
 % MODULE:
 %   flood
@@ -63,11 +63,13 @@ function [hazard, centroidsORhazard] = climada_ls_hazard_set(hazardORcentroids, 
 %                       rainfall hazard set which has been calculated for
 %                       these centroids.
 % MODIFICATION HISTORY:
-%   Gilles Stassen, gillesstassen@hotmail.com, 20150330
-%   Gilles Stassen, 20150708, renamed MS->LS, time-dependent soil moisture, linear decay according to ET_mm_day, separate input args combined into hazardORcentroids
-%   Gilles Stassen, 20150710, factor of safety calculation vectorised over events
-%   Gilles Stassen, 20150713, focus_areas added as input
-%   Lea Mueller, muellele@gmail.com, 20150920, workaround if centroids.filename does not exist
+% Gilles Stassen, gillesstassen@hotmail.com, 20150330
+% Gilles Stassen, 20150708, renamed MS->LS, time-dependent soil moisture, linear decay according to ET_mm_day, separate input args combined into hazardORcentroids
+% Gilles Stassen, 20150710, factor of safety calculation vectorised over events
+% Gilles Stassen, 20150713, focus_areas added as input
+% Lea Mueller, muellele@gmail.com, 20150920, workaround if centroids.filename does not exist
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_generate from climada_generate_centroids
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 % -
 
 hazard = []; centroidsORhazard = [];    % init
@@ -90,7 +92,7 @@ if isempty(hazardORcentroids) || ~isstruct(hazardORcentroids)
 
     if strcmp(res,'a') 
         [admin_name, admin_shapes, ~, admin_shape_ndx,country_name] = climada_admin_name;
-        % centroids = climada_generate_centroids([],0.09,0); % hard-wired 90m resolution for srtm DEM
+        % centroids = climada_centroids_generate([],0.09,0); % hard-wired 90m resolution for srtm DEM
         centroids = climada_90m_DEM(admin_shapes(admin_shape_ndx),'DL','NO_SAVE');
         
         [country_name, country_ISO3] = climada_country_name(country_name);
@@ -185,7 +187,7 @@ end
 
 % Step 2: Calculate topographic wetness index (TWI) 
 if ~isfield(centroids,'TWI')
-    centroids = centroids_TWI(centroids, 0);
+    centroids = climada_centroids_TWI_calc(centroids, 0);
 end
 
 % Step 3: Delineate basins

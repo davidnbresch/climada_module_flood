@@ -1,13 +1,13 @@
-function centroids = centroids_TWI(centroids, check_plots)
+function centroids = climada_centroids_TWI_calc(centroids, check_plots)
 % Calculate flood scores and topographic wetness indices
 % MODULE:
 %   flood
 % NAME:
-%	centroids_TWI
+%	climada_centroids_TWI_calc
 % PURPOSE:
 %   Calculate flood scores and topographic wetness indices for given
-%   centroids.
-%   centroids_TWI applies a multiple-flow-direction method which,
+%   centroids, that are on a regular grid.
+%   climada_centroids_TWI_calc applies a multiple-flow-direction method which,
 %   in contrast to the simple D8 method, allows the runoff to flow to
 %   multiple neighbouring cells. The distribution of the flow is determined
 %   based on the respective gradients between the central cell and its
@@ -24,9 +24,9 @@ function centroids = centroids_TWI(centroids, check_plots)
 %       in Flood-Risk-Based Land Use Planning;
 %       doi:10.1007/s12061-014-9130-2
 % CALLING SEQUENCE:
-%   centroids = centroids_TWI(centroids, check_plots)
+%   centroids = climada_centroids_TWI_calc(centroids, check_plots)
 % EXAMPLE:
-%   centroids = centroids_TWI(centroids,0)
+%   centroids = climada_centroids_TWI_calc(centroids,0)
 % INPUTS:
 %   centroids: Climada centroids struct; the following fields are required:
 %         .lat:           Latitude
@@ -55,6 +55,7 @@ function centroids = centroids_TWI(centroids, check_plots)
 % Jacob Anz, 280715, fixed shift_matrix
 % Lea Mueller, muellele@gmail.com, 20150925, add process management/waitbar
 % Lea Mueller, muellele@gmail.com, 20151105, improve output documentation
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 %-
 
 global climada_global
@@ -131,8 +132,8 @@ c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'n
 
 if dx_ ~= dx || dy_ ~= dy || numel(z) > numel(centroids.centroid_ID)
     cprintf([1 0.5 0],'WARNING: centroids not defined by uniform rectangular grid - code will continue, but may encounter issues. Please check fields:\n')
-    cprintf([1 0.5 0],'\t\t consider generating centroids on a uniform grid before running centroids_TWI\n')
-    cprintf([1 0.5 0],'\t\t see climada_generate_centroids\n')
+    cprintf([1 0.5 0],'\t\t consider generating centroids on a uniform grid before running climada_centroids_TWI_calc\n')
+    cprintf([1 0.5 0],'\t\t see climada_centroids_generate\n')
 end
 
 % tmp     = [num2str(centroids.lon') num2str(centroids.lon')]; 

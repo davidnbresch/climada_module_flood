@@ -3,23 +3,25 @@ function dist_m = climada_geo_distance_2(lonlat1,lonlat2)
 % MODULE:
 %   flood
 % NAME:
-%   climada_geo_distance
+%   climada_geo_distance_2
 % PURPOSE:
-%   calculate distance between two points or a point and a series of points
+%   calculate distance between two points or a point and a series of
+%   points, with different input format than climada_geo_distance. lonlat1
+%   and lonlat2 are a matrices that contain both lon and lat information. 
 % CALLING SEQUENCE:
-%   climada_geo_distance(lonlat1, lonlat2);
+%   climada_geo_distance_2(lonlat1, lonlat2);
 % EXAMPLE:
-%   climada_geo_distance(0.0,45.0,1.0,45.0); % two points
-%   climada_geo_distance(0.0,45.0,[1.0 2.0 2.0],[45.0 45.0 46.0]); % point and a series of points
+%   climada_geo_distance_2([0.0 45.0], [1.0 45.0]); % two points
+%   climada_geo_distance_2([0.0 45.0], [1.0 45.0; 1.0 46.0]); % point and a series of points
 % INPUTS:
-%   lon1,lat1: longitude and latitude of first point
-%   lon2,lat2: longitude and latitude of second point
+%   lonlat1: longitude and latitude of first point
+%   lonlat2: longitude and latitude of second point
 %       or, if vectors of the same length, series of points
 % OPTIONAL INPUT PARAMETERS:
 % OUTPUTS:
 %   dist_m: distance(s) between points in [m]
 % MODIFICATION HISTORY:
-% David N. Bresch, david.bresch@gmail.com, 20091227
+% Lea Mueller, muellele@gmail.com, 20150801, init based on climada_geo_distance
 % Lea Mueller, muellele@gmail.com, 20151106, move to flood
 %-
 
@@ -31,11 +33,11 @@ if ~exist('lonlat2'),fprintf('ERROR: enter lonlat2\n');return;end
 % if length(lon2)~=length(lat2),fprintf('ERROR: 2nd point vector not same length\n');return;end
 
 % check that lonlat1 has dimension 1x2
-[i1 j1] = size(lonlat1);
+[i1, j1] = size(lonlat1);
 if i1~=1 || j1 ~=2, fprintf('ERROR: lonlat1 must have dimension 1x2 \n'), end
 
 % check that lonlat2 has dimension Nx2
-[i2 j2] = size(lonlat2);
+[i2, j2] = size(lonlat2);
 if j2 ~=2, fprintf('ERROR: lonlat2 must have dimension Nx2 \n'), end
 
 % fill lonlat1 into lon1 and lat1 and replicate to the dimension of lonlat2

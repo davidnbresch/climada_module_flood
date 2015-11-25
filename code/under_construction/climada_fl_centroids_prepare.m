@@ -65,6 +65,7 @@ function centroids = climada_fl_centroids_prepare(centroids, check_plots, force_
 % Gilles Stassen, gillesstassen@hotmail.com, 20150414, cleanup
 % Gilles Stassen, 20150416, added save functionality, added BD, SD
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 %-
 
 global climada_global
@@ -93,7 +94,7 @@ end
 
 % Step 2: Calculate topographic wetness index (TWI) 
 if ~isfield(centroids,'TWI') || force_recalc
-    centroids = centroids_TWI(centroids, check_plots);
+    centroids = climada_centroids_TWI_calc(centroids, check_plots);
 end
 
 % Step 3: Delineate basins

@@ -8,7 +8,7 @@ function centroids = climada_flow_find(centroids)
 %   Find flow direction for every centroid, find next 10 centroids, based
 %   on sink_ID
 % PREVIOUS STEP:
-%   centroids = centroids_TWI(centroids)
+%   centroids = climada_centroids_TWI_calc(centroids)
 % CALLING SEQUENCE:
 %   centroids = climada_flow_find(centroids)
 % EXAMPLE:
@@ -21,6 +21,7 @@ function centroids = climada_flow_find(centroids)
 %   centorids: centroid with field .sink_ID_10 defining the 10 next centroids
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20150920, init
+% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 % -
 
 
