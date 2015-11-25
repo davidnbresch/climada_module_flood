@@ -10,7 +10,7 @@ Use the all-in-one function **climada_ls_hazard_set**
 We create a landslide hazard set for [Las Cañas](https://www.google.ch/maps/place/Ilopango,+El+Salvador) neighborhood in the city San Salvador, Central America. The edge coordinates of Las Cañas neighborhood are [-89.145 -89.1 13.692 13.727].
 Type **[hazard, centroids, fig] = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727]);** into the command line to create the hazard set.
 
-[[/docs/Landslide_hazard_las_canas.png]]
+![Landslide areas for different return periods in Las Cañas](docs/Landslide_hazard_las_canas.png)
 
 
 <br>
