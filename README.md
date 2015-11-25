@@ -16,7 +16,7 @@ Type **[hazard, centroids, fig] = climada_ls_hazard_set([-89.145 -89.1 13.692 13
 <br>
 **Get started**
 
-* Get started reading the [landslides manual](/docs/climada_module_landslides.pdf) and the [climada manual](https://github.com/davidnbresch/climada/blob/master/docs/climada_manual.pdf), [climada manual](../../../climada/blob/master/docs/climada_manual.pdf).
+* Get started reading the [landslides manual](/docs/climada_module_landslides.pdf) and the [climada manual](../../../climada/blob/master/docs/climada_manual.pdf).
 * Download the climada modules, i.e. [climada core](https://github.com/davidnbresch/climada),  [climada advanced](https://github.com/davidnbresch/climada_advanced) and [flood](https://github.com/davidnbresch/climada_module_flood) into the required folder structure (see figure below).
 ![climada folder structure](https://raw.githubusercontent.com/wiki/davidnbresch/climada/images/climada_folder_structure.png)
 
