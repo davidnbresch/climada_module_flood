@@ -56,17 +56,19 @@ function [centroids, DEM] = climada_90m_DEM(centroidsORcountryORshapes, srtm_dir
 %               .admin0_name    Country name
 %               .admin0_ISO3    ISO 3 country code
 % MODIFICATION HISTORY:
-%   Gilles Stassen 20150107
-%   Gilles Stassen 20150224     fixed some bugs in the plotting routines
+% Gilles Stassen 20150107
+% Gilles Stassen 20150224     fixed some bugs in the plotting routines
 %                               and added messages to warn of DEM edges
-%   Gilles Stassen 20150225     cleanup and added automatic download and
+% Gilles Stassen 20150225     cleanup and added automatic download and
 %                               unzip feature
-%   Gilles Stassen 20150707     renamed climada_read_srtm_DEM->climada_90m_DEM
+% Gilles Stassen 20150707     renamed climada_read_srtm_DEM->climada_90m_DEM
 %                               usage of climada_grid2array replaced with
 %                               reshape, some further bug fixes
-%   Lea Mueller, muellele@gmail.com, 20150720, @Gilles, please correct,
+% Lea Mueller, muellele@gmail.com, 20150720, @Gilles, please correct,
 %   code does not work, srtm_19_10 is a .tif.aux.xml, not a .tif, probably
 %   file was not copied from your drive to the shared drive
+% Lea Mueller, muellele@gmail.com, 20160229, rename to climada_shapeplotter from shape_plotter
+%-
 
 DEM =[];
 
@@ -499,7 +501,7 @@ if check_plot
     axis(rect)
     set(gca,'Ydir','normal')
     
-    shape_plotter(shapes,[],[],[],'linewidth',2,'color','r')
+    climada_shapeplotter(shapes,[],[],[],'linewidth',2,'color','r')
     
     hold off
     fprintf('done\n')
