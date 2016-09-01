@@ -4,3 +4,4 @@ data/system/hydrosheds*
 data/precip_data
 data/system
 *.asv
+.DS_Store
