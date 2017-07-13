@@ -56,6 +56,7 @@ function centroids = climada_centroids_TWI_calc(centroids, check_plots)
 % Lea Mueller, muellele@gmail.com, 20150925, add process management/waitbar
 % Lea Mueller, muellele@gmail.com, 20151105, improve output documentation
 % Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
+% David N. Bresch, david.bresch@gmail.com, 20170629, double() of single for griddata
 %-
 
 global climada_global
@@ -102,6 +103,10 @@ if ~isfield(centroids, 'elevation_m')
         centroids.lon,centroids.lat);
 end
 
+centroids.lon=double(centroids.lon); % to double, as required by griddata below
+centroids.lat=double(centroids.lat);
+centroids.elevation_m=double(centroids.elevation_m);
+    
 % Calculate mean difference between centroids in x and y direction
 % We assume a constant distance between degrees of latitude (lat), i.e. we
 % ignore the earth's slightly ellipsoid shape. The difference in
@@ -114,6 +119,7 @@ lon_singleton = [min(centroids.lon):diff(centroids.lat(1:2))*factor_f:max(centro
 lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centroids.lat)];
 
 [lon, lat] = meshgrid(lon_singleton,lat_singleton);
+lon=double(lon);lat=double(lat); % to double, as required by griddata below
 
 % assume cos(lat) doesn't vary much within small study region and take cos
 % of mean latitude
@@ -127,6 +133,7 @@ dy = diff(centroids.lat(1:2))*factor_f * (111.12 * 1000);
 
 % dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
 % dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
+
 z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'linear');
 c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
 

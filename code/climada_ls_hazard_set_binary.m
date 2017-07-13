@@ -64,6 +64,7 @@ function [hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,
 % Lea Mueller, muellele@gmail.com, 20151124, call from climada_ls_hazard_set
 % Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 % Lea Mueller, muellele@gmail.com, 20151125, rename to climada_hazard_crop from climada_hazard_focus_area
+% David N. Bresch, david.bresch@gmail.com, 20170629, hazard.fraction added
 % -
 
 hazard = []; % init
@@ -124,14 +125,14 @@ end
 if isempty(fP),hazard_set_file = [climada_global.data_dir filesep 'hazards' filesep fN fE];end
 
 
-%% load template for hazard-structure
-hazard_example_file = [climada_global.data_dir filesep 'hazards' filesep 'TCNA_today_small.mat'];
-if exist(hazard_example_file,'file')
-    load(hazard_example_file)
-else
-    fprintf('No hazard example found to be loaded. \n')
-end
-hazard_ex = hazard;
+% % load template for hazard-structure
+% hazard_example_file = [climada_global.data_dir filesep 'hazards' filesep 'TCNA_today_small.mat'];
+% if exist(hazard_example_file,'file')
+%     load(hazard_example_file)
+% else
+%     fprintf('No hazard example found to be loaded. \n')
+% end
+% hazard_ex = hazard;
 
 % overwrite template hazrd with actual information
 hazard.lon = centroids.lon;
@@ -297,6 +298,7 @@ end
 
 % create sparse matrix
 hazard.intensity = sparse(ls_occurence);
+hazard.fraction=spones(hazard.intensity); % fraction 100%
 
 if climada_global.waitbar
     close(h) % dispose waitbar

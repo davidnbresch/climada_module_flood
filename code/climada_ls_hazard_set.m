@@ -35,9 +35,9 @@ function [hazard, centroids, fig] = climada_ls_hazard_set(centroids,n_events,haz
 %   [hazard, centroids, fig]  = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727],'','','','','','','','','','',check_plot)
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
-%   information) or a rectangle to define lon/lat box, if not given, the
-%   user can select a rectangle by first selecting a country and then drawing
-%   a rectangle on a map
+%       information) or a rectangle to define lon/lat box, if not given, the
+%       user can select a rectangle by first selecting a country and then drawing
+%       a rectangle on a map
 % OPTIONAL INPUT PARAMETERS:
 %   n_events: number of events
 %   hazard_set_file: the name (and path, optional) of the hazard set file
