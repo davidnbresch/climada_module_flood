@@ -30,9 +30,13 @@ function [hazard, centroids, fig] = climada_ls_hazard_set(centroids,n_events,haz
 %                                         n_downstream_cells,focus_area,polygon_correction,random_trigger_condition,...
 %                                         check_plot)
 % EXAMPLE:
-%   hazard = climada_ls_hazard_set(centroids)
-%   check_plot = 1;
-%   [hazard, centroids, fig]  = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727],'','','','','','','','','','',check_plot)
+%   % for a tile in Switzerland:
+%   [hazard,centroids]=climada_ls_hazard_set([7.5 7.6 47.4 47.5],'','','','','','','','','','',1);
+%   climada_hazard_plot(hazard,0); % show max hazard intensity at each centroid
+%   figure;climada_color_plot(centroids.elevation_m,centroids.lon,centroids.lat,[],[],[],[],1000) % show terrain
+%   hold on;climada_plot_world_borders % show borders, then zoom in manually
+%   % for a tile in San Salvador:
+%   [hazard, centroids]  = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727],'','','','','','','','','','',1)
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
 %       information) or a rectangle to define lon/lat box, if not given, the
