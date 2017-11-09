@@ -16,6 +16,7 @@ function centroids = climada_centroids_TWI_calc(centroids, check_plots)
 %       Freeman, T.G. (1991): Calculating catchment area with
 %       divergent flow based on a regular grid;
 %       doi:10.1016/0098-3004(91)90048-I
+%       https://ac.els-cdn.com/009830049190048I/1-s2.0-009830049190048I-main.pdf?_tid=866d08a6-c54f-11e7-b499-00000aab0f01&acdnat=1510233280_58e175c46862affef6785a80491025fe
 %   The Topographic wetness index (TWI), which can be derived from the
 %   calculated flow accumulation, then provides a cost-efficient
 %   alternative to flood determination by conventional hydrodynamic models.
