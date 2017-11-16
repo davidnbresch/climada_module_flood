@@ -20,7 +20,9 @@ function [hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,
 %   hazard = climada_ls_hazard_set_binary(centroids)
 %   hazard = climada_ls_hazard_set_binary([-89.145 -89.1 13.692 13.727])
 %   hazard = climada_ls_hazard_set_binary
+%   for a TEST routine, see climada_ls_hazard_set and the EXAMPLE therein
 % INPUTS:
+
 %   centroids:  a climada centroids stucture (ideally including topographical
 %   information) or a rectangle to define lon/lat box, if not given, the
 %   user can select a rectangle by first selecting a country and then drawing

@@ -20,6 +20,7 @@ function hazard = climada_hazard_encode_distance(hazard,entityORassetsORcentroid
 %   hazard = hazard_distance_convert(hazard,entity,cutoff)
 % EXAMPLE:
 %   hazard = hazard_distance_convert(hazard,entity,250)
+%   for a TEST routine, see climada_ls_hazard_set and the EXAMPLE therein
 % INPUTS:
 %   hazard: landslide hazard structure, intensity given as meters soildepth
 %   entity: climada entity structure, with .assets.lon and .assets.lat
