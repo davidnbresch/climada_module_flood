@@ -37,9 +37,10 @@ function [hazard,centroids,fig] = climada_ls_hazard_set(centroids,n_events,hazar
 % EXAMPLE:
 %   %%TEST, for a region around Sarnen in Switzerland (Kt. Obwalden):
 %   [hazard,centroids]=climada_ls_hazard_set([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary');
-%   %[hazard,centroids]=climada_ls_hazard_set([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],'','','','','','','','','','',1); % with check plots
+%   %[hazard,centroids]=climada_ls_hazard_set([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary','','','','','','','','',1); % with check plots
 %   checksum=sum(sum(hazard.intensity)) should be = 1.0060e+06 % check-sum (plus/minus, since radom generator)
 %   figure;climada_hazard_plot_nogrid(hazard,0,2); % show max hazard intensity at each centroid
+%   climada_hazard_stats(hazard); % show hazard intensity return periods
 %   figure;plot3(centroids.lon,centroids.lat,centroids.elevation_m,'.r') % show terrain
 %   % for a tile in San Salvador (where the code has been first developed for:
 %   [hazard, centroids]  = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727],'','','','','','','','','','',1)
@@ -92,7 +93,8 @@ function [hazard,centroids,fig] = climada_ls_hazard_set(centroids,n_events,hazar
 %        hazard,etc)
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20151124, init
-% David N. Bresch, david.bresch@gmial.com, 20171116, made mopre stable, example added
+% David N. Bresch, david.bresch@gmail.com, 20171116, made more stable, example added
+% David N. Bresch, david.bresch@gmail.com, 20171117, check plots fixed
 % -
 
 % init
@@ -145,11 +147,11 @@ end
 fprintf('Save landslide (LS) hazard set (encoded to distance) as %s\n',hazard_set_file);
 save(hazard_set_file,'hazard')
 
-
 if check_plot
     % create landslide binary event map
     fig = climada_ls_hazard_binary_plot(hazard_binary);
     
+    figure; % new figure
     % plot centroids with characteristics (elevation, slope, twi, etc)
     fieldname_to_plot = {'elevation_m' 'slope_deg' 'TWI' 'aspect_deg'};
     plot_method = 'plotclr';
@@ -159,6 +161,7 @@ if check_plot
     hazard.orig_years = 1000; % we set the number of years to 1000 to have nice images, but please check if this is suitable
     hazard.frequency = ones(size(hazard.event_ID))*(1./hazard.orig_years);
     
+    figure; % new figure
     return_periods = [10 25 50 100 150 200];
     hazard_stats = climada_hazard_stats(hazard,return_periods,0);
     fig_temp_2 = climada_hazard_stats_figure(hazard_stats,return_periods);

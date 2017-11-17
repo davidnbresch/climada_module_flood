@@ -24,9 +24,10 @@ function fig = climada_ls_hazard_binary_plot(hazard)
 %   fig: handle of map with landslide events
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20151124, init
+% David N. Bresch, david.bresch@gmail.com, 20171117, check plots fixed
 % -
 
-global climada_global
+%global climada_global
 if ~climada_init_vars, return; end
 
 % check arguments
@@ -69,9 +70,4 @@ title(titlestr); axis(axlim); box on;
 climada_figure_axis_limits_equal_for_lat_lon(axlim); climada_figure_scale_add('',1,1)
 legend(h,legendstr,'location','eastoutside')
 
-
-
-
-
-
-
+end % climada_ls_hazard_binary_plot
