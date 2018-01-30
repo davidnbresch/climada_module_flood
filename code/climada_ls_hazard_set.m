@@ -2,7 +2,7 @@ function [hazard,centroids,fig] = climada_ls_hazard_set(centroids,n_events,hazar
     wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
     n_downstream_cells,focus_area,polygon_correction,random_trigger_condition,...
     check_plot)
-% Generate a landslide hazard set
+% Generate a landslide hazard set.
 % MODULE:
 %   flood
 % NAME:
