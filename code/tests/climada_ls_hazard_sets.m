@@ -1,4 +1,4 @@
-function [hazard,centroids] = climada_ls_hazard_test(centroids,n_events,...
+function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,...
     wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope)
 
 % Generate a landslide hazard set.
@@ -36,7 +36,7 @@ function [hazard,centroids] = climada_ls_hazard_test(centroids,n_events,...
 
 % EXAMPLE:
 %   %%TEST, for a region around Sarnen in Switzerland (Kt. Obwalden):
-%   [hazard,centroids]=climada_ls_hazard_test([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary');
+%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary');
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
 %       information) or a rectangle to define lon/lat box, if not given, the
@@ -148,13 +148,12 @@ end
 
 %create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
 %100 events (1/0)
-hazard = climada_ls_hazard_trigger(centroids)
+%hazard = climada_ls_hazard_trigger(centroids);
+
+%assess flow path of landslide
+mult_flow = climada_ls_multipleflow(centroids);
 
 
-% create binary landslide hazard
-%[hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,hazard_set_file,...
-    %wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
-    %n_downstream_cells,focus_area,polygon_correction,random_trigger_condition);
 
 if isempty(hazard),return;end % Cancel pressed in climada_ls_hazard_set_binary or failed
 
@@ -174,6 +173,9 @@ else
 end
 fprintf('Save landslide (LS) hazard set (encoded to distance) as %s\n',hazard_set_file);
 save(hazard_set_file,'hazard')
+
+%safe centroids --> just to test; code should be removed afterwards
+save('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat','centroids')
 
 
 end
