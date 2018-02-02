@@ -1,7 +1,5 @@
-function [hazard,centroids,fig] = climada_ls_hazard_test(centroids,n_events,hazard_set_file,...
-    wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
-    n_downstream_cells,focus_area,polygon_correction,random_trigger_condition,...
-    check_plot)
+function [hazard,centroids] = climada_ls_hazard_test(centroids,n_events,...
+    wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope)
 
 % Generate a landslide hazard set.
 % MODULE:
@@ -33,20 +31,12 @@ function [hazard,centroids,fig] = climada_ls_hazard_test(centroids,n_events,haza
 %   centroids
 %   centroids = climada_centroids_elevation_add;
 % CALLING SEQUENCE:
-%   [hazard, centroids, fig] = climada_ls_hazard_set(centroids,n_events,hazard_set_file,...
-%                                         wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
-%                                         n_downstream_cells,focus_area,polygon_correction,random_trigger_condition,...
-%                                         check_plot)
+%   [hazard, centroids] = function [hazard,centroids] = climada_ls_hazard_test(centroids,n_events,...
+%                                 wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope)
+
 % EXAMPLE:
 %   %%TEST, for a region around Sarnen in Switzerland (Kt. Obwalden):
-%   [hazard,centroids]=climada_ls_hazard_set([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary');
-%   %[hazard,centroids]=climada_ls_hazard_set([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary','','','','','','','','',1); % with check plots
-%   checksum=sum(sum(hazard.intensity)) should be = 1.0060e+06 % check-sum (plus/minus, since radom generator)
-%   figure;climada_hazard_plot_nogrid(hazard,0,2); % show max hazard intensity at each centroid
-%   climada_hazard_stats(hazard); % show hazard intensity return periods
-%   figure;plot3(centroids.lon,centroids.lat,centroids.elevation_m,'.r') % show terrain
-%   % for a tile in San Salvador (where the code has been first developed for:
-%   [hazard, centroids]  = climada_ls_hazard_set([-89.145 -89.1 13.692 13.727],'','','','','','','','','','',1)
+%   [hazard,centroids]=climada_ls_hazard_test([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen_binary');
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
 %       information) or a rectangle to define lon/lat box, if not given, the
@@ -98,7 +88,7 @@ function [hazard,centroids,fig] = climada_ls_hazard_test(centroids,n_events,haza
 % Lea Mueller, muellele@gmail.com, 20151124, init
 % David N. Bresch, david.bresch@gmail.com, 20171116, made more stable, example added
 % David N. Bresch, david.bresch@gmail.com, 20171117, check plots fixed
-% -
+% Thomas Rölli, thomasroelli@gmail.com, 20180201, set up test programm 
 
 % init
 hazard = []; fig = [];
@@ -120,12 +110,70 @@ if ~exist('polygon_correction', 'var'), polygon_correction = []; end
 if ~exist('random_trigger_condition', 'var'), random_trigger_condition = []; end
 if ~exist('check_plot', 'var'), check_plot = 0; end
 
-% create binary landslide hazard
-[hazard_binary, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,hazard_set_file,...
-    wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
-    n_downstream_cells,focus_area,polygon_correction,random_trigger_condition);
+%create centroids and add elevation information to it (from SRTM 90)
+if isnumeric(centroids) && numel(centroids) == 4
+    % we have a box that defines where centroids should be created on 90m
+    % resolution (given by SRTM)
+    % return
+    centroids = climada_centroids_elevation_add('',centroids);
+end
 
-if isempty(hazard_binary),return;end % Cancel pressed in climada_ls_hazard_set_binary or failed
+if isempty(centroids) 
+    % create centroids by asking user for a country and to define a
+    % rectangle region on the figure
+    % return
+    centroids = climada_centroids_elevation_add('','');
+end
+
+%calculate TWI, aspect, slope
+centroids = climada_centroids_TWI_calc(centroids);
+
+% calculate slope_factor as cos(slope)/sin(slope)
+slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));
+slope_factor(isinf(slope_factor)) = 0;
+slope_factor(slope_factor>0.55) = 0.6;
+if ~isfield(centroids,'slope_factor')
+    centroids.slope_factor = slope_factor;
+end
+
+% normalize TWI
+if ~isfield(centroids,'TWI_norm')
+    % TWI_norm = centroids.TWI/10;
+    % TWI_norm(TWI_norm>0.85) = 0.85;
+    TWI_norm = centroids.TWI/10;
+    TWI_norm(isnan(TWI_norm)) = 0;
+    centroids.TWI_norm = TWI_norm;
+end
+
+
+%create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
+%100 events (1/0)
+hazard = climada_ls_hazard_trigger(centroids)
+
+
+% create binary landslide hazard
+%[hazard, centroids]  = climada_ls_hazard_set_binary(centroids,n_events,hazard_set_file,...
+    %wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope,...
+    %n_downstream_cells,focus_area,polygon_correction,random_trigger_condition);
+
+if isempty(hazard),return;end % Cancel pressed in climada_ls_hazard_set_binary or failed
+
+% save hazard
+[pathname, filename, f_ext] = fileparts(hazard.filename);
+if ~exist(pathname,'dir')
+    hazard_set_file = [climada_global.data_dir filesep 'hazards' filesep 'LSXX_hazard.mat'];
+    [filename, pathname] = uiputfile(hazard_set_file, 'Save LS hazard set as:');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+    else
+        hazard_set_file = fullfile(pathname,filename);
+    end
+else
+    filename = [strrep(filename,'binary','') 'distance'];
+    hazard_set_file = fullfile(pathname,filename);
+end
+fprintf('Save landslide (LS) hazard set (encoded to distance) as %s\n',hazard_set_file);
+save(hazard_set_file,'hazard')
 
 
 end
