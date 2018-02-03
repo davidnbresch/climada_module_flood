@@ -31,7 +31,7 @@ function mult_flow = climada_ls_multipleflow(centroids,exponent)
 %   proportion
 
 %remove afterwards; load centroids
-%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -63,7 +63,7 @@ elevation = reshape(centroids.elevation_m,n_lat,n_lon);
 %(mean latitude is taken)
 dy = min(diff(unique(centroids.lat)))*(deg_km * 1000);
 dx = min(diff(unique(centroids.lon)))*cosd(mean(centroids.lat))*(deg_km * 1000); 
-dxdy = sqrt(dx^2+dy^2);%
+dxdy = sqrt(dx^2+dy^2);
 
 %shif matrix such that neigbour cell is shifted on the centre cell (with circshift)
 %starting at 12 o'clock and proceeding clockwise
@@ -85,12 +85,14 @@ gradients(gradients < 0) = 0;
 
 %%% calculate sum of all outflow cells
 gradients_sum = sum(gradients,3);
+gradients_sum(gradients_sum==0) = 1; %prevent division by 0
 
 
 %%% calculate multidirectional outflow proportion
 % (tan(beta_i)^x/sum(tan(beta_i)(i= 1 to 8))^x
 
-mult_flow = (gradients.^exponent)/(gradients_sum.^exponent);
+mult_flow = (gradients)./(gradients_sum);
+%mult_flow = (gradients.^exponent)/(gradients_sum.^exponent);
 
 
 
