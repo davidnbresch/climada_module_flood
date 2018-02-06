@@ -148,7 +148,7 @@ end
 
 %create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
 %100 events (1/0)
-%hazard = climada_ls_hazard_trigger(centroids);
+hazard = climada_ls_hazard_trigger(centroids);
 
 %assess flow path of landslide
 mult_flow = climada_ls_multipleflow(centroids);
