@@ -42,8 +42,8 @@ deg_km = 111.12; %length of 1 degree on Earth
 %neighbour-cells
 %it is asumed that the longitudinal distance doesn't change with latitude
 %(mean latitude is taken)
-dy = min(diff(lat(:,1)))*(deg_km * 1000);
-dx = min(diff(lon(1,:)))*cosd(mean(lat(:,1)))*(deg_km * 1000); 
+dy = abs(min(diff(lat(:,1)))*(deg_km * 1000));
+dx = abs(min(diff(lon(1,:)))*cosd(mean(lat(:,1)))*(deg_km * 1000)); 
 dxdy = sqrt(dx^2+dy^2);
 
 %shif matrix such that neigbour cell is shifted on the centre cell (with circshift)

@@ -34,9 +34,9 @@ if ~exist('n_event', 'var'), n_event = 1; end
 %vector; only possible for regular placed gridpoints
 n_lon = numel(unique(lon_vec));
 n_lat = numel(unique(lat_vec));
-lon = reshape(lon_vec,n_lat,n_lon);
-lat = reshape(lat_vec,n_lat,n_lon);
-field = reshape(field_vec(n_event,:),n_lat,n_lon);
+lon = flipud(reshape(lon_vec,n_lat,n_lon));
+lat = flipud(reshape(lat_vec,n_lat,n_lon));
+field = flipud(reshape(field_vec(n_event,:),n_lat,n_lon));
 
 
 figure
