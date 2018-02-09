@@ -151,7 +151,7 @@ end
 hazard = climada_ls_hazard_trigger(centroids);
 
 %assess flow path of landslide
-mult_flow = climada_ls_multipleflow(centroids);
+mult_flow = climada_ls_multipleflow(centroids,hazard);
 
 
 

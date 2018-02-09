@@ -29,10 +29,12 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent)
 % Thomas Rölli, thomasroelli@gmail.com, 20180201, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180202, calculation of outflow
 %   proportion
+% Thomas Rölli, thomasroelli@gmail.com, 20180208, implementation of flow
+%   path
 
 %remove afterwards; load centroids and hazard
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_distance.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_distance.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -86,12 +88,15 @@ mult_flow =  mult_flow./sum_mult_flow;
 %hazard.intensity
 intensity = flipud(full(reshape(hazard.intensity(1,:),n_lat,n_lon)));
 active_cells = intensity;
+next_active_cells = intensity;
 spread = double(intensity);
 
 %shif matrix such that intensity is spread from center to neighbour-cells
 %starting at 12 o'clock and proceeding clockwise
 shift_matrix = [1 0;1 -1;0 -1;-1 -1;-1 0;-1 1;0 1;1 1]*-1;
 
+for runs=1:100
+active_cells = next_active_cells;
 for j=1:n_lat %iteration through rows
     for i=1:n_lon %iteration through colums
         if active_cells(j,i)
@@ -101,11 +106,12 @@ for j=1:n_lat %iteration through rows
                     %prevent non-valible indices at boarder 
                     %if ((j+shift_matrix(c,1)>0) && (j+shift_matrix(c,1)<=n_lat))...
                             %&& ((i+shift_matrix(c,2)>0) && (i+shift_matrix(c,2)>0<=n_lon))
-                        %spread value of center to neighbour cell
+                        %spread value of center to neighbour cell only if
+                        %new value greater than old
                         if spread(j,i)*mult_flow(j,i,c) > spread(j+shift_matrix(c,1),i+shift_matrix(c,2))
                             spread(j+shift_matrix(c,1),i+shift_matrix(c,2))=spread(j,i)*mult_flow(j,i,c);
                         end
-                        active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1;
+                        next_active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1;
                     %end
                 end
             end
@@ -113,9 +119,10 @@ for j=1:n_lat %iteration through rows
         end
     end
 end
+end
 
-print('hier')
-
+surf(lon,lat,elevation,spread,'LineStyle','none');
+disp('hier');
 
 
 
