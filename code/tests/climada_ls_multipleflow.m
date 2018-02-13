@@ -45,7 +45,7 @@ if ~exist('hazard', 'var'), hazard = []; end
 if ~exist('exponent', 'var'), exponent = []; end
 
 % PARAMETERS 
-if isempty(exponent); exponent = 100; end
+if isempty(exponent); exponent = 4; end
 
 %get dimension of grid field from lon/lat coordinates
 %and reshap needed vectors --> easier to handel in grid format than in

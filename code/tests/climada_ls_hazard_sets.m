@@ -1,5 +1,5 @@
-function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,...
-    wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope)
+function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,set_files,...
+    wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope)
 
 % Generate a landslide hazard set.
 % MODULE:
@@ -44,8 +44,8 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,...
 %       a rectangle on a map
 % OPTIONAL INPUT PARAMETERS:
 %   n_events: number of events
-%   hazard_set_file: the name (and path, optional) of the hazard set file
-%       If no path provided, default path ../data/hazards is used (and name
+%   set_file: the name (and path, optional) of the hazard set and centroids
+%       files. If no path provided, default path ../data/hazards is used (and name
 %       can be without extension .mat)
 %       > promted for if not given
 %   wiggle_factor_TWI:    an array, default is 0.35, to modify topographical
@@ -99,7 +99,7 @@ if ~climada_init_vars, return; end
 % check arguments
 if ~exist('centroids', 'var'), centroids = []; end
 if ~exist('n_events', 'var'), n_events = []; end
-if ~exist('hazard_set_file', 'var'), hazard_set_file = []; end
+if ~exist('set_files', 'var'), set_files = []; end
 if ~exist('wiggle_factor', 'var'), wiggle_factor_TWI = []; end
 if ~exist('TWI_condition', 'var'), condition_TWI = []; end
 if ~exist('wiggle_factor_slope', 'var'), wiggle_factor_slope = []; end
@@ -109,6 +109,29 @@ if ~exist('focus_area', 'var'), focus_area = []; end
 if ~exist('polygon_correction', 'var'), polygon_correction = []; end
 if ~exist('random_trigger_condition', 'var'), random_trigger_condition = []; end
 if ~exist('check_plot', 'var'), check_plot = 0; end
+
+% prompt for set_files if not given
+if isempty(set_files) % local GUI
+    hazard_set_file      = [climada_global.data_dir filesep 'hazards' filesep 'LSXX_hazard.mat'];
+    centroids_set_file    = [climada_global.data_dir filesep 'centroids' filesep 'LSXX_centroids.mat'];
+    %prompt for hazard file
+    [filename,pathname] = uiputfile(hazard_set_file, 'Save LS hazard set as:');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+    else
+        hazard_set_file = fullfile(pathname,filename);
+    end
+    %prompt for centroids file
+    [filename,pathname] = uiputfile(centroids_set_file, 'Save LS centroids set as:');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+    else
+        centroids_set_file = fullfile(pathname,filename);
+    end
+else
+    hazard_set_file      = [climada_global.data_dir filesep 'hazards' filesep set_files '_hazard.mat'];
+    centroids_set_file   = [climada_global.data_dir filesep 'centroids' filesep set_files '_centroids.mat'];
+end
 
 %create centroids and add elevation information to it (from SRTM 90)
 if isnumeric(centroids) && numel(centroids) == 4
@@ -148,7 +171,8 @@ end
 
 %create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
 %100 events (1/0)
-hazard = climada_ls_hazard_trigger(centroids);
+hazard = climada_ls_hazard_trigger(centroids,n_events,...
+    wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope);
 
 %assess flow path of landslide
 mult_flow = climada_ls_multipleflow(centroids,hazard);
@@ -157,25 +181,11 @@ mult_flow = climada_ls_multipleflow(centroids,hazard);
 
 if isempty(hazard),return;end % Cancel pressed in climada_ls_hazard_set_binary or failed
 
-% save hazard
-[pathname, filename, f_ext] = fileparts(hazard.filename);
-if ~exist(pathname,'dir')
-    hazard_set_file = [climada_global.data_dir filesep 'hazards' filesep 'LSXX_hazard.mat'];
-    [filename, pathname] = uiputfile(hazard_set_file, 'Save LS hazard set as:');
-    if isequal(filename,0) || isequal(pathname,0)
-        return; % cancel
-    else
-        hazard_set_file = fullfile(pathname,filename);
-    end
-else
-    filename = [strrep(filename,'binary','') 'distance'];
-    hazard_set_file = fullfile(pathname,filename);
-end
-fprintf('Save landslide (LS) hazard set (encoded to distance) as %s\n',hazard_set_file);
+% save hazard and centroids
+hazard.filename = hazard_set_file;
+centroids.filename = centroids_set_file;
+fprintf('Save landslide (LS) hazard and centroids set as %s\n and %s\n',hazard_set_file,centroids_set_file);
 save(hazard_set_file,'hazard')
-
-%safe centroids --> just to test; code should be removed afterwards
-save('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat','centroids')
-
+save(centroids_set_file,'centroids')
 
 end

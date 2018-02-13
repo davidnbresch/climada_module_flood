@@ -1,4 +1,4 @@
-function hazard = climada_ls_hazard_trigger(centroids,n_events,hazard_set_file,...
+function hazard = climada_ls_hazard_trigger(centroids,n_events,...
     wiggle_factor_TWI,condition_TWI, wiggle_factor_slope,condition_slope)
 
 % Assessing of the susceptibility of shallow landslides. Triggering areas of landslides (1/0) are 
@@ -40,17 +40,6 @@ if isempty(wiggle_factor_TWI); wiggle_factor_TWI = 0.35; end
 if isempty(condition_TWI); condition_TWI = 0.95; end
 if isempty(wiggle_factor_slope); wiggle_factor_slope = 0.2; end
 if isempty(condition_slope); condition_slope = 0.45; end
-
-% prompt for hazard_set_file if not given
-if isempty(hazard_set_file) % local GUI
-    hazard_set_file      = [climada_global.data_dir filesep 'hazards' filesep 'LSXX_hazard_binary.mat'];
-    [filename, pathname] = uiputfile(hazard_set_file, 'Save LS (binary) hazard set as:');
-    if isequal(filename,0) || isequal(pathname,0)
-        return; % cancel
-    else
-        hazard_set_file = fullfile(pathname,filename);
-    end
-end
 
 %initiate hazard 
 hazard = []; % init

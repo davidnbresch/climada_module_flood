@@ -1,4 +1,4 @@
-function centroids = climada_centroids_TWI_calc(centroids, check_plots)
+function centroids = climada_centroids_TWI_calc(centroids,centroids_set_file,check_plots)
 % Calculate flood scores and topographic wetness indices
 % MODULE:
 %   flood
