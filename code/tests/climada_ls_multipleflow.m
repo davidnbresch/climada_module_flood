@@ -31,14 +31,15 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent)
 %   proportion
 % Thomas Rölli, thomasroelli@gmail.com, 20180208, implementation of flow
 %   path
+% Thomas Rölli, thomasroelli@gmail.com, 20180214, implementaiton of
+%   friction, outflow distance
 
 %remove afterwards; load centroids and hazard
 load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_distance.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
-
 % check arguments
 if ~exist('centroids', 'var'), centroids = []; end
 if ~exist('hazard', 'var'), hazard = []; end
@@ -58,7 +59,7 @@ lat = flipud(reshape(centroids.lat,n_lat,n_lon));
 elevation = flipud(reshape(centroids.elevation_m,n_lat,n_lon));
 
 %calculate gradients from each cell to its 8 neighbours
-gradients = climada_centroids_gradients(lon,lat,elevation);
+[gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
 
 % mutiplying by 1 --> outflow should be positive; neighbours with inflow are set to zero
 gradients = gradients*-1;
@@ -66,37 +67,35 @@ gradients(gradients < 0) = 0;
 
 
 %%% calculate sum of all outflow cells
-gradients_sum = sum(gradients,3);
+gradients_sum = sum(gradients.^exponent,3);
 gradients_sum(gradients_sum==0) = 1; %prevent division by 0
 
-
 %%% calculate multidirectional outflow proportion
-% (tan(beta_i)^x/sum(tan(beta_i)(i= 1 to 8))^x
+% (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
+mult_flow = (gradients.^exponent)./gradients_sum;
 
-mult_flow = ((gradients).^exponent)./((gradients_sum).^exponent);
-%mult_flow = (gradients.^exponent)/(gradients_sum.^exponent);
-
-
-% Abflussanteil berechnen (da mit exponent die summe nicht mehr 1); ist 
-% allerdings nicht teil multiflow algorithmus gemäss holton et al.; evt.
-% wieder entfernen
-sum_mult_flow = sum(mult_flow,3);
-sum_mult_flow(sum_mult_flow==0) = 1; %prevent divison by 0
-mult_flow =  mult_flow./sum_mult_flow;
-
-%assessing flow path; starting from cells which are equal 1 in
-%hazard.intensity
-spread = double(zeros(n_lat,n_lon,hazard.event_count));
-active_cells = logical(zeros(n_lat,n_lon)); %new for each event, save cells for next iteration
 
 %shif matrix such that intensity is spread from center to neighbour-cells
 %starting at 12 o'clock and proceeding clockwise
 shift_matrix = [1 0;1 -1;0 -1;-1 -1;-1 0;-1 1;0 1;1 1]*-1;
 max_runs=10;
+g = 9.81; %acceleration of gravity
+phi = 50; %empirical minimum travel angle, used for friction-calculation
+
+%assessing flow path; starting from cells which are equal 1 in
+%hazard.intensity
+spread = double(zeros(n_lat,n_lon,hazard.event_count));
+active_cells = logical(zeros(n_lat,n_lon)); %new for each event, save cells for next iteration
+energy = double(zeros(n_lat,n_lon)); %new for each event, save energy of cells while propagating
+eFric = g*horDist*tand(phi); %loss of energy by friction, for whole field in each direction
+ePot = g*verDist*(-1); %gain of potential enenergy, for whole field in each direction
+
+%%%%%%%without friction%%%%%%
 
 for n_event=1:hazard.event_count %iteration through events
 spread(:,:,n_event) = flipud(full(reshape(hazard.intensity(n_event,:),n_lat,n_lon)));
 active_cells = flipud(full(reshape(hazard.intensity(n_event,:),n_lat,n_lon)));
+energy(energy~=0) = 0; %set energy to zero for new event
 for runs=1:max_runs %iteration through number of runs --> implement friction here 
 for j=1:n_lat %iteration through rows
     for i=1:n_lon %iteration through colums
@@ -126,8 +125,45 @@ end %end interation through rows
 end %end interation through outflow distance
 end %end interation through events
 
+
+%%%%%%%with friction%%%%%%
+spreadFri = double(zeros(n_lat,n_lon,hazard.event_count));
+
+for n_event=1:hazard.event_count %iteration through events
+spreadFri(:,:,n_event) = flipud(full(reshape(hazard.intensity(n_event,:),n_lat,n_lon)));
+active_cells = flipud(full(reshape(hazard.intensity(n_event,:),n_lat,n_lon)));
+energy(energy~=0) = 0; %set energy to zero for new event
+while sum(sum(active_cells))>0 %iteration through number of runs --> implement friction here 
+for j=1:n_lat %iteration through rows
+    for i=1:n_lon %iteration through colums
+        if active_cells(j,i)
+            for c=1:8 %iteration through shift matrix
+                if mult_flow(j,i,c) > 0
+                    %kin. energy to corresponding neighbour
+                    eKin = energy(j,i)+ePot(j,i,c)-eFric(j,i,c);
+                    spread_old = spreadFri(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event);
+                    %calculation of new intensity when spreading
+                    spread_new = spreadFri(j,i,n_event)*mult_flow(j,i,c);
+                    %spread value of center to neighbour cell only if
+                    %new value greater than old and there is kinetic energy
+                    if (spread_new > spread_old) & (eKin > 0)
+                        spreadFri(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event)=spread_new;
+                        energy(j+shift_matrix(c,1),i+shift_matrix(c,2)) = eKin;
+                        active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1;
+                    end
+                end
+            end %end interation through shift matrix
+            active_cells(j,i)=0;
+        end
+    end %end interation through columns
+end %end interation through rows
+end %end interation through outflow distance
+end %end interation through events
+
 figure
 surf(lon,lat,elevation,spread(:,:,1));
+figure
+surf(lon,lat,elevation,spreadFri(:,:,1));
 disp('hier');
 
 

@@ -1,4 +1,4 @@
-function gradients = climada_centroids_gradients(lon,lat,elevation)
+function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation)
 
 % Calculation of gradients of each cell to its corresponding 8 neighbours.
 % MODULE:
@@ -20,6 +20,8 @@ function gradients = climada_centroids_gradients(lon,lat,elevation)
 % OUTPUTS:
 %   gradients:  8-D matrix with gradients in each direction (towards each
 %               neighbour-cell)
+%   horDist:    8-D Matrix with horizontal distance in each direction
+%   verDist:    8-D Matrix with vertical distance in each direction
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180206, init
@@ -53,11 +55,16 @@ hor_dist = [dy,dxdy,dx,dxdy,dy,dxdy,dx,dxdy];
 
 % gradients(:,:,1) corresponds to Northerly (12o'clock) cell, then going clockwise
 gradients = zeros(numel(lat(:,1)),numel(lat(1,:)),8);
+horDist = zeros(numel(lat(:,1)),numel(lat(1,:)),8);
+verDist = zeros(numel(lat(:,1)),numel(lat(1,:)),8);
 
 for c = 1:8
-    gradients(:,:,c) = (circshift(elevation,shift_matrix(c,:))-elevation)...
-        /hor_dist(c);
+    horDist(:,:,c) = hor_dist(c);
+    verDist(:,:,c) = circshift(elevation,shift_matrix(c,:))-elevation;
+    %gradients(:,:,c) = (circshift(elevation,shift_matrix(c,:))-elevation)...
+    %    /hor_dist(c);
 end
+gradients = verDist./horDist;
 
 % set gradients which are directed out of the study region to zero; at
 % boarder cells

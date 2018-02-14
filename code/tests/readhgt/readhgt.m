@@ -89,8 +89,7 @@ function varargout = readhgt(varargin)
 %		readhgt(-9,119:123)
 %
 %	- to plot a map of the Misti volcano, Peru (SRTM1 cropped tile):
-%	   readhgt([-16.4,-16.2,-71.5,-71.3],'srtm1','interp')
-%
+%	   readhgt([-16.4,-16.2,-71.5,-71.3],'srtm1','interp')%
 %	- to download SRTM1 data of Cascade Range (27 individual tiles):
 %		X=readhgt(40:48,-123:-121,'tiles');
 %
@@ -175,7 +174,7 @@ srtm1 = any(strcmpi(varargin,'srtm1'));
 if srtm1
 	% EXPERIMENTAL: SRTM1 full resolution tiles available here (2016):
 	%url = 'http://e4ftl01.cr.usgs.gov/SRTM/SRTMGL1.003/2000.02.11';
-	url = 'http://rmd.neoknet.com/srtm1';
+	url = 'https://dds.cr.usgs.gov/srtm/version2_1';
 else
 	% official USGS SRTM3 tiles (and SRTM1 for USA):
 	url = 'https://dds.cr.usgs.gov/srtm/version2_1';
@@ -373,10 +372,10 @@ else
 						if s
 							disp(w)
 						end
-						f(n) = unzip(ftmp,out);
+						f(n) = unzip1(ftmp,out);
 						delete(ftmp)
 					else
-						f(n) = unzip([url,ff],out);
+						f(n) = unzip1([url,ff],out);
 					end
 					fprintf('done.\n');
 				catch
@@ -398,7 +397,7 @@ end
 for n = 1:numel(f)
 	% unzips HGT file if needed
 	if ~isempty(strfind(f{n},'.zip'));
-		X(n).hgt = char(unzip(f{n}));
+		X(n).hgt = char(unzip1(f{n}));
 		funzip = 1;
 	else
 		X(n).hgt = f{n};
