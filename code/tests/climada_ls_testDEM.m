@@ -1,7 +1,7 @@
 function [centroids,hazard] = climada_ls_testDEM(minmaxdegrees,resolution,...
     n_events)
 
-% Creats a centroids and hazard set with digital elevation model and source
+% Creats a centroids and hazard set with a artificial digital elevation model and source
 % areas of landslides
 % test studies
 % MODULE:
@@ -14,11 +14,11 @@ function [centroids,hazard] = climada_ls_testDEM(minmaxdegrees,resolution,...
 % CALLING SEQUENCE:
 %   
 % EXAMPLE:
-%   
+%   climada_ls_multipleflow('','','',true)
 % INPUTS:
-%   minmaxdegrees   vector with two elemenets [min max] defines the square 
-%                   (lon, lat) in which DEM shall be generated.
-%   resolution:     resolution of the DEM
+%   minmaxdegrees   vector with four elemenets [minlon maxlon minlat maxlat] 
+%                   defines the rectangle in which DEM shall be generated.
+%   resolution:     resolution of the DEM, in arcsec
 %   n_events:       number of generated events in hazard
 % OPTIONAL INPUT PARAMETERS:
 %
@@ -63,7 +63,7 @@ z = 10000000000*exp(-lat.*15);
 
 % select one source cell
 source = logical(zeros(numel(lat(:,1)),numel(lon(1,:)),n_events));
-source(1,round(numel(lon(1,:))/2)) = 1;
+source(2,round(numel(lon(1,:))/2)) = 1;
 
 %reshape and assign data to hazard and centroids
 n_ele=numel(lon);

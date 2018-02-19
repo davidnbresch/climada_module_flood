@@ -53,7 +53,7 @@ if isempty(exponent); exponent = 4; end
 if isempty(test); test = false; end
 
 if test
-   [centroids,hazard] = climada_ls_testDEM;
+   [centroids,hazard] = climada_ls_testDEM();
 else
    load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat') 
 end
@@ -89,105 +89,32 @@ gradients_sum(gradients_sum==0) = 1; %prevent division by 0
 mult_flow = (gradients.^exponent)./gradients_sum;
 
 
-%shif matrix such that intensity is spread from center to neighbour-cells
-%starting at 12 o'clock and proceeding clockwise
-shift_matrix = [1 0;1 -1;0 -1;-1 -1;-1 0;-1 1;0 1;1 1]*-1;
-max_runs=10;
-g = 9.81; %acceleration of gravity
-phi = 11; %empirical minimum travel angle, used for friction-calculation
+%landslide path is calculated and the intensity spreaded according to the 
+%multiple flow path and a simplified friction model
+spread = climada_ls_spread(intensity,mult_flow,horDist,verDist,false);
+spreadFri = climada_ls_spread(intensity,mult_flow,horDist,verDist,true);
 
-%assessing flow path; starting from cells which are equal 1 in
-%hazard.intensity
-spread = double(zeros(n_lat,n_lon,hazard.event_count));
-active_cells = logical(zeros(n_lat,n_lon)); %new for each event, save cells for next iteration
-energy = double(zeros(n_lat,n_lon)); %new for each event, save energy of cells while propagating
-eFric = g*horDist*tand(phi); %loss of energy by friction, for whole field in each direction
-ePot = g*verDist*(-1); %gain of potential enenergy, for whole field in each direction
-
-%%%%%%%without friction%%%%%%
-
-for n_event=1:hazard.event_count %iteration through events
-spread(:,:,n_event) = intensity(:,:,n_event);
-active_cells = intensity(:,:,n_event);
-while sum(sum(active_cells))>0 %iteration through number of runs --> implement friction here 
-temp_active_cells = logical(zeros(n_lat,n_lon));
-for j=1:n_lat %iteration through rows
-    for i=1:n_lon %iteration through colums
-        if active_cells(j,i)
-            for c=1:8 %iteration through shift matrix
-                if mult_flow(j,i,c) > 0 
-                    %spread value of center to neighbour cell only if
-                    %new value greater than old
-                    if spread(j,i,n_event)*mult_flow(j,i,c) > spread(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event)
-                        %intensity is spread according to its outflow
-                        %propotion
-                        spread(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event)=spread(j,i,n_event)*mult_flow(j,i,c);
-                        temp_active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1;
-                    end
-                    %test = zeros(n_lon,n_lat);
-                    %test(spread(:,:,1)>0) =1;
-                    %test = double(active_cells);
-                    %surf(lon,lat,elevation,test);
-                    %view(2);
-                    %disp([j i]);
-                    %disp('');
-                end
-            end %end interation through shift matrix
-            active_cells(j,i)=0;
-        end
-    end %end interation through columns
-end %end interation through rows
-active_cells(temp_active_cells == 1) = 1;
-end %end interation through outflow distance
-end %end interation through events
-
-
-%%%%%%%with friction%%%%%%
-spreadFri = double(zeros(n_lat,n_lon,hazard.event_count));
-
-for n_event=1:hazard.event_count %iteration through events
-spreadFri(:,:,n_event) = intensity(:,:,n_event);
-active_cells = intensity(:,:,n_event);
-energy(energy~=0) = 0; %set energy to zero for new event
-while sum(sum(active_cells))>0 %iteration through number of runs --> implement friction here 
-temp_active_cells = logical(zeros(n_lat,n_lon));    
-for j=1:n_lat %iteration through rows
-    for i=1:n_lon %iteration through colums
-        if active_cells(j,i)
-            for c=1:8 %iteration through shift matrix
-                if mult_flow(j,i,c) > 0
-                    %kin. energy to corresponding neighbour
-                    eKin = energy(j,i)+ePot(j,i,c)-eFric(j,i,c);
-                    spread_old = spreadFri(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event);
-                    %calculation of new intensity when spreading
-                    spread_new = spreadFri(j,i,n_event)*mult_flow(j,i,c);
-                    %spread value of center to neighbour cell only if
-                    %new value greater than old and there is kinetic energy
-                    if (spread_new > spread_old) & (eKin > 0)
-                        spreadFri(j+shift_matrix(c,1),i+shift_matrix(c,2),n_event)=spread_new;
-                        energy(j+shift_matrix(c,1),i+shift_matrix(c,2)) = eKin;
-                        temp_active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1;
-                    end
-                end
-            end %end interation through shift matrix
-            active_cells(j,i)=0;
-        end
-    end %end interation through columns
-end %end interation through rows
-active_cells(temp_active_cells == 1) = 1;
-end %end interation through outflow distance
-end %end interation through events
-
+%make some plots just to test things
 figure
 surf(lon,lat,elevation,spread(:,:,1));
 figure
 surf(lon,lat,elevation,spreadFri(:,:,1));
 
-test = zeros(n_lon,n_lat);
-test(spreadFri(:,:,1)>0) =1;
+
+%affected area: plot to see where intensity values are greater than 0
+aff_area = zeros(n_lon,n_lat);
+aff_area(spreadFri(:,:,1)>0) =1;
 figure
-surf(lon,lat,elevation,test)
+surf(lon,lat,elevation,aff_area)
+%surf(lon,lat,elevation,aff_area,'LineStyle','none')
+
+%affected area: plot without friction
+aff_area(spread(:,:,1)>0) =1;
+figure
+surf(lon,lat,elevation,aff_area)
+
 disp('hier');
+
 
 
 
