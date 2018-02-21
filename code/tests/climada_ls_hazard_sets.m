@@ -1,4 +1,4 @@
-function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,set_files,...
+function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,set_files,...
     wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope)
 
 % Generate a landslide hazard set.
@@ -36,7 +36,9 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,set_file
 
 % EXAMPLE:
 %   %%TEST, for a region around Sarnen in Switzerland (Kt. Obwalden):
-%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],100,'_LS_Sarnen');
+%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],,100,'_LS_Sarnen');
+%   with srtm1-data
+%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],1,100,'_LS_Sarnen_srtm1');
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
 %       information) or a rectangle to define lon/lat box, if not given, the
@@ -56,15 +58,8 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,n_events,set_file
 %                         which is a number between 0 and 1
 %   condition_slope:      an array, default is 0.45, to define a minimum slope
 %                         where a landslide occurs
-%   n_downstream_cells:   number of downstream cells where the landslide is extended
-%   focus_area:           a polygon to define the focus area (with focus_area.lon, focus_area.lat),
-%                         landslides only in the given area will be filtered
-%                         and the other areas are cut out
-%   polygon_correction:   a polygon to define an area where less landlislides should occur
-%   random_trigger_condition: a number between 0 and 1, 1 prevents all landslide
-%                         in the polygon_correction area, 0 does not inhibit any
-%                         landlides in the polygon_correction area
-%   check_plot:          set to 1 if you want to see maps (elevation, slope, hazard, etc)
+%   srtm1:                if set to 1 srtm1-data is used to get the
+%                         elevation of the terrain. 0 by default: srtm3 data is used 
 % OUTPUTS:
 %   hazard: a climada hazard structure with binary landslide information
 %       .peril_ID: 'LS'
@@ -98,6 +93,7 @@ if ~climada_init_vars, return; end
 
 % check arguments
 if ~exist('centroids', 'var'), centroids = []; end
+if ~exist('srtm1', 'var'), srtm1 = 0; end
 if ~exist('n_events', 'var'), n_events = []; end
 if ~exist('set_files', 'var'), set_files = []; end
 if ~exist('wiggle_factor', 'var'), wiggle_factor_TWI = []; end
@@ -138,14 +134,14 @@ if isnumeric(centroids) && numel(centroids) == 4
     % we have a box that defines where centroids should be created on 90m
     % resolution (given by SRTM)
     % return
-    centroids = climada_centroids_elevation_add('',centroids);
+    centroids = climada_centroids_elevation_add('',centroids,0,srtm1);
 end
 
 if isempty(centroids) 
     % create centroids by asking user for a country and to define a
     % rectangle region on the figure
     % return
-    centroids = climada_centroids_elevation_add('','');
+    centroids = climada_centroids_elevation_add('','',0,srtm1);
 end
 
 %calculate TWI, aspect, slope

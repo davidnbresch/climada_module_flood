@@ -189,11 +189,17 @@ else
     % srtm info for one country, region or rectangle
     SRTM_grid = [];
     % loop over tiles in longitude direction (e.g. 18 and 19 for El Salvador)
+    % vice versa for SRTM1
     for i = srtm_info.min_max_lon_lat(1): srtm_info.min_max_lon_lat(2)
         SRTM_grid_j = [];
         % loopo over tiles in latitude direction (e.g. 10 for El Salvador)
         for j = srtm_info.min_max_lon_lat(3): srtm_info.min_max_lon_lat(4)
-            SRTM_grid_j = [SRTM_grid_j ; srtm_raw_data(i,j).grid];
+            switch SRTM1
+                case 0
+                    SRTM_grid_j = [SRTM_grid_j ; srtm_raw_data(i,j).grid];
+                case 1
+                    SRTM_grid_j = [SRTM_grid_j ; srtm_raw_data(j,i).grid];
+            end 
         end
         SRTM_grid = [SRTM_grid SRTM_grid_j];
     end
@@ -202,15 +208,16 @@ else
     % overwrite no_data_value with a fill_data_value (either zero or the
     % real minimum data)
     % no_data value is the minimum of all values (i.e. -32768 for El Salvador)
+    % convert to double
+    SRTM_grid = double(SRTM_grid);
     no_data_value = min(SRTM_grid(:));
     fill_data_value = nan; %0;
     %fill_data_value = min(SRTM_grid(SRTM_grid~= no_data_value));
     SRTM_grid(SRTM_grid == no_data_value) = fill_data_value;
-    % convert to double
-    SRTM_grid = double(SRTM_grid);
+    
     
     % read lon/lat information from hdr
-    min_max_lon_lat = climada_hdr_read(SRTM.sourcefile);
+    min_max_lon_lat = climada_hdr_read_srtm1(SRTM.sourcefile,SRTM1);
     
     % create meshgrid
     [x, y] = meshgrid(linspace(min_max_lon_lat(1),min_max_lon_lat(2),size(SRTM_grid,2)),...

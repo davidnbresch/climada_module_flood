@@ -1,4 +1,4 @@
-function min_max_lon_lat = climada_hdr_read(tif_filename)
+function min_max_lon_lat = climada_hdr_read(tif_filename,SRTM1)
 % climada
 % MODULE:
 %   etopo
@@ -28,6 +28,7 @@ if ~climada_init_vars,return;end % init/import global variables
 
 
 if ~exist('tif_filename', 'var'), tif_filename  = []; end
+if ~exist('SRTM1', 'var'), SRTM1  = 0; end
 
 % convert to cell if filename is a char
 if ischar(tif_filename); tif_filename = {tif_filename}; end
@@ -42,44 +43,83 @@ for tile_i = 1:n_tiles
     hdr_filename = strrep(tif_filename{tile_i},'tif','hdr');
     try 
         fid = fopen(hdr_filename);
-    
-        scale_check = 0;
-        while ~feof(fid),
-            line = fgetl(fid);
+        
+        switch SRTM1
+            case 0 %for SRTM3
+                scale_check = 0;
+                while ~feof(fid),
+                    line = fgetl(fid);
+                    if scale_check
+                        scale = str2num(line);
+                        dlon = scale(1); dlat = scale(2);
+                        scale_check =0;
+                    end
+                    if strfind(line,'ModelPixelScaleTag')
+                        scale_check = 1;
+                    end
 
-            if scale_check
-                scale = str2num(line);
-                dlon = scale(1); dlat = scale(2);
-                scale_check =0;
-            end
-            if strfind(line,'ModelPixelScaleTag')
-                scale_check = 1;
-            end
-
-            if strfind(line,'Upper Left')
-                loc_i = strfind(line, '(');
-                loc_f = strfind(line, ')');
-                UL = str2num(line(loc_i+1:loc_f-1));
-            end
-            if strfind(line,'Lower Left')
-                loc_i = strfind(line, '(');
-                loc_f = strfind(line, ')');
-                LL = str2num(line(loc_i+1:loc_f-1));
-            end
-            if strfind(line,'Upper Right')
-                loc_i = strfind(line, '(');
-                loc_f = strfind(line, ')');
-                UR = str2num(line(loc_i+1:loc_f-1));
-            end
-            if strfind(line,'Lower Right')
-                loc_i = strfind(line, '(');
-                loc_f = strfind(line, ')');
-                LR = str2num(line(loc_i+1:loc_f-1));
-            end
-        end %while
-        fclose(fid);
-        extremes.lon = [extremes.lon UL(1) UR(1)];
-        extremes.lat = [extremes.lat UL(2) LL(2)];
+                    if strfind(line,'Upper Left')
+                        loc_i = strfind(line, '(');
+                        loc_f = strfind(line, ')');
+                        UL = str2num(line(loc_i+1:loc_f-1));
+                    end
+                    if strfind(line,'Lower Left')
+                        loc_i = strfind(line, '(');
+                        loc_f = strfind(line, ')');
+                        LL = str2num(line(loc_i+1:loc_f-1));
+                    end
+                    if strfind(line,'Upper Right')
+                        loc_i = strfind(line, '(');
+                        loc_f = strfind(line, ')');
+                        UR = str2num(line(loc_i+1:loc_f-1));
+                    end
+                    if strfind(line,'Lower Right')
+                        loc_i = strfind(line, '(');
+                        loc_f = strfind(line, ')');
+                        LR = str2num(line(loc_i+1:loc_f-1));
+                    end
+                end %while
+                fclose(fid);
+                extremes.lon = [extremes.lon UL(1) UR(1)];
+                extremes.lat = [extremes.lat UL(2) LL(2)];
+            case 1 %for SRTM1
+                while ~feof(fid),
+                    line = fgetl(fid);
+                    if strfind(line,'NROWS')
+                        split = strsplit(line);
+                        nrows = str2num(char(split(2)));
+                    end
+                    if strfind(line,'NCOLS')
+                        split = strsplit(line);
+                        ncols = str2num(char(split(2)));
+                    end
+                    if strfind(line,'ULXMAP')
+                        split = strsplit(line);
+                        UL(1) = str2num(char(split(2)));
+                        LL(1) = UL(1);
+                    end
+                    if strfind(line,'ULYMAP')
+                        split = strsplit(line);
+                        UL(2) = str2num(char(split(2)));
+                        UR(2) = UL(2);
+                    end
+                    if strfind(line,'XDIM')
+                        split = strsplit(line);
+                        xdim = str2num(char(split(2)));
+                        UR(1) = UL(1)+xdim*(ncols-1);
+                        LR(1) = UR(1);
+                    end
+                     if strfind(line,'YDIM')
+                        split = strsplit(line);
+                        ydim = str2num(char(split(2)));
+                        LL(2) = UL(2)-ydim*(nrows-1);
+                        LR(2) = LL(2);
+                     end
+                end %while
+                fclose(fid);
+                extremes.lon = [extremes.lon UL(1) UR(1)];
+                extremes.lat = [extremes.lat UL(2) LL(2)];
+        end %end switch
         %break;
     end %try
 end %n_tiles
