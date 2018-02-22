@@ -58,7 +58,8 @@ function centroids = climada_centroids_TWI_calc(centroids,centroids_set_file,che
 % Lea Mueller, muellele@gmail.com, 20151105, improve output documentation
 % Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
 % David N. Bresch, david.bresch@gmail.com, 20170629, double() of single for griddata
-%-
+% Thomas Rölli, thomasroelli@gmail.com, 20180222, remove interpolation, and
+%   take values from centroids.elevation_m 
 
 global climada_global
 
@@ -115,17 +116,29 @@ centroids.elevation_m=double(centroids.elevation_m);
 % length of 1 degree of lon = cosine(lat) * length of degree at equator
 % lon_singleton = [min(centroids.lon):min(diff(unique(centroids.lon))):max(centroids.lon)];
 % lat_singleton = [min(centroids.lat):min(diff(unique(centroids.lat))):max(centroids.lat)];
-factor_f = 1;
-lon_singleton = [min(centroids.lon):diff(centroids.lat(1:2))*factor_f:max(centroids.lon)];
-lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centroids.lat)];
+% 20180222 remove interpolation (because of slight change of coordinates
+% and elevation
+% removed:
+%   lon_singleton = [min(centroids.lon):diff(centroids.lat(1:2))*factor_f:max(centroids.lon)];
+%   lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centroids.lat)];
+%   [lon, lat] = meshgrid(lon_singleton,lat_singleton);
+%   lon=double(lon);lat=double(lat); % to double, as required by griddata below
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon = reshape(centroids.lon,n_lat,n_lon);
+lat = reshape(centroids.lat,n_lat,n_lon);
 
-[lon, lat] = meshgrid(lon_singleton,lat_singleton);
-lon=double(lon);lat=double(lat); % to double, as required by griddata below
+lon_singleton = lon(1,:);
+lat_singleton = lat(:,1)';
+
 
 % assume cos(lat) doesn't vary much within small study region and take cos
 % of mean latitude
 x = lon_singleton .* (cos(mean(mean(lat))*pi/180)* 111.12 * 1000); 
+
 y = lat_singleton .* (111.12 * 1000);
+
+factor_f = 1;
 
 dx_ = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
 dy_ = min(diff(unique(centroids.lat))) * (111.12 * 1000);
@@ -135,8 +148,12 @@ dy = diff(centroids.lat(1:2))*factor_f * (111.12 * 1000);
 % dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
 % dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
 
-z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'linear');
-c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
+% 20180222: removed
+%    z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'linear');
+%    c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
+
+z = reshape(centroids.elevation_m,n_lat,n_lon);
+c_ID = reshape(centroids.centroid_ID,n_lat,n_lon);
 
 if dx_ ~= dx || dy_ ~= dy || numel(z) > numel(centroids.centroid_ID)
     cprintf([1 0.5 0],'WARNING: centroids not defined by uniform rectangular grid - code will continue, but may encounter issues. Please check fields:\n')

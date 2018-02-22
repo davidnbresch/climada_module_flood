@@ -38,7 +38,7 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent,test)
 
 %remove afterwards; load centroids and hazard
 %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -55,7 +55,7 @@ if isempty(test); test = false; end
 if test
    [centroids,hazard] = climada_ls_testDEM();
 else
-   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat') 
+   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
 end
 
 %get dimension of grid field from lon/lat coordinates
@@ -94,7 +94,7 @@ mult_flow = (gradients.^exponent)./gradients_sum;
 spread = climada_ls_spread(intensity,mult_flow,horDist,verDist,false);
 spreadFri = climada_ls_spread(intensity,mult_flow,horDist,verDist,true);
 
-%make some plots just to test things
+%make some plots just to test some things
 figure
 surf(lon,lat,elevation,spread(:,:,1));
 figure

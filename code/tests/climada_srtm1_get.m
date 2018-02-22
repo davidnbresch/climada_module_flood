@@ -225,9 +225,10 @@ else
     
     % fill SRTM structure, analog to ETOPO (see etopo_get.m)
     % 20160126, single precision
-    SRTM.x = single(x);
-    SRTM.y = single(y);
-    SRTM.h = single(SRTM_grid);
+    % 20170222, leave it double --> in single precision, SRTM1 number do change
+    SRTM.x = x;
+    SRTM.y = y;
+    SRTM.h = SRTM_grid;
     
     if save_tile
         % save the SRTM for speedup in subsequent calls
