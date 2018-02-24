@@ -1,6 +1,9 @@
 function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation)
 
 % Calculation of gradients of each cell to its corresponding 8 neighbours.
+% Pay attention: ordered such that latitude starts from high values and
+% decreases with each row (consider to use flipud()). Also make sure you
+% use regular gridded data.
 % MODULE:
 %   flood
 % NAME:
@@ -15,11 +18,13 @@ function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,eleva
 %   elevation: DEM data with the elevation in meters in grid-format
 %   lon: longitudinal information (position of centroids and therefore DEM grids) 
 %   lat: latitudinal information (position of centroids and therefore DEM grids)
+%       should start from high lat and decreases with each row
 % OPTIONAL INPUT PARAMETERS:
 %   
 % OUTPUTS:
 %   gradients:  8-D matrix with gradients in each direction (towards each
-%               neighbour-cell)
+%               neighbour-cell), gradients(:,:,1) gradient toward northern
+%               neighbour, then continuing clockwise
 %   horDist:    8-D Matrix with horizontal distance in each direction
 %   verDist:    8-D Matrix with vertical distance in each direction
 %  

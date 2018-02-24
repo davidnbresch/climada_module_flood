@@ -37,8 +37,8 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent,test)
 %   friction, outflow distance
 
 %remove afterwards; load centroids and hazard
-%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -55,13 +55,14 @@ if isempty(test); test = false; end
 if test
    [centroids,hazard] = climada_ls_testDEM();
 else
-   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
+   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
 end
 
 %get dimension of grid field from lon/lat coordinates
 %and reshap needed vectors --> easier to handel in grid format than in
 %vector; only possible for regular placed gridpoints
-%also flip matrix up down to have high latitude in beginning of array
+%also flip matrix up down to have high latitude in first row of matrix
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
 lon = flipud(reshape(centroids.lon,n_lat,n_lon));
@@ -75,7 +76,7 @@ end
 %calculate gradients from each cell to its 8 neighbours
 [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
 
-% mutiplying by 1 --> outflow should be positive; neighbours with inflow are set to zero
+% mutiplying by -1 --> outflow should be positive; neighbours with inflow are set to zero
 gradients = gradients*-1;
 gradients(gradients < 0) = 0; 
 

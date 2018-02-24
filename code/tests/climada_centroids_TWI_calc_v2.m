@@ -1,4 +1,4 @@
-function centroids = climada_centroids_TWI_calc(centroids,centroids_set_file,check_plots)
+function centroids = climada_centroids_TWI_calc_v2(centroids,centroids_set_file,check_plots)
 % Calculate flood scores and topographic wetness indices
 % MODULE:
 %   flood
@@ -60,6 +60,7 @@ function centroids = climada_centroids_TWI_calc(centroids,centroids_set_file,che
 % David N. Bresch, david.bresch@gmail.com, 20170629, double() of single for griddata
 % Thomas Rölli, thomasroelli@gmail.com, 20180222, remove interpolation, and
 %   take values from centroids.elevation_m 
+% Thomas Rölli, thomasroelli@gmail.com, 20180223, init version 2
 
 global climada_global
 
@@ -268,7 +269,6 @@ gradients(:,1,[4 5 6]) = 0; %left boarder
 gradients(:,numel(lon(1,:)),[1 2 8]) = 0; %right boarder
 gradients = atand(gradients);%/pi*2;
 
-
 %----------------------
 % Prep for the calculation of flow accumulation (resulting in flood
 % scores), where the outflow of each cell will be distributed among its
@@ -280,7 +280,16 @@ gradients = atand(gradients);%/pi*2;
 % Flow of positive gradients is set to zero.
 %gradients = gradients*-1;
 %gradients(gradients < 0) = 0; 
+load('C:\Users\Simon Rölli\Desktop\mult_flow.mat','mult_flow');
+load('C:\Users\Simon Rölli\Desktop\gradients2.mat','gradients2');
+for c=1:8
+    gradients2(:,:,c) = atand(flipud(gradients2(:,:,c)));
+    mult_flow(:,:,c) = flipud(mult_flow(:,:,c));
+end
+
+%weighting_factor = 4;
 outflow_weighted = (gradients.*(-1*gradients<0)).^weighting_factor;
+%afterwards: outflow_weighted = (gradients.*(gradients<0)*-1).^weighting_factor;
 % outflow_weighted = (abs(gradients)).^weighting_factor;
 
 % 2) Sum up gradients such that for each grid cell, outflow_gradients_sum
@@ -296,6 +305,10 @@ for i = 1:8
         (outflow_weighted(:,:,i)>0)./outflow_gradients_sum;
 end
 
+
+%surface(z,outflow_weighting_factors(:,:,8))
+%figure
+%surface(z,mult_flow(:,:,3))
 % --------------------------
 % 4) The actual calculation of flow accumulation
 % temp_inflow_sum will store the amount of inflow in each iteration and
@@ -325,6 +338,8 @@ fprintf(' done\n')
 % Calculate wetness index
 tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
 wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
+figure
+surface(z,wet_index)
 
 % ---------------------------
 % Add field flood_score to the centroids struct, i.e. loop over all
@@ -469,6 +484,3 @@ end
 %   hold on
 %   contourf(x,y,z)
 %   quiver(x, y, dzdx.*-1, dzdy.*-1)
-
-
-

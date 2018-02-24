@@ -36,7 +36,7 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 
 % EXAMPLE:
 %   %%TEST, for a region around Sarnen in Switzerland (Kt. Obwalden):
-%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],,100,'_LS_Sarnen');
+%   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],0,100,'_LS_Sarnen');
 %   with srtm1-data
 %   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],1,100,'_LS_Sarnen_srtm1');
 % INPUTS:
@@ -145,7 +145,7 @@ if isempty(centroids)
 end
 
 %calculate TWI, aspect, slope
-centroids = climada_centroids_TWI_calc(centroids);
+centroids = climada_centroids_TWI_calc_v2(centroids);
 
 % calculate slope_factor as cos(slope)/sin(slope)
 slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));
