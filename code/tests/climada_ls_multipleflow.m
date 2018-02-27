@@ -37,8 +37,8 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent,test)
 %   friction, outflow distance
 
 %remove afterwards; load centroids and hazard
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
-%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -55,8 +55,8 @@ if isempty(test); test = false; end
 if test
    [centroids,hazard] = climada_ls_testDEM();
 else
-   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
+   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
 end
 
 %get dimension of grid field from lon/lat coordinates
