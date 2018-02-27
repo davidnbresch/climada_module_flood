@@ -1,32 +1,49 @@
 function ls_test()
 %function to test stuff... can be deleted afterwards
 
-rect = [8-0.05 8+0.05 47-0.05 47+0.05];
+load('C:\Users\Simon Rölli\Desktop\z.mat','z');
+load('C:\Users\Simon Rölli\Desktop\lon.mat','lon');
+load('C:\Users\Simon Rölli\Desktop\lat.mat','lat');
 
-srtm_min_lon_ndx = fix(rect(1));
-srtm_max_lon_ndx = ceil(rect(2))-1;
-srtm_min_lat_ndx = fix(rect(3));
-srtm_max_lat_ndx = ceil(rect(4))-1;
+exponent = 1.1;
 
-[I,J] = meshgrid(srtm_min_lon_ndx:srtm_max_lon_ndx,srtm_min_lat_ndx:srtm_max_lat_ndx);
+[gradients,~,~] = climada_centroids_gradients(lon,lat,z);
 
-%assign N,S,W,E according to its coordinates --> included in nomenclatur of
-%SRTM1 tiles filenames
-NS = string(zeros(numel(I(:,1)),numel(I(1,:))));
-WE = string(zeros(numel(I(:,1)),numel(I(1,:))));
-NS(J>=0) = 'n';
-NS(J<0) = 's';
-WE(I>=0) = 'e';
-WE(I<0) = 'w';
+outflow_gradients = gradients*-1;
+outflow_gradients(outflow_gradients < 0) = 0; 
 
-n_tiles = numel(I);
+%%% calculate sum of all outflow cells
+outflow_gradients_sum = sum(outflow_gradients.^exponent,3);
+outflow_gradients_sum(outflow_gradients_sum==0) = 1; %prevent division by 0
 
-srtm_filename = cell(n_tiles,1);
+%%% calculate multidirectional outflow proportion
+% (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
+outflow_proportion = (outflow_gradients.^exponent)./outflow_gradients_sum;
+inflow_proportion = circshift(outflow_proportion,4,3);
+inflow_gradients = circshift(gradients,4,3);
 
 
-for tile_i = 1:n_tiles
-    srtm_filename{tile_i} = strcat(NS(tile_i),num2str(J(tile_i),'%02.0f'),'_',WE(tile_i),num2str(I(tile_i),'%03.0f'),'_1arc_v3.tif');
+total_field = outflow_gradients_sum*0;
+field = outflow_gradients_sum*0+1;
+inflow_temp = outflow_gradients*0;
+shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1];
+
+figure('units','normalized','outerposition',[0 0 1 1])
+s = surf(lon,lat,z,total_field);
+view([30,30,50])
+colorbar
+count = 0;
+while sum(field(:))>0
+    for i=1:8
+        inflow_temp(:,:,i) = circshift(field,shift_matrix(i,:)).*inflow_proportion(:,:,i).*(gradients(:,:,i)>0);
+    end
+    field = sum(inflow_temp,3);
+    total_field = total_field + field;
+    s.CData = field;
+    pause(0.05)
+    count = count+1;
 end
+
 
 disp('hier')
 

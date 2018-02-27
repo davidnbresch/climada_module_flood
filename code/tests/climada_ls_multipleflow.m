@@ -35,10 +35,11 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent,test)
 %   path
 % Thomas Rölli, thomasroelli@gmail.com, 20180214, implementaiton of
 %   friction, outflow distance
+% Thomas Rölli, thomasroelli@gmail.com, 20180227, do not flip lat anymore
 
 %remove afterwards; load centroids and hazard
-%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -55,22 +56,21 @@ if isempty(test); test = false; end
 if test
    [centroids,hazard] = climada_ls_testDEM();
 else
-   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
-   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
+   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
 end
 
 %get dimension of grid field from lon/lat coordinates
 %and reshap needed vectors --> easier to handel in grid format than in
 %vector; only possible for regular placed gridpoints
-%also flip matrix up down to have high latitude in first row of matrix
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
-lon = flipud(reshape(centroids.lon,n_lat,n_lon));
-lat = flipud(reshape(centroids.lat,n_lat,n_lon));
-elevation = flipud(reshape(centroids.elevation_m,n_lat,n_lon));
+lon = reshape(centroids.lon,n_lat,n_lon);
+lat = reshape(centroids.lat,n_lat,n_lon);
+elevation = reshape(centroids.elevation_m,n_lat,n_lon);
 intensity = logical(zeros(n_lat,n_lon,hazard.event_count));
 for i = 1:hazard.event_count
-    intensity(:,:,i) = flipud(reshape(hazard.intensity(i,:),n_lat,n_lon));
+    intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
 end
 
 %calculate gradients from each cell to its 8 neighbours

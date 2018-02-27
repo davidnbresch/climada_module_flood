@@ -145,7 +145,7 @@ if isempty(centroids)
 end
 
 %calculate TWI, aspect, slope
-centroids = climada_centroids_TWI_calc_v2(centroids);
+centroids = climada_centroids_TWI_calc(centroids);
 
 % calculate slope_factor as cos(slope)/sin(slope)
 slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));

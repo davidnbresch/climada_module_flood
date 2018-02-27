@@ -33,6 +33,8 @@ function [spread,spreadFri] = climada_ls_spread(source_area,mult_flow,...
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180219, init
+% Thomas Rölli, thomasroelli@gmail.com, 20180227, changed shift_matrix
+
 
 
 global climada_global
@@ -57,7 +59,8 @@ phi = 11; %empirical minimum travel angle, used for friction-calculation
 
 %shif matrix such that intensity is spread from center to neighbour-cells
 %starting at 12 o'clock and proceeding clockwise
-shift_matrix = [1 0;1 -1;0 -1;-1 -1;-1 0;-1 1;0 1;1 1]*-1;
+%shift_matrix = [1 0;1 -1;0 -1;-1 -1;-1 0;-1 1;0 1;1 1]*-1;
+shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1]*-1;
 
 %get dimension of study area
 n_lat = numel(source_area(:,1,1));
