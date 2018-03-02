@@ -38,7 +38,7 @@ function mult_flow = climada_ls_multipleflow(centroids,hazard,exponent,test)
 % Thomas Rölli, thomasroelli@gmail.com, 20180227, do not flip lat anymore
 
 %remove afterwards; load centroids and hazard
-load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_hazard.mat')
 %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\hazards\_LS_Sarnen_srtm1_hazard.mat')
 
 global climada_global
@@ -56,7 +56,7 @@ if isempty(test); test = false; end
 if test
    [centroids,hazard] = climada_ls_testDEM();
 else
-   load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
+   %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_centroids.mat')
    %load('C:\Users\Simon Rölli\Desktop\climada\climada_data\centroids\_LS_Sarnen_srtm1_centroids.mat') 
 end
 

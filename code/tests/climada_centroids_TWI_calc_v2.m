@@ -289,9 +289,9 @@ gradients2 = flipud(atand(gradients2));
 % Flow of positive gradients is set to zero.
 %gradients = gradients*-1;
 %gradients(gradients < 0) = 0; 
-load('C:\Users\Simon Rölli\Desktop\mult_flow.mat','mult_flow');
-%load('C:\Users\Simon Rölli\Desktop\gradients2.mat','gradients2');
-load('C:\Users\Simon Rölli\Desktop\wet_index_wrong.mat','wet_index_wrong')
+load('C:\Users\Simon Rölli\Desktop\data\mult_flow.mat','mult_flow');
+%load('C:\Users\Simon Rölli\Desktop\data\gradients2.mat','gradients2');
+load('C:\Users\Simon Rölli\Desktop\data\wet_index_wrong.mat','wet_index_wrong')
 % for c=1:8
 %     gradients2(:,:,c) = atand(flipud(gradients2(:,:,c)));
 %     mult_flow(:,:,c) = flipud(mult_flow(:,:,c));
@@ -360,68 +360,67 @@ while sum(temp_inflow_sum(:),'omitnan')>0
 end
 
 
-temp_inflow_sum = outflow_gradients_sum2*0+1;
-temp_outflow_weighting_factors = outflow_weighting_factors2;
-total_flow_accumulation2 = outflow_gradients_sum2*0+1;
-figure('units','normalized','outerposition',[0 0 1 1])
-s = surf(lon,lat,z,total_flow_accumulation2);
-colorbar
-%lim = caxis
-%caxis([0 1200])
+% temp_inflow_sum = outflow_gradients_sum2*0+1;
+% temp_outflow_weighting_factors = outflow_weighting_factors2;
+% total_flow_accumulation2 = outflow_gradients_sum2*0+1;
+% figure('units','normalized','outerposition',[0 0 1 1])
+% s = surf(lon,lat,z,total_flow_accumulation2);
+% colorbar
+% %lim = caxis
+% %caxis([0 1200])
+% 
+% temp_outflow = gradients*0;
+% count2=0;
 
-temp_outflow = gradients*0;
-count2=0;
+% shift_matrix = [1 0;1 1;0 1;-1 1;-1 0;-1 -1;0 -1;1 -1];
+% %before:
+% % Flow accumulation (terminates when there is no inflow):
+% % fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
+% ud = [5 4 3 2 1 8 7 6];
+% outflow_weighting_factors2_ud = outflow_weighting_factors2;
+% for c=8
+%     outflow_weighting_factors2_ud(:,:,c)=outflow_weighting_factors2(:,:,ud(c));
+% end
+% 
+% while sum(temp_inflow_sum(:),'omitnan')>0
+%     % iterate over inflow from all directions and store it in temp_inflow
+%     for i = 1:8
+%         %temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
+%             %[shift_matrix(i,1) shift_matrix(i,2)]).*outflow_weighting_factors2(:,:,i);
+%         %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i)>0);
+%         temp_inflow(:,:,i) = circshift(temp_inflow_sum,[shift_matrix(i,1) shift_matrix(i,2)])...
+%             .*circshift(outflow_weighting_factors2_ud(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]).*(gradients(:,:,i)>0);
+%         %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i));
+%         %temp_inflow(:,:,i) = circshift(temp_outflow(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]);
+% %         figure
+% %         surface(z,temp_outflow(:,:,i))
+% %         figure
+% %         surface(z,temp_inflow(:,:,i))
+%            
+%     end
+%     % temp_inflow_sum collects the weighted current inflow from
+%     % contributing neighbouring cells (i.e. the ones with positive
+%     % gradients)
+%     %sum(temp_inflow_sum)
+%     count2=count2+1
+%     temp_inflow_sum = sum(temp_inflow,3);
+%     sum(sum(temp_inflow_sum))
+%     total_flow_accumulation2 = total_flow_accumulation2 + temp_inflow_sum;
+%     s.CData = total_flow_accumulation2;
+%     
+%     pause(0.075)
+% end
 
-shift_matrix = [1 0;1 1;0 1;-1 1;-1 0;-1 -1;0 -1;1 -1];
-%before:
-% Flow accumulation (terminates when there is no inflow):
-% fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
-ud = [5 4 3 2 1 8 7 6];
-outflow_weighting_factors2_ud = outflow_weighting_factors2;
-for c=8
-    outflow_weighting_factors2_ud(:,:,c)=outflow_weighting_factors2(:,:,ud(c));
-end
-
-while sum(temp_inflow_sum(:),'omitnan')>0
-    % iterate over inflow from all directions and store it in temp_inflow
-    for i = 1:8
-        %temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
-            %[shift_matrix(i,1) shift_matrix(i,2)]).*outflow_weighting_factors2(:,:,i);
-        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i)>0);
-        temp_inflow(:,:,i) = circshift(temp_inflow_sum,[shift_matrix(i,1) shift_matrix(i,2)])...
-            .*circshift(outflow_weighting_factors2_ud(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]).*(gradients(:,:,i)>0);
-        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i));
-        %temp_inflow(:,:,i) = circshift(temp_outflow(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]);
-%         figure
-%         surface(z,temp_outflow(:,:,i))
-%         figure
-%         surface(z,temp_inflow(:,:,i))
-           
-    end
-    % temp_inflow_sum collects the weighted current inflow from
-    % contributing neighbouring cells (i.e. the ones with positive
-    % gradients)
-    %sum(temp_inflow_sum)
-    count2=count2+1
-    temp_inflow_sum = sum(temp_inflow,3);
-    sum(sum(temp_inflow_sum))
-    total_flow_accumulation2 = total_flow_accumulation2 + temp_inflow_sum;
-    s.CData = total_flow_accumulation2;
-    
-    pause(0.075)
-end
-
-surface(z,total_flow_accumulation2)
 % total_flow_accumulation(isnan(total_flow_accumulation))=0;
 fprintf(' done\n')
 % Calculate wetness index
 tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
 wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
-wet_index2 = log((1+total_flow_accumulation2)./tand(tmp_slope));
-figure
-surface(z,wet_index)
-figure
-surface(z,wet_index2)
+%wet_index2 = log((1+total_flow_accumulation2)./tand(tmp_slope));
+% figure
+% surface(z,wet_index)
+% figure
+%surface(z,wet_index2)
 
 % ---------------------------
 % Add field flood_score to the centroids struct, i.e. loop over all
