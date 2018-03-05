@@ -1,5 +1,6 @@
 function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,set_files,...
-    wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope)
+    wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope,spread_exponent,...
+    v_max,phi_friction)
 
 % Generate a landslide hazard set.
 % MODULE:
@@ -60,6 +61,17 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 %                         where a landslide occurs
 %   srtm1:                if set to 1 srtm1-data is used to get the
 %                         elevation of the terrain. 0 by default: srtm3 data is used 
+%   spread_exponent       variable exponent; is controlling the divergence of the flow
+%                         x=1: the spreading is similar to the multiple flow direction
+%                         x towards infinity: spreading similar to the single flow direction
+%                         Claessens et al. (2005) suggest x=4 for debris flow. For
+%                         shallow landslides 25 set by default
+%   v_max:                describes maximal possible velocity of slide. If velocity is 
+%                         exceeded v_max is taken. Should keep energy amounts within reasonal values
+%                         and therefore prevent improbalbe runout distances
+%   phi_friction:         angle of reach, angle of the line connnecting the source area to
+%                         the most distant point reached by the slide, along its path.
+%                         Factor controlls maximum possible runout distance
 % OUTPUTS:
 %   hazard: a climada hazard structure with binary landslide information
 %       .peril_ID: 'LS'
@@ -105,6 +117,9 @@ if ~exist('focus_area', 'var'), focus_area = []; end
 if ~exist('polygon_correction', 'var'), polygon_correction = []; end
 if ~exist('random_trigger_condition', 'var'), random_trigger_condition = []; end
 if ~exist('check_plot', 'var'), check_plot = 0; end
+if ~exist('spread_exponent', 'var'), spread_exponent = []; end
+if ~exist('v_max', 'var'), v_max = []; end
+if ~exist('phi_friction', 'var'), phi_friction = []; end
 
 % prompt for set_files if not given
 if isempty(set_files) % local GUI
@@ -171,7 +186,7 @@ hazard = climada_ls_hazard_trigger(centroids,n_events,...
     wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope);
 
 %assess flow path of landslide
-mult_flow = climada_ls_multipleflow(centroids,hazard);
+spread = climada_ls_flowpath(centroids,hazard,spread_exponent,v_max,phi_friction);
 
 
 

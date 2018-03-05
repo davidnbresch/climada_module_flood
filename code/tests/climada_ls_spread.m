@@ -1,5 +1,5 @@
 function [spread,spreadFri] = climada_ls_spread(source_area,mult_flow,... 
-    hor_dist,ver_dist,friction)
+    hor_dist,ver_dist,v_max,phi,friction)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
@@ -25,6 +25,13 @@ function [spread,spreadFri] = climada_ls_spread(source_area,mult_flow,...
 %             Dimension:nxmx8. Needed to calculate friction
 %   ver_dist: vertical distance of each cell to its 8 neighbours.
 %             Dimension:nxmx8. Needed to calculate potential energy
+%   friction: true/false include friction/no friction
+%   v_max: describes maximal possible velocity of slide. If velocity is 
+%          exceeded v_max is taken. Should keep energy amounts within reasonal values
+%          and therefore prevent improbalbe runout distances
+%   phi: angle of reach, angle of the line connnecting the source area to
+%        the most distant point reached by the slide, along its path.
+%        Factor controlls maximum possible runout distance
 % OPTIONAL INPUT PARAMETERS:
 % 
 % OUTPUTS:
@@ -34,6 +41,7 @@ function [spread,spreadFri] = climada_ls_spread(source_area,mult_flow,...
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180219, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180227, changed shift_matrix
+% Thomas Rölli, thomasroelli@gmail.com, 20180305, implement v_max of slide
 
 
 
@@ -46,6 +54,8 @@ if ~exist('mult_flow', 'var'), mult_flow = []; end
 if ~exist('hor_dist', 'var'), hor_dist = []; end
 if ~exist('ver_dist', 'var'), ver_dist = []; end
 if ~exist('friction', 'var'), friction = []; end
+if ~exist('v_max', 'var'), v_max = []; end
+if ~exist('phi', 'var'), phi = []; end
 
 % PARAMETERS 
 if isempty(source_area); return; end
@@ -53,9 +63,10 @@ if isempty(mult_flow); return; end
 if isempty(hor_dist); return; end
 if isempty(ver_dist); return; end
 if isempty(friction); friction = true; end
+if isempty(v_max); v_max = 8; end
+if isempty(phi); phi = 18; end %empirical minimum travel angle, used for friction-calculation
 %for calculations
-g = 9.81; %acceleration of gravity
-phi = 11; %empirical minimum travel angle, used for friction-calculation
+g = 9.81; %acceleration of gravity 
 
 %shif matrix such that intensity is spread from center to neighbour-cells
 %starting at 12 o'clock and proceeding clockwise
@@ -114,7 +125,7 @@ for event_count=1:n_event %iteration through events
 spread(:,:,event_count) = source_area(:,:,event_count);
 active_cells = source_area(:,:,event_count);
 energy(energy~=0) = 0; %set energy to zero for new event
-while sum(sum(active_cells))>0 %iteration through number of runs --> implement friction here 
+while sum(sum(active_cells))>0 %iteration through number of runs  
 temp_active_cells = logical(zeros(n_lat,n_lon));    
 for j=1:n_lat %iteration through rows
     for i=1:n_lon %iteration through colums
@@ -129,10 +140,14 @@ for j=1:n_lat %iteration through rows
                     if spread_new > spread_old
                     switch friction
                         case true
-                            %kin. energy to corresponding neighbour
+                            %kin. energy if spread to corresponding neighbour
                             eKin = energy(j,i)+ePot(j,i,c)-eFric(j,i,c);
                             %spread only when there is kinetic energy
                             if eKin > 0
+                                %calculate vi; if vi > vmax --> set vi to vmax
+                                v_i = sqrt(2*eKin);
+                                v_i = min(v_i,v_max);
+                                eKin = 0.5*(v_i)^2;
                                 spread(j+shift_matrix(c,1),i+shift_matrix(c,2),event_count)=spread_new;
                                 energy(j+shift_matrix(c,1),i+shift_matrix(c,2)) = eKin;
                                 temp_active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2))=1; 

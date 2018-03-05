@@ -24,6 +24,7 @@ function LCCS = climada_lc_get(rectangle)
 %       .y(i,j): the latitude coordinates
 %       .flag_values: land cover class code
 %       .flag_meanings: description of land cover classes
+%       .cmap: RGB colors for colormap, corresponding to lc-classes
 %       .sourcefile: the source file (e.g. .../...300m-P1Y-2015-v2.0.7.nc')
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180301, init
@@ -63,30 +64,47 @@ lat = lat(max_lat:min_lat);
 lon = lon(min_lon:max_lon);
 
 %read land cover data within rectangle
-lccs = ncread('C:\Users\Simon Rölli\Desktop\climada\climada_data\landcover\ESACCI-LC-L4-LCCS-Map-300m-P1Y-2015-v2.0.7.nc',...
-    'lccs_class',[min_lon max_lat],[numel(lon) numel(lat)]);
+lccs = ncread(fullpath,'lccs_class',[min_lon max_lat],[numel(lon) numel(lat)]);
+%convert from signed int8 to unsigned
+lccs(find(lccs<0)) = lccs(find(lccs<0))+256;
+lccs = uint8(lccs);
 
-%get lat lon grid
-%first lat lon vectors (also lccs) need to be transformed to regualar climada form
+%lat lon vectors (also lccs) need to be transformed to regualar climada form
 lat = flipud(lat);
 lon = lon';
 lccs = flipud(lccs');
 
 [lon lat] = meshgrid(lon,lat);
 
-%write information into centroids
-flag_values = ncreadatt(fullpath,'lccs_class','flag_values');
-flag_meanings = strsplit(ncreadatt(fullpath,'lccs_class','flag_meanings'),' ');
+%flag values and meaning
+all_flag_values = ncreadatt(fullpath,'lccs_class','flag_values');
+all_flag_values = double(all_flag_values);
+%convert from signed int8 to unsigned
+all_flag_values(find(all_flag_values<0)) = all_flag_values(find(all_flag_values<0))+256;
+all_flag_values = uint8(all_flag_values);
+all_flag_meanings = strsplit(ncreadatt(fullpath,'lccs_class','flag_meanings'),' ');
+all_cmap = [0 0 0;255 255 100;255 255 100;255 255 0;170 240 240;220 240 100;...
+    200 200 100;0 100 0;0 160 0;0 160 0;170 200 0;0 60 0;0 60 0;0 80 0;...
+    40 80 0;40 80 0;40 100 0;120 130 0;140 160 0;190 150 0;...
+    150 100 0;120 75 0;150 100 0;255 180 50;255 204 204;255 235 175;...
+    255 210 120;255 235 175;0 120 90;0 150 120;0 220 130;...
+    195 20 0;255 245 215;220 220 220;255 245 215;0 70 200;255 255 255]./255;
 
+%extract needed flag and color information
+unique_values = unique(lccs)';
+i = ismember(all_flag_values,unique_values);
+flag_values = all_flag_values(i);
+flag_meanings = all_flag_meanings(i);
+cmap = all_cmap(i,:);
+
+
+%write information into centroids
 LCCS.flag_values = flag_values;
 LCCS.flag_meanings = flag_meanings;
+LCCS.cmap = cmap;
 LCCS.lc = lccs;
 LCCS.x = lon;
 LCCS.y = lat;
-
-
-
-disp('hier')
 
 
 

@@ -19,6 +19,10 @@ for i = 1:hazard.event_count
     intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
 end
 
+figure
+surface(LCCS.x,LCCS.y,LCCS.lc);
+colormap(LCCS.cmap);
+
 disp('hier')
 
 
