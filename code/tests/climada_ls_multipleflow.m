@@ -45,7 +45,7 @@ if ~exist('lat', 'var'), lat = []; end
 if ~exist('exponent', 'var'), exponent = []; end
 
 % PARAMETERS 
-if isempty(exponent); exponent = 4; end
+if isempty(exponent); exponent = 25; end
 
 
 %calculate gradients from each cell to its 8 neighbours
