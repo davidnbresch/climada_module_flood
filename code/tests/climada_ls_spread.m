@@ -25,7 +25,7 @@ function [spread,spreadFri] = climada_ls_spread(source_area,mult_flow,...
 %             Dimension:nxmx8. Needed to calculate friction
 %   ver_dist: vertical distance of each cell to its 8 neighbours.
 %             Dimension:nxmx8. Needed to calculate potential energy
-%   friction: true/false include friction/no friction
+%   friction: 1/0 include friction/no friction while spreading
 %   v_max: describes maximal possible velocity of slide. If velocity is 
 %          exceeded v_max is taken. Should keep energy amounts within reasonal values
 %          and therefore prevent improbalbe runout distances
@@ -62,7 +62,7 @@ if isempty(source_area); return; end
 if isempty(mult_flow); return; end
 if isempty(hor_dist); return; end
 if isempty(ver_dist); return; end
-if isempty(friction); friction = true; end
+if isempty(friction); friction = 1; end
 if isempty(v_max); v_max = 8; end
 if isempty(phi); phi = 18; end %empirical minimum travel angle, used for friction-calculation
 %for calculations
