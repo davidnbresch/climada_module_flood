@@ -185,8 +185,21 @@ end
 hazard = climada_ls_hazard_trigger(centroids,n_events,...
     wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope);
 
-%assess flow path of landslide
-spread = climada_ls_flowpath(centroids,hazard,spread_exponent,v_max,phi_friction);
+%get dimension of grid field from lon/lat coordinates
+%and reshap needed vectors --> easier to handel in grid format than in
+%vector; and needed in climada_ls_flowpath
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon = reshape(centroids.lon,n_lat,n_lon);
+lat = reshape(centroids.lat,n_lat,n_lon);
+elevation = reshape(centroids.elevation_m,n_lat,n_lon);
+intensity = logical(zeros(n_lat,n_lon,hazard.event_count));
+for i = 1:hazard.event_count
+    intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
+end
+
+%assess flow path of landslide; spread source areas in intensity donwstream
+spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,v_max,phi_friction);
 
 
 
