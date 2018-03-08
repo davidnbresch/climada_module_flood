@@ -21,6 +21,7 @@ function climada_ls_test_flowParameters()
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180306, init 
+% Thomas Rölli, thomasroelli@gmail.com, 20180308, with animation --> gifs
 
 
 %load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
