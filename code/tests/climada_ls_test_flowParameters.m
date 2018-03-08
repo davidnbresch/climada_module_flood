@@ -22,10 +22,11 @@ function climada_ls_test_flowParameters()
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180306, init 
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_hazard.mat')
+
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_centroids.mat')
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
 
 %get gridded datasets
@@ -39,15 +40,91 @@ for i = 1:hazard.event_count
     intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
 end
 
+%view([0,45])
+
 %default parameters (exponent multipleflow = 25; max slide velocity = 8
 %friction parameter phi = 18
 % example: spreaded = climada_ls_flowpath(lon,lat,elevation,intensity,exponent,v_max,phi);
-spreaded = climada_ls_flowpath(lon,lat,elevation,intensity);
-figure
-surface(lon,lat,elevation,spreaded(:,:,1))
-figure
-surface(lon,lat,elevation,double(spreaded(:,:,1)>0))
+exponent = 25;
+v_max = 8;
+phi = 18;
 
+
+%plot 3*3*3 subplots with different exp,v-max,phi values
+% for exp = exponent-1:exponent+1
+%     for v = v_max-1:v_max+1
+%         figure('units','normalized','outerposition',[0 0 1 1])
+%         i=1;
+%         for p = phi-1:phi+1
+%             spreaded = climada_ls_flowpath(lon,lat,elevation,intensity,exp,v,p);
+%             %figure('units','normalized','outerposition',[0 0 1 1])
+%             subplot(1,3,i)
+%             surf(lon,lat,elevation,double(spreaded(:,:,1)>0));
+%             view([45,68])
+%             title(['exp: ' num2str(exp) ', v_m: ' num2str(v) ', phi: ' num2str(p)]);
+%             xlabel('lon');
+%             ylabel('lat');
+%             i=i+1;
+%         end
+%     end
+% end
+
+% k=9;
+% figure('units','normalized','outerposition',[0 0 1 1])
+% i=1;
+% for exp = exponent-floor(k/2):exponent+floor(k/2)
+%     spreaded = climada_ls_flowpath(lon,lat,elevation,intensity,exp,v_max,phi);
+%     subplot(3,3,i)
+%     surf(lon,lat,elevation,double(spreaded(:,:,1)>0));
+%     view([45,68])
+%     title(['exp: ' num2str(exp) ', v_m: ' num2str(v_max) ', phi: ' num2str(phi)]);
+%     xlabel('lon');
+%     ylabel('lat');
+%     i=i+1;
+% end
+  
+
+exp = 25;
+v_max = 8;
+phi = 30:-1:1;
+pov = [45,68];
+
+filename = 'phiAnimatedzoom.gif';
+%set model surface plot
+h = figure('units','normalized','outerposition',[0 0 1 1]);
+surf(lon,lat,elevation)
+view(pov)
+%zoom(1.3)
+zl = zlim;
+axis tight
+zlim manual
+set(gca,'nextplot','replacechildren')
+firstpic = 1;
+for e = 1:length(exp)
+    for v = 1:length(v_max)
+        for p = 1:length(phi)
+            spreaded = climada_ls_flowpath(lon,lat,elevation,intensity,exp(e),v_max(v),phi(p));
+            spreaded(spreaded>0)=1;
+            spreaded(intensity>0)=2;
+            surf(lon,lat,elevation,double(spreaded(:,:,1)),'LineStyle','-') 
+            view(pov)
+            %zoom(1.3)
+            title(['exp: ' num2str(exp(e)) ', v_m: ' num2str(v_max(v)) ', phi: ' num2str(phi(p))]);
+            drawnow 
+            % Capture the plot as an image 
+            frame = getframe(h); 
+            im = frame2im(frame); 
+            [imind,cm] = rgb2ind(im,256); 
+            % Write to the GIF File 
+            if firstpic == 1 
+                imwrite(imind,cm,filename,'gif', 'Loopcount',inf); 
+                firstpic = firstpic+1;
+            else 
+                imwrite(imind,cm,filename,'gif','WriteMode','append'); 
+            end 
+        end
+    end
+end
 
 disp('hier')
 
