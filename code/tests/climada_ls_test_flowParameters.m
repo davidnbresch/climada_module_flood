@@ -24,11 +24,11 @@ function climada_ls_test_flowParameters()
 % Thomas Rölli, thomasroelli@gmail.com, 20180308, with animation --> gifs
 
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
 
 %get gridded datasets
 n_lon = numel(unique(centroids.lon));
@@ -86,11 +86,11 @@ phi = 18;
   
 
 exp = 25;
-v_max = 8;
-phi = 30:-1:1;
+v_max = 1:30;
+phi = 18;
 pov = [45,68];
 
-filename = 'phiAnimatedzoom.gif';
+filename = 'v_max_90m.gif';
 %set model surface plot
 h = figure('units','normalized','outerposition',[0 0 1 1]);
 surf(lon,lat,elevation)
