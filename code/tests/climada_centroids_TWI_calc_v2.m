@@ -360,56 +360,56 @@ while sum(temp_inflow_sum(:),'omitnan')>0
 end
 
 
-% temp_inflow_sum = outflow_gradients_sum2*0+1;
-% temp_outflow_weighting_factors = outflow_weighting_factors2;
-% total_flow_accumulation2 = outflow_gradients_sum2*0+1;
-% figure('units','normalized','outerposition',[0 0 1 1])
-% s = surf(lon,lat,z,total_flow_accumulation2);
-% colorbar
-% %lim = caxis
-% %caxis([0 1200])
-% 
-% temp_outflow = gradients*0;
-% count2=0;
+temp_inflow_sum = outflow_gradients_sum2*0+1;
+temp_outflow_weighting_factors = outflow_weighting_factors2;
+total_flow_accumulation2 = outflow_gradients_sum2*0+1;
+figure('units','normalized','outerposition',[0 0 1 1])
+s = surf(lon,lat,z,total_flow_accumulation2);
+colorbar
+%lim = caxis
+%caxis([0 1200])
 
-% shift_matrix = [1 0;1 1;0 1;-1 1;-1 0;-1 -1;0 -1;1 -1];
-% %before:
-% % Flow accumulation (terminates when there is no inflow):
-% % fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
-% ud = [5 4 3 2 1 8 7 6];
-% outflow_weighting_factors2_ud = outflow_weighting_factors2;
-% for c=8
-%     outflow_weighting_factors2_ud(:,:,c)=outflow_weighting_factors2(:,:,ud(c));
-% end
-% 
-% while sum(temp_inflow_sum(:),'omitnan')>0
-%     % iterate over inflow from all directions and store it in temp_inflow
-%     for i = 1:8
-%         %temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
-%             %[shift_matrix(i,1) shift_matrix(i,2)]).*outflow_weighting_factors2(:,:,i);
-%         %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i)>0);
-%         temp_inflow(:,:,i) = circshift(temp_inflow_sum,[shift_matrix(i,1) shift_matrix(i,2)])...
-%             .*circshift(outflow_weighting_factors2_ud(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]).*(gradients(:,:,i)>0);
-%         %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i));
-%         %temp_inflow(:,:,i) = circshift(temp_outflow(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]);
-% %         figure
-% %         surface(z,temp_outflow(:,:,i))
-% %         figure
-% %         surface(z,temp_inflow(:,:,i))
-%            
-%     end
-%     % temp_inflow_sum collects the weighted current inflow from
-%     % contributing neighbouring cells (i.e. the ones with positive
-%     % gradients)
-%     %sum(temp_inflow_sum)
-%     count2=count2+1
-%     temp_inflow_sum = sum(temp_inflow,3);
-%     sum(sum(temp_inflow_sum))
-%     total_flow_accumulation2 = total_flow_accumulation2 + temp_inflow_sum;
-%     s.CData = total_flow_accumulation2;
-%     
-%     pause(0.075)
-% end
+temp_outflow = gradients*0;
+count2=0;
+
+shift_matrix = [1 0;1 1;0 1;-1 1;-1 0;-1 -1;0 -1;1 -1];
+%before:
+% Flow accumulation (terminates when there is no inflow):
+% fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
+ud = [5 4 3 2 1 8 7 6];
+outflow_weighting_factors2_ud = outflow_weighting_factors2;
+for c=8
+    outflow_weighting_factors2_ud(:,:,c)=outflow_weighting_factors2(:,:,ud(c));
+end
+
+while sum(temp_inflow_sum(:),'omitnan')>0
+    % iterate over inflow from all directions and store it in temp_inflow
+    for i = 1:8
+        %temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
+            %[shift_matrix(i,1) shift_matrix(i,2)]).*outflow_weighting_factors2(:,:,i);
+        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i)>0);
+        temp_inflow(:,:,i) = circshift(temp_inflow_sum,[shift_matrix(i,1) shift_matrix(i,2)])...
+            .*circshift(outflow_weighting_factors2_ud(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]).*(gradients(:,:,i)>0);
+        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i));
+        %temp_inflow(:,:,i) = circshift(temp_outflow(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]);
+%         figure
+%         surface(z,temp_outflow(:,:,i))
+%         figure
+%         surface(z,temp_inflow(:,:,i))
+           
+    end
+    % temp_inflow_sum collects the weighted current inflow from
+    % contributing neighbouring cells (i.e. the ones with positive
+    % gradients)
+    %sum(temp_inflow_sum)
+    count2=count2+1
+    temp_inflow_sum = sum(temp_inflow,3);
+    sum(sum(temp_inflow_sum),'omitnan')
+    total_flow_accumulation2 = total_flow_accumulation2 + temp_inflow_sum;
+    %s.CData = total_flow_accumulation2;
+    
+    %pause(0.075)
+end
 
 % total_flow_accumulation(isnan(total_flow_accumulation))=0;
 fprintf(' done\n')
