@@ -1,4 +1,4 @@
-function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation)
+function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation,dH)
 
 % Calculation of gradients of each cell to its corresponding 8 neighbours. 
 % Make sure to use regular gridded data.
@@ -24,20 +24,29 @@ function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,eleva
 %               neighbour, then continuing clockwise
 %   horDist:    8-D Matrix with horizontal distance in each direction
 %   verDist:    8-D Matrix with vertical distance in each direction
+%   dH:         changing the height of the central cell by dH.
+%               Allows smoothing of DEM and leads to a more consistent
+%               spreading. It can also be used to transfer the flow
+%               throught flat areas. Used in climada_centroids_gradients
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180206, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180227, flipped data not needed
 %  anymore
+% Thomas Rölli, thomasroelli@gmail.com, 20180315, add dH
 
 global climada_global
 if ~climada_init_vars, return; end
 
 % check arguments
 if ~exist('elevation', 'var'), return; end
+if ~exist('lat', 'var'), return; end
+if ~exist('lon', 'var'), return; end
+if ~exist('dH', 'var'), dH = []; end
 
 % PARAMETERS
 %for calculations
+if isempty(dH), dH = 0; end
 deg_km = 111.12; %length of 1 degree on Earth
 
 
@@ -65,7 +74,7 @@ verDist = zeros(numel(lat(:,1)),numel(lat(1,:)),8);
 
 for c = 1:8
     horDist(:,:,c) = hor_dist(c);
-    verDist(:,:,c) = circshift(elevation,shift_matrix(c,:))-elevation;
+    verDist(:,:,c) = circshift(elevation,shift_matrix(c,:))-(elevation+dH);
     %gradients(:,:,c) = (circshift(elevation,shift_matrix(c,:))-elevation)...
     %    /hor_dist(c);
 end
