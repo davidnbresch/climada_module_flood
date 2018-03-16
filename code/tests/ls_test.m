@@ -5,7 +5,7 @@ function ls_test()
 % load('C:\Users\Simon Rölli\Desktop\data\lon.mat','lon');
 % load('C:\Users\Simon Rölli\Desktop\data\lat.mat','lat');
 
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
 
 %get gridded datasets
 n_lon = numel(unique(centroids.lon));
@@ -15,70 +15,35 @@ lat = reshape(centroids.lat,n_lat,n_lon);
 z = reshape(centroids.elevation_m,n_lat,n_lon);
 
 z = deminpaint(z);
+z = fillsinks(z);
 
-%z = fillsinks(z);
-
-mult_flow = climada_ls_multipleflow(lon,lat,z,1.1,0);
-
-
-%   DEM = GRIDobj(lon,lat,flipud(z));
-% % 
-% %  DEM = fillsinks(DEM);
-% %  
-% [I,SILLS] = identifyflats(DEM);
-%  
-%  fl = FLOWobj(DEM,'multi');
-% 
-% %fl = FLOWobj(DEM,'multi');
-% 
-% DEM = imposemin(fl,DEM);
-% 
-% z = DEM.Z;
-
-
-
-% exponent = 1.1;
-% 
-% [gradients,~,~] = climada_centroids_gradients(lon,lat,z);
-% 
-% outflow_gradients = gradients*-1;
-% outflow_gradients(outflow_gradients < 0) = 0; 
-% 
-% %%% calculate sum of all outflow cells
-% outflow_gradients_sum = sum(outflow_gradients.^exponent,3);
-% outflow_gradients_sum(outflow_gradients_sum==0) = 1; %prevent division by 0
-% 
-% %%% calculate multidirectional outflow proportion
-% % (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
-% outflow_proportion = (outflow_gradients.^exponent)./outflow_gradients_sum;
-inflow_proportion = circshift(mult_flow,4,3);
-
-
-
-total_field = z*0;
-field = z*0+1;
-inflow_temp = z*0;
-shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1];
-
-%figure('units','normalized','outerposition',[0 0 1 1])
-%s = surf(lon,lat,z,total_field);
-%view([30,30,50])
-%colorbar
-count = 0;
-while sum(field(:),'omitnan')>0
-    for i=1:8
-        inflow_temp(:,:,i) = circshift(field,shift_matrix(i,:)).*circshift(inflow_proportion(:,:,i),shift_matrix(i,:));
-        %inflow_temp(:,:,i) = (field,shift_matrix(i,:)).inflow_proportion(:,:,i);
-    end
-    field = sum(inflow_temp,3);
-    total_field = total_field + field;
-    %s.CData = total_field;
-    %pause(0.05)
-    %count = count+1
+nan = isnan(z);
+if any(nan(:))
+    cprintf([1 0.5 0], 'WARNING: your elevation grid includes some NaNs. The calucaltion of the flow accumulation may encounter\n')
+    cprintf([1 0.5 0], '\t some problems. Check the results and consider removing the NaNs (e.g. by using deminpaint(z)).')
 end
 
+%with topotoolbox
+DEM = GRIDobj(lon,lat,flipud(z));
+flow_acc1 = climada_ls_flowacc(DEM,1);
 figure
-surface(z,log(total_field),'LineStyle','none')
+surface(lon,lat,z,log(flow_acc1),'LineStyle','none')
+colorbar
+caxis([0 10])
+
+%with climada code
+exponent = 1.1;
+dH = 0;
+flat_areas = 1;
+
+mult_flow = climada_ls_multipleflow(lon,lat,z,exponent,dH,flat_areas);
+flow_acc2 = climada_ls_flowacc(mult_flow,0);
+figure
+surface(lon,lat,z,log(flow_acc2),'LineStyle','none')
+colorbar
+caxis([0 10])
+
 disp('hier')
+
 
 end
