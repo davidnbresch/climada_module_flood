@@ -1,6 +1,6 @@
 function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,set_files,...
     wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope,spread_exponent,...
-    v_max,phi_friction)
+    dH,v_max,phi_friction)
 
 % Generate a landslide hazard set.
 % MODULE:
@@ -66,6 +66,10 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 %                         x towards infinity: spreading similar to the single flow direction
 %                         Claessens et al. (2005) suggest x=4 for debris flow. For
 %                         shallow landslides 25 set by default
+%   dH:                   changing the height of the central cell by a factor dH.
+%                         Allows smoothing of DEM and leads to a more consistent
+%                         spreading. It can also be used to transfer the flow
+%                         throught flat areas. Used in climada_centroids_gradients
 %   v_max:                describes maximal possible velocity of slide. If velocity is 
 %                         exceeded v_max is taken. Should keep energy amounts within reasonal values
 %                         and therefore prevent improbalbe runout distances
@@ -117,6 +121,7 @@ if ~exist('focus_area', 'var'), focus_area = []; end
 if ~exist('polygon_correction', 'var'), polygon_correction = []; end
 if ~exist('random_trigger_condition', 'var'), random_trigger_condition = []; end
 if ~exist('check_plot', 'var'), check_plot = 0; end
+if ~exist('dH', 'var'), dH = []; end
 if ~exist('spread_exponent', 'var'), spread_exponent = []; end
 if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi_friction', 'var'), phi_friction = []; end
@@ -199,7 +204,7 @@ for i = 1:hazard.event_count
 end
 
 %assess flow path of landslide; spread source areas in intensity donwstream
-spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,v_max,phi_friction);
+spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,dH,v_max,phi_friction);
 
 
 
