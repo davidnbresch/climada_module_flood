@@ -1,12 +1,13 @@
 function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
-    exponent,v_max,phi,friction)
+    exponent,dH,v_max,phi,friction)
 
 % MODULE:
 %   flood
 % NAME:
 %   climada_ls_hazard_multipleflow
 % PURPOSE:
-%   
+%   Process the flow path of shallow landslides with given starting
+%   position (from source_areas). 
 % CALLING SEQUENCE:
 %   climada_ls_hazard_sets
 % EXAMPLE:
@@ -23,6 +24,10 @@ function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
 %               x=1: the spreading is similar to the multiple flow direction
 %               x towards infinity: spreading similar to the single flow direction
 %               Claessens et al. (2005) suggest x=4 for debris flow
+%   dH:         changing the height of the central cell by a factor dH.
+%               Allows smoothing of DEM and leads to a more consistent
+%               spreading. It can also be used to transfer the flow
+%               throught flat areas. Used in climada_centroids_gradients
 %   v_max:      describes maximal possible velocity of slide. If velocity is 
 %               exceeded v_max is taken. Should keep energy amounts within reasonal values
 %               and therefore prevent improbalbe runout distances
@@ -62,6 +67,7 @@ if ~exist('lat', 'var'), lat = []; end
 if ~exist('elevation', 'var'), elevation = []; end
 if ~exist('source_areas', 'var'), source_areas = []; end
 if ~exist('exponent', 'var'), exponent = []; end
+if ~exist('dH', 'var'), dH = []; end
 if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi', 'var'), phi = []; end
 if ~exist('friction', 'var'), friction = []; end
@@ -70,7 +76,7 @@ if ~exist('friction', 'var'), friction = []; end
 
 %%% calculate multidirectional outflow proportion
 % (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
-mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent);
+mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 
 %calculate horizontal and vertical distance to each neighbour --> needed
 %when source area is spreaded downstream 
