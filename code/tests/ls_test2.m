@@ -16,7 +16,9 @@ elevation = reshape(centroids.elevation_m,n_lat,n_lon);
 elevation = deminpaint(elevation);
 elevation = fillsinks(elevation);
 
-%test rasterwrite
+%derive raster grid in meters, x coordinates need to be adjsted to have
+%same resolution as y coordinates --> therefore DEM interpolation from
+%original x to adjusted x need to be conducted
 deg_km = 111.12;
 dy = abs(min(diff(lat(:,1)))*(deg_km * 1000));
 dx = abs(min(diff(lon(1,:)))*cosd(mean(lat(:,1)))*(deg_km * 1000));
@@ -26,18 +28,44 @@ x_i = [1:nX]*dy;
 y = ([1:360]*dy)';
 [X,Y] = meshgrid(x,y);
 [X_i,Y_i] = meshgrid(x_i,y);
-% rasterwrite('asciidemlatlon.asc',lat,lon,elevation);
-% rasterwrite('asciidemYX.asc',Y,X,elevation);
-
 elevation_i = interp2(X,Y,elevation,X_i,Y_i,'linear');
 
+%I think coordinates are already pointing to middle of gridcell, therefore
+%add a half length of cellsize in lat/lon direction. Because GRIDobj2ascii
+%substract same amount afterwards
+cellsizelonlat = lat(1)-lat(2);
+cellsizexyinterp = Y_i(1)-Y_i(2);
+lat2 = lat+abs(cellsizelonlat/2);
+lon2 = lon+abs(cellsizelonlat/2);
+Y_i2 = Y_i+abs(cellsizexyinterp/2);
+X_i2 = X_i+abs(cellsizexyinterp/2);
+
+%%%%%%%%%%%%
+%write ascii files
+
+DEM = GRIDobj(lon2,lat2,elevation);
+%DEM = GRIDobj(X,Y,elevation); %not working because not same lat/lon resolution
+%DEM = GRIDobj(X_i2,Y_i2,elevation_i);
+%GRIDobj2ascii(DEM);
+
+%%%%%%%%%%%%%%%%
+%write tiff file 
+
+%DEM
+DEM = GRIDobj(lon,lat,elevation)
+GRIDobj2geotiff(DEM);
+
+%source file
 source_area = reshape(hazard.intensity(1,:),n_lat,n_lon);
 
-DEM = GRIDobj(lon,lat,elevation);
-%GRIDobj2geotiff(DEM)
-GRIDobj2ascii(DEM);
 
-K = GRIDobj(lon,lat,full(k));
+
+
+
+
+
+
+%K = GRIDobj(lon,lat,full(k));
 %GRIDobj2geotiff(K)
 
 % rasterwrite('source.asc',lat,lon,full(k));
