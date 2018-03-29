@@ -1,4 +1,4 @@
-function spread = climada_ls_spread_v2(source_area,mult_flow,... 
+function tot_intensity = climada_ls_spread_v2(source_area,mult_flow,... 
     hor_dist,ver_dist,v_max,phi,delta_i,perWt)
 
 % Computes the flow path according to the multiple flow algorithm
@@ -104,6 +104,9 @@ shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1]*-1;
 %direction-matrix --> saves direction of flow (1-8)in each iteration
 direction = source_area*0; %will save flow-direction in each iteration
 
+%total intensity
+tot_intensity = source_area;
+
 while sum(sum(active_cells))>0 %iteration through number of runs  
 temp_active_cells = temp_active_cells*0;
 for j=1:n_lat %iteration through rows
@@ -150,21 +153,43 @@ for j=1:n_lat %iteration through rows
             %final spreading
             temp_spread = spread(j,i).*wgt_suscept;
             
-            %write in spread-matrix if value is larger than old value
+            spread(j,i) = 0;
+            
+            %iteration through neighbours --> spread intensity
+            %if it flows in an already active cell (also temporary active)
+            %it sums up the intensity such that it is spread in the next
+            %iteration and not lost. It takes the maximum of energy and
+            %also the corresponding direction
             for c=1:8
                 if temp_spread(c) > 0;
-                    spread_old = spread(j+shift_matrix(c,1),i+shift_matrix(c,2));
-                    if temp_spread(c) > spread_old
-                        spread(j+shift_matrix(c,1),i+shift_matrix(c,2)) = temp_spread(c);
-                        energy(j+shift_matrix(c,1),i+shift_matrix(c,2)) = e_Kin(c);
-                        direction(j+shift_matrix(c,1),i+shift_matrix(c,2)) = c;
-                        temp_active_cells(j+shift_matrix(c,1),i+shift_matrix(c,2)) = 1;
+                    %coordinates of neighbour
+                    J = j+shift_matrix(c,1); 
+                    I = i+shift_matrix(c,2);
+                    %spread_old = spread(j+shift_matrix(c,1),i+shift_matrix(c,2));
+                    %if temp_spread(c) > spread_old
+                    if temp_active_cells(J,I) || active_cells(J,I)
+                        spread(J,I) = spread(J,I)+temp_spread(c);
+                        %if new energy greater --> take new energy and its
+                        %direction
+                        old_energy = energy(J,I);
+                        if e_Kin(c) > old_energy
+                            energy(J,I) = e_Kin(c);
+                            direction(J,I) = c;
+                        end
+                    else 
+                        spread(J,I) = temp_spread(c);
+                        energy(J,I) = e_Kin(c);
+                        direction(J,I) = c;
                     end
+                    temp_active_cells(J,I) = 1;
+                    tot_intensity(J,I) = tot_intensity(J,I)+temp_spread(c);
+                    %end
                 end
             end %end interation through neighbours
             %active cell is treated --> set to zero
             active_cells(j,i)=0;
             direction(j,i) = 0;
+            energy(j,i) = 0;
         end %end if active cell
     end %end interation through columns
 end %end interation through rows
