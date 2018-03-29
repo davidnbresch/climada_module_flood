@@ -41,6 +41,9 @@ for i = 1:hazard.event_count
     intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
 end
 
+elevation = deminpaint(elevation);
+elevation = fillsinks(elevation);
+
 %view([0,45])
 
 %default parameters (exponent multipleflow = 25; max slide velocity = 8
@@ -133,21 +136,21 @@ phi = 18;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%compare old spread version and new%%%%
 
-exponent = 25;
+exponent = 5;
 dH = 1;
 flat_areas = 1;
-v_max = 4;
-phi = 22;
+v_max = 12;
+phi = 11;
 friction = 1;
 delta_i = 0.0001;
 %perWt = [1 1 1 1 1 1 1 1];
-perWt = [1 0.2 0 0 0 0 0 0.2];
+perWt = [1 0.8 0.4 0 0 0 0.4 0.8];
 
 mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH,flat_areas);
 [~,hor_dist,ver_dist] = climada_centroids_gradients(lon,lat,elevation,dH);
 
 
-spread_old = climada_ls_spread(intensity(:,:,1),mult_flow,hor_dist,ver_dist,v_max,phi,friction);
+%spread_old = climada_ls_spread(intensity(:,:,1),mult_flow,hor_dist,ver_dist,v_max,phi,friction);
 % figure
 % surface(spread_old)
 % figure
@@ -155,13 +158,17 @@ spread_old = climada_ls_spread(intensity(:,:,1),mult_flow,hor_dist,ver_dist,v_ma
 % figure
 % surface(spread_old>0)
 
-spread_new = climada_ls_spread_v2(intensity(:,:,1),mult_flow,hor_dist,ver_dist,v_max,phi,delta_i,perWt);
+%source_area = intensity(:,:,1);
+source_area = zeros(size(elevation));
+source_area(253,51) = 1;
+
+spread_new = climada_ls_spread_v2(source_area,mult_flow,hor_dist,ver_dist,v_max,phi,delta_i,perWt);
 figure
-surface(spread_new)
+surface(elevation,spread_new)
 figure
-surface(log(spread_new))
+surface(elevation,log(spread_new))
 figure
-surface(spread_new>0)
+surface(elevation,spread_new>0)
 
 disp('hier')
 
