@@ -301,18 +301,19 @@ end
 % temp_inflow_sum will store the amount of inflow in each iteration and
 % pass it on to total_flow_accumulation, which collects these inflows
 % until the final value is reached
-temp_inflow_sum = outflow_gradients_sum;
-total_flow_accumulation = outflow_gradients_sum;
+temp_inflow_sum = outflow_gradients_sum*0+1;
+temp_outflow_weighting_factors = outflow_weighting_factors;
+total_flow_accumulation = outflow_gradients_sum*0+1;
 
 temp_inflow = gradients*0;
 
+%before:
 % Flow accumulation (terminates when there is no inflow):
-fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
-while sum(temp_inflow_sum(:))>0
-    % iterate over inflow from all directions and store it in temp_inflow
+% fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
+while sum(temp_inflow_sum(:),'omitnan')>0
     for i = 1:8
         temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
-            [shift_matrix(i,1) shift_matrix(i,2)]);
+        [shift_matrix(i,1) shift_matrix(i,2)]);
     end
     % temp_inflow_sum collects the weighted current inflow from
     % contributing neighbouring cells (i.e. the ones with positive
