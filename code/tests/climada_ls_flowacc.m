@@ -23,16 +23,16 @@ function FL_acc = climada_ls_flowacc(mult_flowOrGridObj,topoTB)
 % CALLING SEQUENCE:
 %   flowacc = climada_ls_flowacc(lon,lat,z)
 % EXAMPLE:
-%   flowacc = climada_ls_TWI_calc(lon,lat,'',z) --> takes calculation with
-%   TopoToolbox by default
-%   flowacc = climada_ls_TWI_calc(lon,lat,z,'',0) --> takes climada code, not
-%   recommended
+%   flowacc = climada_ls_TWI_calc(DEM,1) --> takes calculation with
+%   TopoToolbox by default --> DEM is a GRIDobj
+%   flowacc = climada_ls_TWI_calc(multflow,0) --> takes climada code, not
+%   recommended --> multflow is a 8d multiple flow matrix
 %   
 % INPUTS:
 %  mult_flowOrGridObj: If topoTB = 0: need to be a 8-D matrix with outflow proportion in
 %               each direction (each neighbour-cell).Produced by climada_ls_multipleflow
 %               If topoTB = 1; need to be a GridObj from TopoToolbox.
-%               created with 
+%               created with DEM = GRIDobj(lon,lat,dem)
 % OPTIONAL INPUT PARAMETERS:
 %   topoTB:     1/0 if set to 1 the flowaccumulation is calculated with the
 %               functions from TopoToolbox (recommended). 0 --> similar
@@ -59,6 +59,7 @@ if isempty(topoTB), topoTB = 1; end
 
 if topoTB
     DEM = mult_flowOrGridObj;
+    DEM.Z = deminpaint(DEM.Z);
     DEM = fillsinks(DEM);
     %uses geodesic for flat areas --> more sophisticated than routeflat
     FD = FLOWobj(DEM,'multi');
