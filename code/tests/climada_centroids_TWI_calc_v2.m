@@ -275,9 +275,6 @@ gradients(:,1,[4 5 6]) = 0; %left boarder
 gradients(:,numel(lon(1,:)),[1 2 8]) = 0; %right boarder
 gradients = atand(gradients);%/pi*2;
 
-[gradients2,~,~] = climada_centroids_gradients(flipud(lon),flipud(lat),flipud(z));
-gradients2 = flipud(atand(gradients2));
-
 %----------------------
 % Prep for the calculation of flow accumulation (resulting in flood
 % scores), where the outflow of each cell will be distributed among its
@@ -289,26 +286,15 @@ gradients2 = flipud(atand(gradients2));
 % Flow of positive gradients is set to zero.
 %gradients = gradients*-1;
 %gradients(gradients < 0) = 0; 
-load('C:\Users\Simon Rölli\Desktop\data\mult_flow.mat','mult_flow');
-%load('C:\Users\Simon Rölli\Desktop\data\gradients2.mat','gradients2');
-load('C:\Users\Simon Rölli\Desktop\data\wet_index_wrong.mat','wet_index_wrong')
-% for c=1:8
-%     gradients2(:,:,c) = atand(flipud(gradients2(:,:,c)));
-%     mult_flow(:,:,c) = flipud(mult_flow(:,:,c));
-% end
+
 
 %weighting_factor = 4;
 outflow_weighted = (gradients.*(-1*gradients<0)).^weighting_factor;
-%outflow_weighted = (gradients.*(gradients<0)*-1).^weighting_factor;
-outflow_weighted2 = (gradients2.*(gradients2<0)*-1).^weighting_factor;
-% outflow_weighted = (abs(gradients)).^weighting_factor;
 
 % 2) Sum up gradients such that for each grid cell, outflow_gradients_sum
 % contains the sum of the gradients to the grid cell's 8 neighbouring cells
 outflow_gradients_sum = sum(outflow_weighted,3);
-outflow_gradients_sum2 = sum(outflow_weighted2,3);
 outflow_gradients_sum(outflow_gradients_sum==0) = 1; %prevent division by 0
-outflow_gradients_sum2(outflow_gradients_sum2==0) = 1; %prevent division by 0
 
 % 3) Normalize the flow such that the neighboring cell gradients of each
 % direction (east, southeast, south, etc.) add up to 1. These fractions
@@ -316,8 +302,6 @@ outflow_gradients_sum2(outflow_gradients_sum2==0) = 1; %prevent division by 0
 for i = 1:8
     outflow_weighting_factors(:,:,i) = outflow_weighted(:,:,i).*...
         (outflow_weighted(:,:,i)>0)./outflow_gradients_sum;
-    outflow_weighting_factors2(:,:,i) = outflow_weighted2(:,:,i).*...
-        (outflow_weighted2(:,:,i)>0)./outflow_gradients_sum2;
 end
 
 
@@ -335,12 +319,6 @@ temp_outflow_weighting_factors = outflow_weighting_factors;
 total_flow_accumulation = outflow_gradients_sum*0+1;
 
 temp_inflow = gradients*0;
-count=0;
-
-% figure('units','normalized','outerposition',[0 0 1 1])
-% s = surf(lon,lat,z,total_flow_accumulation);
-% colorbar
-%caxis([10000 11000])
 
 %before:
 % Flow accumulation (terminates when there is no inflow):
@@ -355,72 +333,18 @@ while sum(temp_inflow_sum(:),'omitnan')>0
     % gradients)
     temp_inflow_sum = sum(temp_inflow.*outflow_weighting_factors.*gradients>0,3);
     total_flow_accumulation = total_flow_accumulation + temp_inflow_sum;
-%     s.CData = total_flow_accumulation;
-%     pause(0.05)
 end
 
 
-temp_inflow_sum = outflow_gradients_sum2*0+1;
-temp_outflow_weighting_factors = outflow_weighting_factors2;
-total_flow_accumulation2 = outflow_gradients_sum2*0+1;
-figure('units','normalized','outerposition',[0 0 1 1])
-s = surf(lon,lat,z,total_flow_accumulation2);
-colorbar
-%lim = caxis
-%caxis([0 1200])
 
-temp_outflow = gradients*0;
-count2=0;
 
-shift_matrix = [1 0;1 1;0 1;-1 1;-1 0;-1 -1;0 -1;1 -1];
-%before:
-% Flow accumulation (terminates when there is no inflow):
-% fprintf(['processing topography for %i centroids...'],length(centroids.centroid_ID));
-ud = [5 4 3 2 1 8 7 6];
-outflow_weighting_factors2_ud = outflow_weighting_factors2;
-for c=8
-    outflow_weighting_factors2_ud(:,:,c)=outflow_weighting_factors2(:,:,ud(c));
-end
-
-while sum(temp_inflow_sum(:),'omitnan')>0
-    % iterate over inflow from all directions and store it in temp_inflow
-    for i = 1:8
-        %temp_inflow(:,:,i) = circshift(temp_inflow_sum,...
-            %[shift_matrix(i,1) shift_matrix(i,2)]).*outflow_weighting_factors2(:,:,i);
-        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i)>0);
-        temp_inflow(:,:,i) = circshift(temp_inflow_sum,[shift_matrix(i,1) shift_matrix(i,2)])...
-            .*circshift(outflow_weighting_factors2_ud(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]).*(gradients(:,:,i)>0);
-        %temp_outflow(:,:,i) = temp_inflow_sum.*(outflow_weighting_factors2(:,:,i));
-        %temp_inflow(:,:,i) = circshift(temp_outflow(:,:,i),[shift_matrix(i,1) shift_matrix(i,2)]);
-%         figure
-%         surface(z,temp_outflow(:,:,i))
-%         figure
-%         surface(z,temp_inflow(:,:,i))
-           
-    end
-    % temp_inflow_sum collects the weighted current inflow from
-    % contributing neighbouring cells (i.e. the ones with positive
-    % gradients)
-    %sum(temp_inflow_sum)
-    count2=count2+1
-    temp_inflow_sum = sum(temp_inflow,3);
-    sum(sum(temp_inflow_sum),'omitnan')
-    total_flow_accumulation2 = total_flow_accumulation2 + temp_inflow_sum;
-    %s.CData = total_flow_accumulation2;
-    
-    %pause(0.075)
-end
-
-% total_flow_accumulation(isnan(total_flow_accumulation))=0;
-fprintf(' done\n')
+% total_flow_accumulation(isnan(total_flow_accumulation))=0;fprintf(' done\n')
 % Calculate wetness index
 tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
 wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
-%wet_index2 = log((1+total_flow_accumulation2)./tand(tmp_slope));
-% figure
-% surface(z,wet_index)
-% figure
-%surface(z,wet_index2)
+
+%%%%%%%%%get TWI using topoToolbox
+
 
 % ---------------------------
 % Add field flood_score to the centroids struct, i.e. loop over all
@@ -430,15 +354,15 @@ wet_index = log((1+total_flow_accumulation)./tand(tmp_slope));
 
 % process managemagent
 msgstr   = sprintf('Assigning topographic properties to %i centroids ... ',centroids.centroid_ID(end));
-mod_step = 10; % first time estimate after 10 assets, then every 100
-if climada_global.waitbar
-    fprintf('%s (updating waitbar with estimation of time remaining every 100th centroid)\n',msgstr);
-    h        = waitbar(0,msgstr);
-    set(h,'Name','Assigning TWI');
-else
-    fprintf('%s (waitbar suppressed)\n',msgstr);
-    format_str='%s';
-end
+% mod_step = 10; % first time estimate after 10 assets, then every 100
+% if climada_global.waitbar
+%     fprintf('%s (updating waitbar with estimation of time remaining every 100th centroid)\n',msgstr);
+%     h        = waitbar(0,msgstr);
+%     set(h,'Name','Assigning TWI');
+% else
+%     fprintf('%s (waitbar suppressed)\n',msgstr);
+%     format_str='%s';
+% end
 
 % init
 centroids.FL_score   = zeros(size(centroids.lon));
@@ -467,16 +391,16 @@ for centroid_i = centroids.centroid_ID(1):centroids.centroid_ID(end)
         centroids.TWI(centroid_i)       = NaN;
     end
     % the progress management
-    if mod(centroid_i,mod_step)==0
-        mod_step = 100;
-        msgstr = sprintf('%i/%i centroids',centroid_i,centroids.centroid_ID(end));
-        if climada_global.waitbar
-            waitbar(centroid_i/centroids.centroid_ID(end),h,msgstr); % update waitbar
-        else
-            fprintf(format_str,msgstr); % write progress to stdout
-            format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
-        end
-    end
+%     if mod(centroid_i,mod_step)==0
+%         mod_step = 100;
+%         msgstr = sprintf('%i/%i centroids',centroid_i,centroids.centroid_ID(end));
+%         if climada_global.waitbar
+%             waitbar(centroid_i/centroids.centroid_ID(end),h,msgstr); % update waitbar
+%         else
+%             fprintf(format_str,msgstr); % write progress to stdout
+%             format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
+%         end
+%     end
 end
 
 % centroids.FL_score(isnan(centroids.FL_score))=0;
@@ -491,77 +415,6 @@ centroids.TWI(centroids.TWI<0)=NaN; %0;
 
 fprintf(' done\n');
 
-% -----------------------------
-% If requested, generate pseudocolor plots of elevation, slope, aspect
-% angle, and flow accumulation
-if check_plots
-    
-%     % plot elevation data
-%     figure('Name','Elevation','Color',[1 1 1]);
-%     climada_DEM_plot(unique(lon),unique(lat),z)
-%     
-%     % plot slope
-%     figure('Name','Slope','Color',[1 1 1]);
-%     h = pcolor(slope);
-%     colormap(jet), colorbar
-%     set(h,'LineStyle','none')
-%     axis equal
-%     title('Slope [degrees]')
-%     [r, c] = size(slope);
-%     axis([1 c 1 r])
-%     set(gca,'TickDir','out')
-%     
-%     % plot aspect angle
-%     figure('Name','Aspect','Color',[1 1 1]);
-%     h=pcolor(aspect);
-%     colormap(hsv),colorbar
-%     set(h,'Linestyle','none')
-%     axis equal
-%     title('Aspect')
-%     axis([1 c 1 r])
-%     set(gca,'TickDir','out')
-%     
-%     % Plot flow accumulation
-%     figure('Name','Flood scores','Color',[1 1 1]);
-%     h = pcolor(log(1+total_flow_accumulation));
-%     %h = pcolor(total_flow_accumulation);
-%     colormap(flipud(jet)), colorbar
-%     set(h,'LineStyle','none')
-%     axis equal
-%     title('Flood scores')
-%     [r, c] = size(total_flow_accumulation);
-%     axis([1 c 1 r])
-%     set(gca,'TickDir','out')
-    
-    % Plot wetness index
-    figure('Name','Topographic wetness index','Color',[1 1 1]);
-    h = pcolor(wet_index);
-    colormap(flipud(jet)), colorbar
-    set(h,'LineStyle','none')
-    axis equal
-    title('Topographic wetness index')
-    [r, c] = size(wet_index);
-    axis([1 c 1 r])
-    set(gca,'TickDir','out')
 end
 
-% plot flow direction
-%   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
-%    title('Runoff flow direction')
-%   h = contourf(z, linspace(min(min(z)),max(max(z)),15));
-%   hold on
-%   gradients(isinf(gradients)) = nan;
-%   quiver(x,y, dzdx.*-1, dzdy.*-1);
-%   %quiver(x, y, gradients(:,:,1)+gradients(:,:,5), ...
-%     %gradients(:,:,3)+gradients(:,:,7));
-%   %[size_dim1, size_dim2, ~] = size(gradients);
-%   %axis([1 size_dim1 1 size_dim2])
-%   %set(gca,'TickDir','out')
-%   hold off
 
-%   % plot runoff direction
-%   figure('Name','Rainfall runoff direction', 'Color', [1 1 1])
-%   title('Runoff flow direction')
-%   hold on
-%   contourf(x,y,z)
-%   quiver(x, y, dzdx.*-1, dzdy.*-1)
