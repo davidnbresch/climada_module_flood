@@ -162,13 +162,15 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH,flat_areas);
 source_area = zeros(size(elevation));
 source_area(253,51) = 1;
 
-spread_new = climada_ls_spread_v2(source_area,mult_flow,hor_dist,ver_dist,v_max,phi,delta_i,perWt);
+spread_new = climada_ls_propagation(source_area,mult_flow,hor_dist,ver_dist,v_max,phi,delta_i,perWt);
 figure
 surface(elevation,spread_new)
 figure
 surface(elevation,log(spread_new))
 figure
 surface(elevation,spread_new>0)
+
+%%%%%test new spread version spread_v2 with iteration through all events an
 
 disp('hier')
 
