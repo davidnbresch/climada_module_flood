@@ -1,22 +1,18 @@
-function centroids = climada_centroids_TWI_calc_v2(centroids,centroids_set_file,check_plots)
-% Calculate flood scores and topographic wetness indices
+function centroids = climada_centroids_scores(lon,lat,dem)
+% Calculate slope, aspect and topographic wetness index
 % MODULE:
 %   flood
 % NAME:
-%	climada_centroids_TWI_calc
+%	climada_centroids_scores
 % PURPOSE:
 %   Calculate flood scores and topographic wetness indices for given
-%   centroids, that are on a regular grid.
-%   climada_centroids_TWI_calc applies a multiple-flow-direction method which,
-%   in contrast to the simple D8 method, allows the runoff to flow to
-%   multiple neighbouring cells. The distribution of the flow is determined
-%   based on the respective gradients between the central cell and its
-%   neighbouring cells. Also, the algorithm controls dispersion effects
-%   using a method suggested by
-%       Freeman, T.G. (1991): Calculating catchment area with
-%       divergent flow based on a regular grid;
-%       doi:10.1016/0098-3004(91)90048-I
-%       https://ac.els-cdn.com/009830049190048I/1-s2.0-009830049190048I-main.pdf?_tid=866d08a6-c54f-11e7-b499-00000aab0f01&acdnat=1510233280_58e175c46862affef6785a80491025fe
+%   DEM, that are on a regular grid.
+%   To calculate the flow accumulation a function from TopoToolbox is used
+%   which implements the multiple flow according to Freeman T.G. (1991) --> flow to
+%   several cells is possible, according to the gradients between central
+%   cell ant its neigbouring cells. The dispersion can be controlled with
+%   an exponent (set to 1.1 for Freeman T.G. (1991)).
+%
 %   The Topographic wetness index (TWI), which can be derived from the
 %   calculated flow accumulation, then provides a cost-efficient
 %   alternative to flood determination by conventional hydrodynamic models.
@@ -48,67 +44,19 @@ function centroids = climada_centroids_TWI_calc_v2(centroids,centroids_set_file,
 %       .aspect_deg: aspect of every centroid, in degree
 %       .sink_ID:    sink of every centroid, links to centroid_ID
 % MODIFICATION HISTORY:
-% Melanie Bieli, melanie.bieli@bluewin.ch, 20150226, initial
-% Melanie Bieli, melanie.bieli@bluewin.ch, 20150311, added wetness index
-% Gilles Stassen, gillesstassen@hotmail.com, 20150407, clean up
-% Lea Mueller, muellele@gmail.com, 20150720, bugfix, quick+dirty workaround
-%              to create meshgrid and allocate FL_score, @Gilles: please check and correct
-% Jacob Anz, 280715, fixed shift_matrix
-% Lea Mueller, muellele@gmail.com, 20150925, add process management/waitbar
-% Lea Mueller, muellele@gmail.com, 20151105, improve output documentation
-% Lea Mueller, muellele@gmail.com, 20151125, rename to climada_centroids_TWI_calc from centroids_TWI
-% David N. Bresch, david.bresch@gmail.com, 20170629, double() of single for griddata
-% Thomas Rölli, thomasroelli@gmail.com, 20180222, remove interpolation, and
-%   take values from centroids.elevation_m 
-% Thomas Rölli, thomasroelli@gmail.com, 20180223, init version 2
-
+% Thomas Rölli, thomasroelli@gmail.com, 20180404, init with
+%  TopoToolbox-functions
 global climada_global
 
 % check input arguments
 if ~climada_init_vars; return; end
-if ~exist('centroids',  'var') || isempty(centroids),   climada_centroids_load; end
-if ~exist('check_plots','var') || isempty(check_plots), check_plots = 0;        end
+if isempty(lon),   lon = []; end
+if isempty(lat),   lat = []; end
+if isempty(dem),   dem = []; end
 
-% PARAMETERS
-%
-% To allow for smooth interpolation, we will enlarge the rectangle defined
-% by the min and max latitude and longitude coordinates of the centroids by
-% a certain amount (in degrees) at all four sides
-add_degree = 1;
-%
 % Weighting factor to be applied in the calculation of flow accumulation
 % according to Freeman (1991)
 weighting_factor = 1.1;
-
-% Get elevation data if centroids do not come equipped with them
-if ~isfield(centroids, 'elevation_m')
-    cprintf([1,0.5,0],['WARNING: centroid elevation data missing, ' ...
-        'using etopo.\n \tConsider running climada_90m_DEM for ultra high resolution topography.\n'])
-    % prep the region we need (rectangular region encompassing the hazard
-    % centroids)
-    centroids_rect=[min(centroids.lon) max(centroids.lon) ...
-        min(centroids.lat) max(centroids.lat)];
-    % enlarge the rectangle
-    centroids_rect=[centroids_rect(1)-add_degree centroids_rect(2)+add_degree ...
-        centroids_rect(3)-add_degree centroids_rect(4)+add_degree];
-    
-    % cut the elevation data out of the global topography dataset
-    if ~exist('etopo_get','file')
-        % safety to inform the user in case he misses the ETOPO module
-        fprintf(['ERROR: no etopo_get function found. Please download ' ...
-            '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
-            'elevation_models</a> from Github.\n'])
-        return
-    end
-    TOPO_data=etopo_get(centroids_rect);
-    if isempty(TOPO_data),return;end % error messages from etopo_get already
-    centroids.elevation_m=interp2(TOPO_data.x,TOPO_data.y,TOPO_data.h,...
-        centroids.lon,centroids.lat);
-end
-
-centroids.lon=double(centroids.lon); % to double, as required by griddata below
-centroids.lat=double(centroids.lat);
-centroids.elevation_m=double(centroids.elevation_m);
     
 % Calculate mean difference between centroids in x and y direction
 % We assume a constant distance between degrees of latitude (lat), i.e. we
@@ -124,14 +72,9 @@ centroids.elevation_m=double(centroids.elevation_m);
 %   lat_singleton = [min(centroids.lat):diff(centroids.lat(1:2))*factor_f:max(centroids.lat)];
 %   [lon, lat] = meshgrid(lon_singleton,lat_singleton);
 %   lon=double(lon);lat=double(lat); % to double, as required by griddata below
-n_lon = numel(unique(centroids.lon));
-n_lat = numel(unique(centroids.lat));
-lon = reshape(centroids.lon,n_lat,n_lon);
-lat = reshape(centroids.lat,n_lat,n_lon);
 
 lon_singleton = lon(1,:);
 lat_singleton = lat(:,1)';
-
 
 % assume cos(lat) doesn't vary much within small study region and take cos
 % of mean latitude
@@ -141,26 +84,12 @@ y = lat_singleton .* (111.12 * 1000);
 
 factor_f = 1;
 
-dx_ = min(diff(unique(centroids.lon))) * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
-dy_ = min(diff(unique(centroids.lat))) * (111.12 * 1000);
 dx = diff(centroids.lat(1:2))*factor_f * (cos(mean(mean(lat))*pi/180)* 111.12 * 1000);
 dy = diff(centroids.lat(1:2))*factor_f * (111.12 * 1000);
 
-% dx = mean(diff(unique(centroids.lon)))*cos(mean(mean(lat))*pi/180)* 111.12 * 1000;
-% dy = mean(diff(unique(centroids.lat)))* 111.12 * 1000;
-
-% 20180222: removed
-%    z       = griddata(centroids.lon,centroids.lat,centroids.elevation_m,lon,lat, 'linear');
-%    c_ID    = griddata(centroids.lon,centroids.lat,centroids.centroid_ID,lon,lat, 'nearest');
-
+z = dem;
 z = reshape(centroids.elevation_m,n_lat,n_lon);
 c_ID = reshape(centroids.centroid_ID,n_lat,n_lon);
-
-if dx_ ~= dx || dy_ ~= dy || numel(z) > numel(centroids.centroid_ID)
-    cprintf([1 0.5 0],'WARNING: centroids not defined by uniform rectangular grid - code will continue, but may encounter issues. Please check fields:\n')
-    cprintf([1 0.5 0],'\t\t consider generating centroids on a uniform grid before running climada_centroids_TWI_calc\n')
-    cprintf([1 0.5 0],'\t\t see climada_centroids_generate\n')
-end
 
 % tmp     = [num2str(centroids.lon') num2str(centroids.lon')]; 
 % Calculate gradients in x and y direction in order to derive normal
