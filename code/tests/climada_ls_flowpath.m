@@ -1,5 +1,5 @@
 function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
-    exponent,dH,v_max,phi,friction)
+    exponent,dH,v_max,phi,friction,delta_i,perWt)
 
 % MODULE:
 %   flood
@@ -35,9 +35,19 @@ function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
 %               the most distant point reached by the slide, along its path.
 %               Factor controlls maximum possible runout distance
 %   friction:   1/0 include friction/no friction while spreading
-%   test(removed):       If set true: a centroids structure with lon, lat and
-%               elevation_m is constructed according to a test DEM (see
-%               climada_ls_testDEM) (removed
+%   delta_i:    Minimum threshold which prevent propagation when deceeded. Small values
+%               are removed and spreaded to the other remaining, lower
+%               situated neighbouring cells 
+%   perWt:      row vector with 8 elements. gives weight to each direction.
+%               The persistence function aims at
+%               reproducing the behaviour of inertia --> weights the flow
+%               direction according to change of direction to neighbour.
+%               First element represent weight to neighbour in same direction
+%               as flow (0 degree), second element weights right neighbour 45
+%               degrees (angle between previous direction and direction from
+%               the central cell to corresponding neighbour) .. last element
+%               represents weight of neighbour to the left of flow direction
+%               (45 degree anticlockwise). 
 % OUTPUTS:
 %   mult_flow:  8-D matrix with outflow proportion in each direction (each
 %               neighbour-cell)
@@ -54,6 +64,8 @@ function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
 % Thomas Rölli, thomasroelli@gmail.com, 20180306, remove test-DEM and
 %  lat/lon, elevation and intensity in grid is now demanded in gridded
 %  format.
+% Thomas Rölli, thomasroelli@gmail.com, 20180403, add delta_i and perWt and
+%  uses spread_v2
 
 %remove afterwards; load centroids and hazard
 %load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_hazard.mat')
@@ -71,6 +83,8 @@ if ~exist('dH', 'var'), dH = []; end
 if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi', 'var'), phi = []; end
 if ~exist('friction', 'var'), friction = []; end
+if ~exist('delta_i', 'var'), delta_i = []; end
+if ~exist('perWt', 'var'), friction = []; end
 
 
 
@@ -86,26 +100,8 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 %spreaded according to the multiple flow path and a simplified friction model 
 spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
 
-% %make some plots just to test some things
-% figure
-% surf(lon,lat,elevation,spread_noFri(:,:,1));
-% figure
-% surf(lon,lat,elevation,spread(:,:,1));
-% 
-% 
-% %affected area: plot to see where intensity values are greater than 0
-% aff_area = zeros(n_lon,n_lat);
-% aff_area(spread(:,:,1)>0) =1;
-% figure
-% surf(lon,lat,elevation,aff_area)
-% %surf(lon,lat,elevation,aff_area,'LineStyle','none')
-% 
-% %affected area: plot without friction
-% aff_area(spread_noFri(:,:,1)>0) =1;
-% figure
-% surf(lon,lat,elevation,aff_area)
-% 
-% disp('hier');
+%with spread_v2 --> each slide is spreaded seperately
+spreaded_v2 = climada_ls_spread_v2(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
 
 
 

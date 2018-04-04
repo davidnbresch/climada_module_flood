@@ -1,6 +1,6 @@
 function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,set_files,...
     wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope,spread_exponent,...
-    dH,v_max,phi_friction)
+    dH,v_max,phi_friction,delta_i,perWt)
 
 % Generate a landslide hazard set.
 % MODULE:
@@ -40,6 +40,7 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 %   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],0,100,'_LS_Sarnen');
 %   with srtm1-data
 %   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],1,100,'_LS_Sarnen_srtm1');
+%   [hazard,centroids]=climada_ls_hazard_sets([8.111086 8.341411 46.815369 46.946240],1,100,'_LS_Sarnen_srtm1_large');
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
 %       information) or a rectangle to define lon/lat box, if not given, the
@@ -76,6 +77,19 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 %   phi_friction:         angle of reach, angle of the line connnecting the source area to
 %                         the most distant point reached by the slide, along its path.
 %                         Factor controlls maximum possible runout distance
+%   delta_i:              Minimum threshold which prevent propagation when deceeded. Small values
+%                         are removed and spreaded to the other remaining, lower
+%                         situated neighbouring cells 
+%   perWt:                row vector with 8 elements. gives weight to each direction.
+%                         The persistence function aims at
+%                         reproducing the behaviour of inertia --> weights the flow
+%                         direction according to change of direction to neighbour.
+%                         First element represent weight to neighbour in same direction
+%                         as flow (0 degree), second element weights right neighbour 45
+%                         degrees (angle between previous direction and direction from
+%                         the central cell to corresponding neighbour) .. last element
+%                         represents weight of neighbour to the left of flow direction
+%                         (45 degree anticlockwise).
 % OUTPUTS:
 %   hazard: a climada hazard structure with binary landslide information
 %       .peril_ID: 'LS'
@@ -125,6 +139,8 @@ if ~exist('dH', 'var'), dH = []; end
 if ~exist('spread_exponent', 'var'), spread_exponent = []; end
 if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi_friction', 'var'), phi_friction = []; end
+if ~exist('delta_i', 'var'), delta_i = []; end
+if ~exist('perWt', 'var'), friction = []; end
 
 % prompt for set_files if not given
 if isempty(set_files) % local GUI
@@ -204,7 +220,7 @@ for i = 1:hazard.event_count
 end
 
 %assess flow path of landslide; spread source areas in intensity donwstream
-spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,dH,v_max,phi_friction);
+spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,dH,v_max,phi_friction,'',delta_i,perWt);
 
 
 
