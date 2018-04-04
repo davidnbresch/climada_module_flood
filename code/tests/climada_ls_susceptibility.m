@@ -1,15 +1,23 @@
-function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
+function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
     exponent,dH,v_max,phi,friction,delta_i,perWt)
 
 % MODULE:
 %   flood
 % NAME:
-%   climada_ls_hazard_multipleflow
+%   climada_ls_susceptibility
 % PURPOSE:
 %   Process the flow path of shallow landslides with given starting
-%   position (from source_areas). 
+%   position (starting from source_areas). Each source area is propagated
+%   individually. After all slides are processed, the maximum of intensity is taken when
+%   several slides flew over on cell. This is repeated for each event.
+%   
+%   While propagating (in climada_ls_propagation), the minimum flow-distance to the
+%   source area is saved and the maximum taken when including all slides
+%   of an event. 
+%   
+%   Last but not least, number of times each cell was affected by a slide is computed (for each event). 
 % CALLING SEQUENCE:
-%   climada_ls_hazard_sets
+%   climada_ls_susceptibility(lon,lat,elevation,source_areas,exponent,dH,v_max,phi,friction,delta_i,perWt)
 % EXAMPLE:
 %   
 % INPUTS: 
@@ -49,8 +57,7 @@ function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
 %               represents weight of neighbour to the left of flow direction
 %               (45 degree anticlockwise). 
 % OUTPUTS:
-%   mult_flow:  8-D matrix with outflow proportion in each direction (each
-%               neighbour-cell)
+%   sucept:     matrix (lon lat) with inte
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180201, init
@@ -66,6 +73,8 @@ function spread = climada_ls_flowpath(lon,lat,elevation,source_areas,...
 %  format.
 % Thomas Rölli, thomasroelli@gmail.com, 20180403, add delta_i and perWt and
 %  uses spread_v2
+% Thomas Rölli, thomasroelli@gmail.com, 20180404, renamed from
+%  climada_ls_flowpath to climada_ls_susceptibility
 
 %remove afterwards; load centroids and hazard
 %load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_hazard.mat')
@@ -101,7 +110,7 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
 
 %with spread_v2 --> each slide is spreaded seperately
-spreaded_v2 = climada_ls_spread_v2(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
 
 
 
