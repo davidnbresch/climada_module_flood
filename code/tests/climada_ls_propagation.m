@@ -1,4 +1,4 @@
-function tot_intensity = climada_ls_spread_v2(source_area,mult_flow,... 
+function tot_intensity = climada_ls_propagation(source_area,mult_flow,... 
     hor_dist,ver_dist,v_max,phi,delta_i,perWt)
 
 % Computes the flow path according to the multiple flow algorithm
@@ -7,11 +7,11 @@ function tot_intensity = climada_ls_spread_v2(source_area,mult_flow,...
 % MODULE:
 %   flood
 % NAME:
-%   climada_ls_spread
+%   climada_ls_propagation
 % PURPOSE:
 %   
 % CALLING SEQUENCE:
-%   climada_ls_hazard_sets
+%   climada_ls_propagation(source_area,mult_flow,hor_dist,ver_dist,v_max,phi,delta_i,perWt)
 % EXAMPLE:
 %   
 % INPUTS: 
@@ -48,8 +48,8 @@ function tot_intensity = climada_ls_spread_v2(source_area,mult_flow,...
 % OPTIONAL INPUT PARAMETERS:
 % 
 % OUTPUTS:
-%   spread: matrix (lon/lat) where the intensity of the landslide is spread
-%   according to the multiple flow algorithm.
+%   tot_intensity: matrix (lon lat) with the resulting intensity after
+%                  landslides are propagated downstream starting from source areas
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180219, init
@@ -58,6 +58,10 @@ function tot_intensity = climada_ls_spread_v2(source_area,mult_flow,...
 % Thomas Rölli, thomasroelli@gmail.com, 20180317, init v2
 % Thomas Rölli, thomasroelli@gmail.com, 20180319, changed structure, add
 %  persistence function, add intensity threshold (delta_i)
+% Thomas Rölli, thomasroelli@gmail.com, 20180329, sum of intensity while
+%  propagated
+% Thomas Rölli, thomasroelli@gmail.com, 20180404, renamed from
+%  climada_ls_spread_v2 to climada_ls_propagation
 
 
 global climada_global
