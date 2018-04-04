@@ -7,7 +7,8 @@ function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,eleva
 % NAME:
 %   climada_ls_hazard_multipleflow
 % PURPOSE:
-%   
+%   returns tan(slope); to receive the slope in degrees use
+%   atand(gradients)
 % CALLING SEQUENCE:
 %   climada_ls_hazard_sets
 % EXAMPLE:
@@ -19,7 +20,7 @@ function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,eleva
 % OPTIONAL INPUT PARAMETERS:
 %   
 % OUTPUTS:
-%   gradients:  8-D matrix with gradients in each direction (towards each
+%   gradients:  8-D matrix with gradients (tan(slope)) in each direction (towards each
 %               neighbour-cell), gradients(:,:,1) gradient toward northern
 %               neighbour, then continuing clockwise
 %   horDist:    8-D Matrix with horizontal distance in each direction
