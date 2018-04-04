@@ -118,6 +118,9 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 % init
 hazard = []; fig = [];
 
+%%%%old verions or new verion
+new = 0; %=1 --> new version; =0 --> old version
+
 global climada_global
 if ~climada_init_vars, return; end
 
@@ -165,7 +168,7 @@ else
     centroids_set_file   = [climada_global.data_dir filesep 'centroids' filesep set_files '_centroids.mat'];
 end
 
-%create centroids and add elevation information to it (from SRTM 90)
+%create centroids and add elevation information to it (from SRTM3 or SRTM1)
 if isnumeric(centroids) && numel(centroids) == 4
     % we have a box that defines where centroids should be created on 90m
     % resolution (given by SRTM)
@@ -180,47 +183,63 @@ if isempty(centroids)
     centroids = climada_centroids_elevation_add('','',0,srtm1);
 end
 
-%calculate TWI, aspect, slope
-centroids = climada_centroids_TWI_calc_v2(centroids);
-
-% calculate slope_factor as cos(slope)/sin(slope)
-slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));
-slope_factor(isinf(slope_factor)) = 0;
-slope_factor(slope_factor>0.55) = 0.6;
-if ~isfield(centroids,'slope_factor')
-    centroids.slope_factor = slope_factor;
-end
-
-% normalize TWI
-if ~isfield(centroids,'TWI_norm')
-    % TWI_norm = centroids.TWI/10;
-    % TWI_norm(TWI_norm>0.85) = 0.85;
-    TWI_norm = centroids.TWI/10;
-    TWI_norm(isnan(TWI_norm)) = 0;
-    centroids.TWI_norm = TWI_norm;
-end
-
-
-%create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
-%100 events (1/0)
-hazard = climada_ls_hazard_trigger(centroids,n_events,...
-    wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope);
-
-%get dimension of grid field from lon/lat coordinates
-%and reshap needed vectors --> easier to handel in grid format than in
-%vector; and needed in climada_ls_flowpath
+%transform centroid structure to gridded format
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
 lon = reshape(centroids.lon,n_lat,n_lon);
 lat = reshape(centroids.lat,n_lat,n_lon);
-elevation = reshape(centroids.elevation_m,n_lat,n_lon);
-intensity = logical(zeros(n_lat,n_lon,hazard.event_count));
-for i = 1:hazard.event_count
-    intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
+dem = reshape(centroids.elevation_m,n_lat,n_lon);
+
+
+if new
+    %calculate TWI, aspect, slope
+    [slope,aspect,~,TWI] = climada_centroids_scores(lon,lat,dem,1);
+    %implement here: a function which assess the source_areas --> e.g.
+    %climada_ls_sourceAreas(slope,TWI,condition_slope,condition_TWI,wiggle_factor_slope,wiggle_factor_TWI)
+else
+    centroids = climada_centroids_TWI_calc(centroids);
+    
+    % calculate slope_factor as cos(slope)/sin(slope)
+    slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));
+    slope_factor(isinf(slope_factor)) = 0;
+    slope_factor(slope_factor>0.55) = 0.6;
+    if ~isfield(centroids,'slope_factor')
+        centroids.slope_factor = slope_factor;
+    end
+
+    % normalize TWI
+    if ~isfield(centroids,'TWI_norm')
+        % TWI_norm = centroids.TWI/10;
+        % TWI_norm(TWI_norm>0.85) = 0.85;
+        TWI_norm = centroids.TWI/10;
+        TWI_norm(isnan(TWI_norm)) = 0;
+        centroids.TWI_norm = TWI_norm;
+    end
+
+
+    %create hazard set file and assess susceptibility of shallow landslides --> get trigger areas for e.g.
+    %100 events (1/0)
+    hazard = climada_ls_hazard_trigger(centroids,n_events,...
+        wiggle_factor_TWI,condition_TWI,wiggle_factor_slope,condition_slope);
+
+    %get dimension of grid field from lon/lat coordinates
+    %and reshap needed vectors --> easier to handel in grid format than in
+    %vector; and needed in climada_ls_flowpath
+    n_lon = numel(unique(centroids.lon));
+    n_lat = numel(unique(centroids.lat));
+    lon = reshape(centroids.lon,n_lat,n_lon);
+    lat = reshape(centroids.lat,n_lat,n_lon);
+    elevation = reshape(centroids.elevation_m,n_lat,n_lon);
+    intensity = logical(zeros(n_lat,n_lon,hazard.event_count));
+    for i = 1:hazard.event_count
+        intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
+    end
 end
 
+
+
 %assess flow path of landslide; spread source areas in intensity donwstream
-spread = climada_ls_flowpath(lon,lat,elevation,intensity,spread_exponent,dH,v_max,phi_friction,'',delta_i,perWt);
+spread = climada_ls_susceptibility(lon,lat,elevation,intensity,spread_exponent,dH,v_max,phi_friction,'',delta_i,perWt);
 
 
 
