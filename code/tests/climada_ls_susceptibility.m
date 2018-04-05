@@ -95,7 +95,7 @@ if ~exist('friction', 'var'), friction = []; end
 if ~exist('delta_i', 'var'), delta_i = []; end
 if ~exist('perWt', 'var'), friction = []; end
 
-
+n_events = numel(source_areas(1,1,:));
 
 %%% calculate multidirectional outflow proportion
 % (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
@@ -110,7 +110,27 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
 
 %with spread_v2 --> each slide is spreaded seperately
-spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+
+%spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+count=1;
+for n = 1:n_events %iteration through events
+    event_total = zeros(size(source_areas));
+    for i = 1:numel(lat(:,1)) %iteration through rows
+        for j = 1:numel(lon(1,:)) %iteration through collums
+            if source_areas(i,j)
+                %count
+                count = count+1;
+                single_spread = zeros(size(source_areas));
+                single_spread(i,j) = 1;
+                single_spreaded = climada_ls_propagation(single_spread,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+                event_total = max(event_total,single_spreaded);
+            end
+        end %collums
+    end %rows
+    
+end %events
+
+disp('test');
 
 
 
