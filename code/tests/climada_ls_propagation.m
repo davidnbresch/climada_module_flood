@@ -239,7 +239,5 @@ active_cells(temp_active_cells == 1) = 1;
 end %end when there are no active cells left
 
 
-disp('hier')
-
 
 end

@@ -1,6 +1,7 @@
 function ls_test()
 %function to test stuff... can be deleted afterwards
 
+%get 2m Grid and translate it to 10m
 path = 'C:\Users\Simon Rölli\Desktop\climada\climada_data\alti3d\alti3d.tif';
 
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
