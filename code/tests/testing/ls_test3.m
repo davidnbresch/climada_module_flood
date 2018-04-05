@@ -1,10 +1,14 @@
 function ls_test3()
 %function to test stuff... can be deleted afterwards
 
-
-%test climada_centroids_scores
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%test ls_susceptilbitly (with ls_propagation and ls_spread(old version));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
+
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
 
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
@@ -12,17 +16,25 @@ lon = reshape(centroids.lon,n_lat,n_lon);
 lat = reshape(centroids.lat,n_lat,n_lon);
 elevation = reshape(centroids.elevation_m,n_lat,n_lon);
 
-[slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,elevation,0);
+source_area = logical(zeros(n_lat,n_lon,hazard.event_count));
+for i = 1:hazard.event_count
+    source_area(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
+end
 
-[~,~,~,topoTWI] = climada_centroids_scores(lon,lat,elevation,1);
+source = source_area(:,:,1);
+exponent = 25;
+dH = 1;
+v_max = 4;
+phi = 22;
+friction = 1;
+delta_i = 0.0001;
+%perWt = [1 1 1 1 1 1 1 1];
+perWt = [1 0.8 0.4 0 0 0 0.4 0.8];
 
-% figure
-% surface(TWI)
-figure
-surface(topoTWI)
 
-max(topoTWI(:))
+spread = climada_ls_susceptibility(lon,lat,elevation,source,exponent,dH,v_max,phi,friction,delta_i,perWt);
 
+surface(elevation,spread(:,:,1));
 
 disp('hier')
 
