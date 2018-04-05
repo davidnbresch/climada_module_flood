@@ -111,6 +111,30 @@ direction = source_area*0; %will save flow-direction in each iteration
 %total intensity
 tot_intensity = source_area;
 
+
+%%%%%for animation can be removed%%%%%
+% load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
+% n_lon = numel(unique(centroids.lon));
+% n_lat = numel(unique(centroids.lat));
+% lon = reshape(centroids.lon,n_lat,n_lon);
+% lat = reshape(centroids.lat,n_lat,n_lon);
+% 
+% picnumber = 1;
+% path = 'C:\Users\Simon Rölli\Desktop\climada\climada\animation';
+% fullpath = [path filesep 'pic' num2str(picnumber) '.tif'];
+% figure('units','normalized','outerposition',[0 0 1 1])
+% 
+% intensity_plot = tot_intensity;
+% intensity_plot(intensity_plot==0) = nan;
+% s = surface(lon,lat,tot_intensity);
+% s.CData = log(intensity_plot);
+% K = GRIDobj(lon,lat,log(intensity_plot));
+% GRIDobj2geotiff(K,fullpath);
+% colorbar
+% caxis([-4 0])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+k=1;
 while sum(sum(active_cells))>0 %iteration through number of runs  
 temp_active_cells = temp_active_cells*0;
 for j=1:n_lat %iteration through rows
@@ -198,6 +222,20 @@ for j=1:n_lat %iteration through rows
     end %end interation through columns
 end %end interation through rows
 active_cells(temp_active_cells == 1) = 1;
+%%%%%for animation can be removed%%%%%
+% if mod(k,3)==0
+%     intensity_plot = tot_intensity;
+%     intensity_plot(intensity_plot==0) = nan;
+%     s.CData = log(intensity_plot);
+%     pause(1)
+%     picnumber = picnumber+1;
+%     fullpath = [path filesep 'pic' num2str(picnumber) '.tif'];
+%     K = GRIDobj(lon,lat,log(intensity_plot));
+%     GRIDobj2geotiff(K,fullpath);
+% end
+% k
+% k =k+1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end %end when there are no active cells left
 
 
