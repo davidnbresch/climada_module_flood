@@ -30,9 +30,10 @@ friction = 1;
 delta_i = 0.0001;
 %perWt = [1 1 1 1 1 1 1 1];
 perWt = [1 0.8 0.4 0 0 0 0.4 0.8];
+d2s = 1;
 
 
-spread = climada_ls_susceptibility(lon,lat,elevation,source,exponent,dH,v_max,phi,friction,delta_i,perWt);
+spread = climada_ls_susceptibility(lon,lat,elevation,source,exponent,dH,v_max,phi,friction,delta_i,perWt,d2s);
 
 surface(elevation,spread(:,:,1));
 
