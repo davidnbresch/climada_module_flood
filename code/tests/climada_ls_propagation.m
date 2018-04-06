@@ -1,5 +1,5 @@
-function tot_intensity = climada_ls_propagation(source_area,mult_flow,... 
-    hor_dist,ver_dist,v_max,phi,delta_i,perWt)
+function [tot_intensity,dist2source] = climada_ls_propagation(source_area,mult_flow,... 
+    hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
@@ -45,11 +45,17 @@ function tot_intensity = climada_ls_propagation(source_area,mult_flow,...
 %            the central cell to corresponding neighbour) .. last element
 %            represents weight of neighbour to the left of flow direction
 %            (45 degree anticlockwise). 
+%   d2s:     (0/1) set to 1 if distance to source area should be
+%            calculated (in [m]). If one cell is passed more than one
+%            time, the minimum distance is saved. If set 0 (default): a zeromatrix
+%            is returned.
 % OPTIONAL INPUT PARAMETERS:
 % 
 % OUTPUTS:
-%   tot_intensity: matrix (lon lat) with the resulting intensity after
-%                  landslides are propagated downstream starting from source areas
+%   tot_intensity: matrix (lon lat) with the resulting intensity after a
+%                  single landslides is propagated downstream starting from source areas
+%   dist2source:   matrix (lon lat) which saves the minimum propagation
+%                  distance from source cell.
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180219, init
@@ -62,6 +68,8 @@ function tot_intensity = climada_ls_propagation(source_area,mult_flow,...
 %  propagated
 % Thomas Rölli, thomasroelli@gmail.com, 20180404, renamed from
 %  climada_ls_spread_v2 to climada_ls_propagation
+% Thomas Rölli, thomasroelli@gmail.com, 20180406, calculate distance to
+%  source
 
 
 global climada_global
@@ -76,6 +84,7 @@ if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi', 'var'), phi = []; end
 if ~exist('delta_i', 'var'), delta_i = []; end
 if ~exist('perWt', 'var'), perWt = []; end
+if ~exist('d2s', 'var'), d2s = []; end
 
 % PARAMETERS 
 if isempty(source_area); return; end
@@ -86,8 +95,9 @@ if isempty(v_max); v_max = 8; end
 if isempty(phi); phi = 18; end %empirical minimum travel angle, used for friction-calculation
 if isempty(delta_i); delta_i = 0.0001; end
 if isempty(perWt); perWt = [1 0.8 0.4 0 0 0 0.4 0.8]; end
+if isempty(d2s); d2s = 0; end
 
-if numel(perWt) ~= 8; return; end
+%if numel(perWt) ~= 8; return; end
 
 %for calculations
 g = 9.81; %acceleration of gravity 
@@ -111,6 +121,8 @@ direction = source_area*0; %will save flow-direction in each iteration
 %total intensity
 tot_intensity = source_area;
 
+%distance to source
+dist2source = zeros(size(source_area));
 
 %%%%%for animation can be removed%%%%%
 % load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
@@ -211,8 +223,16 @@ for j=1:n_lat %iteration through rows
                     end
                     temp_active_cells(J,I) = 1;
                     tot_intensity(J,I) = tot_intensity(J,I)+temp_spread(c);
-                    %end
-                end
+                    %save distance from source --> by adding distanc from
+                    %previous cell to inflow-cell (
+                    if d2s
+                        if dist2source(J,I) ~= 0
+                            dist2source(J,I) = min(dist2source(J,I),dist2source(j,i)+hor_dist(j,i,c));
+                        else
+                            dist2source(J,I) = dist2source(j,i)+hor_dist(j,i,c);
+                        end
+                    end
+                end %end if spread > 0
             end %end interation through neighbours
             %active cell is treated --> set to zero
             active_cells(j,i)=0;
