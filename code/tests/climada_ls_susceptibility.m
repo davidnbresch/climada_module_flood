@@ -1,5 +1,5 @@
 function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
-    exponent,dH,v_max,phi,friction,delta_i,perWt)
+    exponent,dH,v_max,phi,friction,delta_i,perWt,d2s)
 
 % MODULE:
 %   flood
@@ -56,6 +56,18 @@ function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
 %               the central cell to corresponding neighbour) .. last element
 %               represents weight of neighbour to the left of flow direction
 %               (45 degree anticlockwise). 
+%   d2s:        (0/1): set to 1 if distance to source area should be
+%               calculated (in [m]). Used in climada_ls_propagation where
+%               the minimum distance to source area for a single slide is
+%               calculated. When overlaying the all slides during one event
+%               the min/max distance is taken.
+%               If set 0 (default): a zeromatrix is returned.
+%   single      (0/1): if set to 1 (default) --> each landslide is propagated
+%               individually and the max intensity taken when all slides
+%               are overlaid. Warning: calculation is slow.
+%               if set 0: (not implemented at the moment) all slides are spreaded at once (faster).
+%               Warning: can lead to questionable results where slides flow
+%               into each other.
 % OUTPUTS:
 %   sucept:     matrix (lon lat) with inte
 %  
@@ -75,13 +87,12 @@ function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
 %  uses spread_v2
 % Thomas Rölli, thomasroelli@gmail.com, 20180404, renamed from
 %  climada_ls_flowpath to climada_ls_susceptibility
-
-%remove afterwards; load centroids and hazard
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_hazard.mat')
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards\_LS_Sarnen_srtm1_hazard.mat')
+% Thomas Rölli, thomasroelli@gmail.com, 20180406, calculate distance to
+%  source
 
 global climada_global
 if ~climada_init_vars, return; end
+
 % check arguments
 if ~exist('lon', 'var'), lon = []; end
 if ~exist('lat', 'var'), lat = []; end
@@ -94,6 +105,12 @@ if ~exist('phi', 'var'), phi = []; end
 if ~exist('friction', 'var'), friction = []; end
 if ~exist('delta_i', 'var'), delta_i = []; end
 if ~exist('perWt', 'var'), friction = []; end
+if ~exist('d2s', 'var'), d2s = []; end
+%if ~exist('single', 'var'), single = []; end
+
+%PARAMETERS
+if isempty(d2s); d2s = 0; end
+%if isempty(single); single = 1; end
 
 n_events = numel(source_areas(1,1,:));
 
@@ -109,26 +126,75 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 %spreaded according to the multiple flow path and a simplified friction model 
 spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
 
-%with spread_v2 --> each slide is spreaded seperately
+%initiation of matrixes
 
-%spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
-count=1;
-for n = 1:n_events %iteration through events
-    event_total = zeros(size(source_areas));
-    for i = 1:numel(lat(:,1)) %iteration through rows
-        for j = 1:numel(lon(1,:)) %iteration through collums
-            if source_areas(i,j)
-                %count
-                count = count+1;
-                single_spread = zeros(size(source_areas));
-                single_spread(i,j) = 1;
-                single_spreaded = climada_ls_propagation(single_spread,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
-                event_total = max(event_total,single_spreaded);
-            end
-        end %collums
-    end %rows
+%single
+single_source = zeros(size(lon)); %saves source areas of single slide
+single_intensity = zeros(size(lon)); %saves intensity of single slide
+single_dist2source = zeros(size(lon)); %saves minimum distance to source area of single slide
+
+%event
+event_source = zeros(size(source_areas)); %stores source areas of each event
+event_dist2source = zeros(size(lon))+100000; %saves minimum distance to source of single event
+event_intensity = zeros(size(lon)); %saves maximum intensity of single event
+
+%all
+allEvents_dist2source = zeros(size(source_areas));% saves max Intensity of each event
+allEvents_intensity = zeros(size(source_areas));% saves max Intensity of each event
+
+
+
+% if ~single
+%     %%%%%%%%%%%%%%%%%%%%%implement%%%%%%%%%%%%%%
+%     %option to propagate all flow at once --> will save computing time (at moment it takes 
+%     %ca. 2min for one event with ca 10000 slides (srtm1) --> too long for 100 events) but will
+%     %lead to a worse result
+%     %solution with overlaying source areas is maybe better
+% % nothing jet --> use single = 1
+% %     for n = 1:n_events %iteration through events
+% %         [single_spreaded,dist2source] = climada_ls_propagation(single_spread,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt,d2s);
+% %     end
+% else
+    %spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
     
-end %events
+%% ToDO tomorrow:   Matrizen Kontrollieren ---> init at #132; 
+%                   speicher von resultaten (alle events
+%                   Distanz kontrollieren
+%                   Anzahl überflüsse berechnen
+%                   evt. implementieren dass source areas gemerged
+%                   werden-->nur ein durchgang benötigt
+
+%%
+    cnt=0; %remove afterwards
+    for n = 1:n_events %iteration through events
+        %set intensity to zero for new event
+        event_intensity = zeros(size(source_areas)); %stores maximum intensity of each event
+        event_source = source_areas(:,:,n); %stores source areas of each event
+        for i = 1:numel(lat(:,1)) %iteration through rows
+            for j = 1:numel(lon(1,:)) %iteration through collums
+                if event_source(i,j)
+                    cnt = cnt+1;
+                    if (mod(cnt,100) == 0)
+                        cnt 
+                    end
+                    %set single source to zero
+                    single_source = zeros(size(source_areas));
+                    single_source(i,j) = 1;
+                    [single_intensity,single_dist2source] = climada_ls_propagation(single_source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt,d2s);
+                    event_intensity = max(event_intensity,single_intensity);
+                    single_dist2source(dist2source == 0) = 100000;
+                    event_dist2source = min(event_dist2source,single_dist2source);
+                end
+            end %collums
+        end %rows
+        %10000er values were not overflowed
+        event_dist2source(event_dist2source == 100000) = 0;
+        %all_events_intensity = 
+    end %events
+%end %if single
+
+
+
 
 disp('test');
 
