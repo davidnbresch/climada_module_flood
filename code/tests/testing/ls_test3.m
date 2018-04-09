@@ -21,7 +21,7 @@ for i = 1:hazard.event_count
     source_area(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
 end
 
-source = source_area(:,:,1:3);
+source = source_area(:,:,:);
 exponent = 25;
 dH = 1;
 v_max = 4;
