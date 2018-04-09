@@ -98,8 +98,11 @@ function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
 %                   evt. implementieren dass source areas gemerged
 %                   werden-->nur ein durchgang benötigt
 %                   merge events --> slides müssen nur einmal berechent
-%                   werden
+%                   werden --> done (aber umsetzung nicht optimal)
 %                   Gefahrenkarte erstellen --> aus allen slide und events
+%                   --> partly done
+%                   evt. implementieren, dass wenn flow mehrmals durchlaufen wird durchlaufen
+%                   --> save --> use afterwards
 %%
 
 global climada_global
@@ -122,23 +125,31 @@ if ~exist('d2s', 'var'), d2s = []; end
 
 %PARAMETERS
 if isempty(d2s); d2s = 0; end
-%if isempty(single); single = 1; end
 
-n_events = numel(source_areas(1,1,:));
-
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%calculation of needed data 
 %%% calculate multidirectional outflow proportion
 % (tan(beta_i)^x/sum(tan(beta_i)^x(i= 1 to 8))
 mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 
 %calculate horizontal and vertical distance to each neighbour --> needed
-%when source area is spreaded downstream 
+%when source area is spreaded downstream for energy calculation in
+%climada_ls_propagation
 [~,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
 
-%landslide path and runout distance is calculated and the intensity
-%spreaded according to the multiple flow path and a simplified friction model 
-spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
+%%
+%%%%%%%%%%%%%%%%%%
+%merging of events
 
+sum_merged_src = sum(source_areas,3);
+merged_src = sum_merged_src>0; %source areas when all events merged
 
+source_areas = merged_src; %if each event should be calculated individually --> comment this line
+n_events = numel(source_areas(1,1,:));
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%
 %initiation of matrixes
 
 %single
@@ -157,28 +168,9 @@ allEvents_dist2source = zeros(size(source_areas));% saves max Intensity of each 
 allEvents_intensity = zeros(size(source_areas));% saves max Intensity of each event
 allEvents_overflownbr = zeros(size(source_areas));% saves number of overflows of each event
 
-% if ~single
-%     %%%%%%%%%%%%%%%%%%%%%implement%%%%%%%%%%%%%%
-%     %option to propagate all flow at once --> will save computing time (at moment it takes 
-%     %ca. 2min for one event with ca 10000 slides (srtm1) --> too long for 100 events) but will
-%     %lead to a worse result
-%     %solution with overlaying source areas is maybe better
-% % nothing jet --> use single = 1
-% %     for n = 1:n_events %iteration through events
-% %         [single_spreaded,dist2source] = climada_ls_propagation(single_spread,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt,d2s);
-% %     end
-% else
-    %spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
-    
-%% ToDO tomorrow:   Matrizen Kontrollieren ---> init at #132;  --> done
-%                   speicher von resultaten (alle events --> done
-%                   Distanz kontrollieren --> done
-%                   Anzahl überflüsse berechnen --> done (kontrolle noch
-%                   nötig)
-%                   evt. implementieren dass source areas gemerged
-%                   werden-->nur ein durchgang benötigt
-
 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%propagation of single slides, all events and summarizing of results
 cnt=0; %remove afterwards
 for n = 1:n_events %iteration through events
     %set intensity and distance to zero for new event
@@ -214,7 +206,6 @@ for n = 1:n_events %iteration through events
     allEvents_dist2source(:,:,n) = event_dist2source;
     allEvents_overflownbr(:,:,n) = event_overflownbr;
 end %events
-%end %if single
 %%
 
 
