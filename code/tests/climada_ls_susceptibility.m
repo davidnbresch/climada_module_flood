@@ -90,6 +90,18 @@ function spread = climada_ls_susceptibility(lon,lat,elevation,source_areas,...
 % Thomas Rölli, thomasroelli@gmail.com, 20180406, calculate distance to
 %  source
 
+%% ToDO:            Matrizen Kontrollieren ---> init at #132;  --> done
+%                   speicher von resultaten (alle events --> done
+%                   Distanz kontrollieren --> done
+%                   Anzahl überflüsse berechnen --> done (kontrolle noch
+%                   nötig)
+%                   evt. implementieren dass source areas gemerged
+%                   werden-->nur ein durchgang benötigt
+%                   merge events --> slides müssen nur einmal berechent
+%                   werden
+%                   Gefahrenkarte erstellen --> aus allen slide und events
+%%
+
 global climada_global
 if ~climada_init_vars, return; end
 
@@ -126,6 +138,7 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH);
 %spreaded according to the multiple flow path and a simplified friction model 
 spread = climada_ls_spread(source_areas,mult_flow,horDist,verDist,v_max,phi,friction);
 
+
 %initiation of matrixes
 
 %single
@@ -135,14 +148,14 @@ single_dist2source = zeros(size(lon)); %saves minimum distance to source area of
 
 %event
 event_source = zeros(size(source_areas)); %stores source areas of each event
-event_dist2source = zeros(size(lon))+100000; %saves minimum distance to source of single event
+event_dist2source = zeros(size(lon)); %saves minimum distance to source of single event
 event_intensity = zeros(size(lon)); %saves maximum intensity of single event
+event_overflownbr = zeros(size(lon)); %saves how often a cell is affected during an event
 
 %all
 allEvents_dist2source = zeros(size(source_areas));% saves max Intensity of each event
 allEvents_intensity = zeros(size(source_areas));% saves max Intensity of each event
-
-
+allEvents_overflownbr = zeros(size(source_areas));% saves number of overflows of each event
 
 % if ~single
 %     %%%%%%%%%%%%%%%%%%%%%implement%%%%%%%%%%%%%%
@@ -157,42 +170,52 @@ allEvents_intensity = zeros(size(source_areas));% saves max Intensity of each ev
 % else
     %spreaded_v2 = climada_ls_propagation(source_areas,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
     
-%% ToDO tomorrow:   Matrizen Kontrollieren ---> init at #132; 
-%                   speicher von resultaten (alle events
-%                   Distanz kontrollieren
-%                   Anzahl überflüsse berechnen
+%% ToDO tomorrow:   Matrizen Kontrollieren ---> init at #132;  --> done
+%                   speicher von resultaten (alle events --> done
+%                   Distanz kontrollieren --> done
+%                   Anzahl überflüsse berechnen --> done (kontrolle noch
+%                   nötig)
 %                   evt. implementieren dass source areas gemerged
 %                   werden-->nur ein durchgang benötigt
 
 %%
-    cnt=0; %remove afterwards
-    for n = 1:n_events %iteration through events
-        %set intensity to zero for new event
-        event_intensity = zeros(size(source_areas)); %stores maximum intensity of each event
-        event_source = source_areas(:,:,n); %stores source areas of each event
-        for i = 1:numel(lat(:,1)) %iteration through rows
-            for j = 1:numel(lon(1,:)) %iteration through collums
-                if event_source(i,j)
-                    cnt = cnt+1;
-                    if (mod(cnt,100) == 0)
-                        cnt 
-                    end
-                    %set single source to zero
-                    single_source = zeros(size(source_areas));
-                    single_source(i,j) = 1;
-                    [single_intensity,single_dist2source] = climada_ls_propagation(single_source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt,d2s);
-                    event_intensity = max(event_intensity,single_intensity);
-                    single_dist2source(dist2source == 0) = 100000;
-                    event_dist2source = min(event_dist2source,single_dist2source);
+cnt=0; %remove afterwards
+for n = 1:n_events %iteration through events
+    %set intensity and distance to zero for new event
+    event_intensity = zeros(size(lon)); %stores maximum intensity of one event
+    %add 100000 --> when merging minimum is taken 
+    event_dist2source = zeros(size(lon))+100000; %sores minimum distance to each source area of one event
+    event_source = source_areas(:,:,n); %stores source areas of each event
+    for i = 1:numel(lat(:,1)) %iteration through rows
+        for j = 1:numel(lon(1,:)) %iteration through collums
+            if event_source(i,j)
+                cnt = cnt+1;
+                if (mod(cnt,100) == 0)
+                    cnt 
                 end
-            end %collums
-        end %rows
-        %10000er values were not overflowed
-        event_dist2source(event_dist2source == 100000) = 0;
-        %all_events_intensity = 
-    end %events
+                %set single source to zero and select next source area (set
+                %1) and propagate single slide 
+                single_source = zeros(size(lon));
+                single_source(i,j) = 1;
+                [single_intensity,single_dist2source] = climada_ls_propagation(single_source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt,d2s);
+                %merge single slide with event matrix (maximum of intensity, minium of
+                %distance)
+                event_intensity = max(event_intensity,single_intensity);
+                single_dist2source(single_dist2source == 0) = 100000;
+                event_dist2source = min(event_dist2source,single_dist2source);
+                event_overflownbr = event_overflownbr + (single_intensity>0);
+            end
+        end %collums
+    end %rows
+    %save results from event
+    allEvents_intensity(:,:,n) = event_intensity;
+    %10000er values were not overflowed
+    event_dist2source(event_dist2source == 100000) = 0;
+    allEvents_dist2source(:,:,n) = event_dist2source;
+    allEvents_overflownbr(:,:,n) = event_overflownbr;
+end %events
 %end %if single
-
+%%
 
 
 
