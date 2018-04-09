@@ -40,12 +40,12 @@ elevation_i = interp2(X,Y,elevation,X_i,Y_i,'linear');
 %I think coordinates are already pointing to middle of gridcell, therefore
 %add a half length of cellsize in lat/lon direction. Because GRIDobj2ascii
 %substract same amount afterwards
-cellsizelonlat = lat(1)-lat(2);
-cellsizexyinterp = Y_i(1)-Y_i(2);
-lat2 = lat+abs(cellsizelonlat/2);
-lon2 = lon+abs(cellsizelonlat/2);
-Y_i2 = Y_i+abs(cellsizexyinterp/2);
-X_i2 = X_i+abs(cellsizexyinterp/2);
+% cellsizelonlat = lat(1)-lat(2);
+% cellsizexyinterp = Y_i(1)-Y_i(2);
+% lat2 = lat+abs(cellsizelonlat/2);
+% lon2 = lon+abs(cellsizelonlat/2);
+% Y_i2 = Y_i+abs(cellsizexyinterp/2);
+% X_i2 = X_i+abs(cellsizexyinterp/2);
 
 %%%%%%%%%%%%
 %write ascii files
