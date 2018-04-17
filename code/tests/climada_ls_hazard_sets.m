@@ -40,6 +40,7 @@ function [hazard,centroids] = climada_ls_hazard_sets(centroids,srtm1,n_events,se
 %   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],0,100,'_LS_Sarnen');
 %   with srtm1-data
 %   [hazard,centroids]=climada_ls_hazard_sets([8.2456-.05 8.2456+.05 46.8961-.05 46.8961+.05],1,100,'_LS_Sarnen_srtm1');
+%   large study area around Sarnen
 %   [hazard,centroids]=climada_ls_hazard_sets([8.111086 8.341411 46.815369 46.946240],1,100,'_LS_Sarnen_srtm1_large');
 % INPUTS:
 %   centroids:  a climada centroids stucture (ideally including topographical
