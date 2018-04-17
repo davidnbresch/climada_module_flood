@@ -1,4 +1,4 @@
-function merge = climada_ls_poly2raster(lon,lat,S,field,buffer)
+function raster = climada_ls_poly2raster(lon,lat,S,field,buffer)
 
 % Transform polygons into raster data
 % MODULE:
@@ -57,15 +57,21 @@ DEM = GRIDobj(lon,lat,zeros(size(lon)));
 if isempty(field); P = polygon2GRIDobj(DEM,S); else P = polygon2GRIDobj(DEM,S,field); end
 
 %generate buffer around original shape file
-Sb = S;
-for i = 1:numel(S)
-    [latb,lonb] = bufferm(S(i).Y,S(i).X,buffer);
-    Sb(i).X = lonb;
-    Sb(i).Y = latb;
+if buffer > 0
+    Sb = S;
+    for i = 1:numel(S)
+        [latb,lonb] = bufferm(S(i).Y,S(i).X,buffer);
+        Sb(i).X = lonb;
+        Sb(i).Y = latb;
+    end
+else
+    Sb = [];
 end
+
 
 if isempty(field); Pb = polygon2GRIDobj(DEM,Sb); else Pb = polygon2GRIDobj(DEM,Sb,field); end
 
-merge = P.Z+Pb.Z;
+raster = P.Z+Pb.Z;
+raster = flipud(raster);
 
 end
