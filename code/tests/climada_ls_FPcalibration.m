@@ -67,6 +67,7 @@ end
 %starting point: maximum of
 start_area = zeros(size(polyraster));
 end_area = zeros(size(polyraster));
+length = zeros(size(polyraster));
 for i = 1:numel(S)
     %extract slide
     slide = polyraster == S(i).OBJECTID;
@@ -78,6 +79,13 @@ for i = 1:numel(S)
     %find minimum elvation of slide --> end area
     [ymin,xmin] = find(elevation.*slide == min(elevation(slide)));
     end_area(ymin,xmin) = S(i).OBJECTID;
+    
+    %get distance between start and end (with dx and dy)
+    dys = abs(ymax-ymin)*dy;
+    dxs = abs(xmax-xmin)*dx;
+    dz = max(elevation(slide))-min(elevation(slide));
+    lgt = sqrt(sqrt(dys^2+dxs^2)+dz^2);
+    S(i).length = lgt;
     i
 end
 
@@ -90,6 +98,8 @@ end
 % auflösung--> nicht gleiche x y auflösung)
 %*flow distance berechenen --> distance höchster tiefster punkt (auch mit
 %alti3d_2m)
+%*bei berechnung von area wird slope nicht berücksichtigt
+%*bei distanz wird slope nicht berücksichtig
 %%%%%%%%%%%%%
 
 end
