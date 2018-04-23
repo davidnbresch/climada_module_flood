@@ -1,32 +1,31 @@
-function climada_centroids_area(lon,lat,elevation)
+function cell_area = climada_centroids_area(lon,lat,dem)
 
-% Script to calibrate flow path parameters
+% Calculate the area of each centroid in a rectangular grid
 % MODULE:
 %   flood
 % NAME:
-%   climada_ls_FPcalibration
+%   climada_centroids_area
 % PURPOSE:
-%   
+%   Calculation of the area of each centroid in grid by considering the
+%   slope to its 8 neighbours. Thereby, the area of each subtriangle is
+%   calculated by the side-angle-side method. It is assumed that the grid
+%   is rectangle and that dx (resolution in x direction [m]) and dy are the
+%   same for each cell.
 % CALLING SEQUENCE:
-%   
+%   climada_centroids_area(lon,lat,elevation)
 % EXAMPLE:
-%   
+%   cell_area = climada_centroids_area(lon,lat,elevation)
 % INPUTS: 
-%     
+%   lat:    Latitude in gridded format (nxm) --> coordinates of DEM raster
+%   lon:    longitute in gridded format (nxm) --> coordinates of DEM raster
+%   dem:    digital elevation model in gridded format (nxm)
 % OPTIONAL INPUT PARAMETERS:
 %    
 % OUTPUTS:
-%    
+%    cell_area: nxm matrix of area of each centroids in rectangular grid in
+%               m^2.
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180423, init
-
-%remove afterwards
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat','centroids')
-n_lon = numel(unique(centroids.lon));
-n_lat = numel(unique(centroids.lat));
-lon = reshape(centroids.lon,n_lat,n_lon);
-lat = reshape(centroids.lat,n_lat,n_lon);
-elevation = reshape(centroids.elevation_m,n_lat,n_lon);
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -34,15 +33,15 @@ if ~climada_init_vars, return; end
 % check arguments
 if ~exist('lon', 'var'), lon = []; end
 if ~exist('lat', 'var'), lat = []; end
-if ~exist('elevation', 'var'), elevation = []; end
+if ~exist('dem', 'var'), dem = []; end
 
 % PARAMETERS 
 if isempty(lon); return; end
 if isempty(lat); return; end
-if isempty(elevation); return; end
+if isempty(dem); return; end
 
 %calculate vertical and horizontal distance in longitudinal/latidudinal direction and to diagonal
-[~,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
+[~,horDist,verDist] = climada_centroids_gradients(lon,lat,dem);
 
 dy = unique(horDist(:,:,1));
 dx = unique(horDist(:,:,3));
@@ -64,6 +63,8 @@ end
 cell_area = sum(area_triangle,3);
 
 %set boarder cells to unit area dx*dy
+n_lat = numel(cell_area(:,1));
+n_lon = numel(cell_area(1,:));
 cell_area(1,:)=unitarea; cell_area(n_lat,:)=unitarea; cell_area(:,1)=unitarea; cell_area(:,n_lon)=unitarea;
 
 

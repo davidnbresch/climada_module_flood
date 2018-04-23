@@ -48,7 +48,7 @@ if ~exist('dH', 'var'), dH = []; end
 % PARAMETERS
 %for calculations
 if isempty(dH), dH = 0; end
-deg_km = 111.12; %length of 1 degree on Earth
+deg_km = 111.32; %length of 1 degree on Earth
 
 
 %%%% calculate tan(beta_i)%%%%

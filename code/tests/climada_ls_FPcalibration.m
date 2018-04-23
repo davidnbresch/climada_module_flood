@@ -47,27 +47,75 @@ polyraster = climada_ls_poly2raster(lon,lat,S,'OBJECTID');
 %%calculate area of each polygon in raster%%
 %is saved in polygon structure
 
+%area of each slide
+cell_area = climada_centroids_area(lon,lat,elevation);
+
 %get unitarea
-deg_km = 111.12;
-%deg_km = 111.132;
+deg_km = 111.32;
+deg_km = 111.344; %best results are gotten when using polyarea()
 dlat = abs(min(diff(lat(:,1)))); 
 dlon = abs(min(diff(lon(1,:))));
 dy = dlat*(deg_km * 1000);
 dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000); 
-dx = 2.03326435575496;
-dy = 2.97652555692817;
+dx_gis = 2.03326435575496;
+dy_gis = 2.97652555692817;
 unitarea = dx*dy;
+unitarea_gis = dx_gis*dy_gis;
 %dy dx are not exactly right and are different to the one when taking dx
 %and dy in ArcGIS --> ArcGIS determines dx dy more precisely
-%maybe use deg_km = 111.132;
+%maybe use deg_km = 111.34;
 
-%area for each slide
 for i = 1:numel(S)
-    raster_area = sum(sum(polyraster == S(i).OBJECTID))*unitarea;
-    S(i).Rasterarea = raster_area;
+    %%
+    %%%%area%%%%
+    slide = find(polyraster==S(i).OBJECTID);
+    
+    %no consideration of slope
+    %matlab unitarea
+    raster_area = numel(slide)*unitarea;
+    S(i).matlab_unitarea = raster_area;
+    %arcGis unitarea
+    raster_area = numel(slide)*unitarea_gis;
+    S(i).gis_unitarea = raster_area;
+    
+    %considers slope when calculating cell area
+    %raster_area_slope = sum(cell_area(slide));
+    %S(i).Matlab_area_slope = raster_area_slope;
+    
     %difference Polygon (calculated in arcgis) and raster
-    S(i).Areadiff = S(i).Shape_Area-S(i).Rasterarea;
+    S(i).diff_mat = S(i).matlab_unitarea-S(i).Shape_Area;
+    S(i).diff_gis = S(i).gis_unitarea-S(i).Shape_Area;
+    %%
+    %%get starting and end points
+    %starting point: maximum of slide; end point: minimum of slide
+    x = S(i).X*cosd(mean(lat(:,1)))*(deg_km * 1000);
+    S(i).meanLat = nanmean(S(i).Y);
+    
+    %x = S(i).X*cosd(S(i).meanLat)*(deg_km * 1000);
+    y = S(i).Y*deg_km*1000;
+    
+    poly_area = polyarea(x(1:numel(x)-1),y(1:numel(y)-1));
+    S(i).matlab_polyarea = poly_area;
+    S(i).diff_poly = S(i).matlab_polyarea-S(i).Shape_Area;
+    
+    
+    
+    i
 end
+% figure
+% plot([S.Shape_Area],[S.diff_poly],'*')
+% figure
+% plot([S.meanLat],[S.diff_poly],'*')
+
+figure
+plot([S.Shape_Area],[S.diff_mat],'*')
+figure
+plot([S.Shape_Area],[S.diff_gis],'*')
+figure
+plot([S.Shape_Area],[S.diff_poly],'*')
+figure
+plot([S.Shape_Area],[S.diff_poly],'*')
+
 
 %%
 %%get starting and end points
