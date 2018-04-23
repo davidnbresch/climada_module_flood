@@ -1,4 +1,4 @@
-function [slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,dem,topoTWI)
+function [slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,dem,TWI,topoTWI)
 % Calculate slope, aspect and topographic wetness index
 % MODULE:
 %   flood
@@ -21,32 +21,30 @@ function [slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,dem,topoTWI)
 %       in Flood-Risk-Based Land Use Planning;
 %       doi:10.1007/s12061-014-9130-2
 % CALLING SEQUENCE:
-%   centroids = climada_centroids_TWI_calc(centroids, check_plots)
+%  [slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,dem,TWI,topoTWI)
 % EXAMPLE:
-%   centroids = climada_centroids_TWI_calc(centroids,0)
+%  [slope,aspect,area,TWI] = climada_centroids_scores(lon,lat,dem,1,1)
 % INPUTS:
 %   lat:    Latitude in gridded format (nxm) --> coordinates of DEM raster
 %   lon:    longitute in gridded format (nxm) --> coordinates of DEM raster
 %   dem:    digital elevation model in gridded format (nxm)
-%   topoTWI: 0 or 1(default). If set to zero topoToolbox is used to derive
+% OPTIONAL INPUT PARAMETERS:
+%   TWI:    set 1 (default) to calcualate TWI. If TWI=0 --> TWI is not
+%           calculated. Can save computing time especially for large study
+%           regions
+%   topoTWI: 0 or 1(default). If set to 1 topoToolbox is used to derive
 %           the topographic wetness index (respectively, the upstream contributing
 %           area
-% OPTIONAL INPUT PARAMETERS:
-%   check_plots: whether plots of topography (elevation), slope, aspect
-%   angle, and flood scores should be drawn (=1) or not (=0; default)
-%   force_recalc: if set to 1, flood scores are calculated even if they
-%   already exist (default is 0)
 % OUTPUTS:
-%   centroids: centroids with additional fields:
-%       .FL_score:   assigns a number for flow accumulation to each centroid, and
-%       .TWI:        assigns a topographic wetness index to each centroid
-%       .slope_deg:  slope of every centroid, in degree
-%       .area_m2:    area of every centroid, in square meters
-%       .aspect_deg: aspect of every centroid, in degree
-%       .sink_ID:    sink of every centroid, links to centroid_ID
+%       TWI:       assigns a topographic wetness index to each centroid
+%       slope:     slope of every centroid, in degree
+%       area:      area of every centroid, in square meters
+%       aspect:    aspect of every centroid, in degree
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180404, init with
 %  TopoToolbox-functions
+% Thomas Rölli, thomasroelli@gmail.com, 20180420, option to leave out TWI
+%  calculation (beacause it can take long to process)
 global climada_global
 
 % check input arguments
@@ -54,7 +52,9 @@ if ~climada_init_vars; return; end
 if ~exist('lon', 'var'),   lon = []; end
 if ~exist('lat', 'var'),   lat = []; end
 if ~exist('dem', 'var'),   dem = []; end
+if ~exist('TWI', 'var'),   TWI = []; end
 if ~exist('topoTWI', 'var') topoTWI = []; end
+if isempty(TWI), TWI = 1; end
 if isempty(topoTWI), topoTWI = 1; end
 
 % Weighting factor to be applied in the calculation of flow accumulation
@@ -119,6 +119,7 @@ aspect(slope ==0)   =   nan;
 
 %%%%%%%%TWI%%%%%%%%%%
 
+if TWI
 if topoTWI
     %%%%%%%%%get TWI using topoToolbox%%%%%
     %calculate flow accumulation by using 
@@ -239,6 +240,7 @@ else
     % Calculate wetness index
     tmp_slope = slope + 0.1; %slope(slope==0) = min(min(slope(slope>0))); % we don't want -inf values for wet_index
     TWI = log((1+total_flow_accumulation)./tand(tmp_slope));
+end
 end
 
 
