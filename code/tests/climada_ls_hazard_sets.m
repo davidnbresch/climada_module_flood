@@ -194,11 +194,12 @@ dem = reshape(centroids.elevation_m,n_lat,n_lon);
 
 if new
     %calculate TWI, aspect, slope
-    [slope,aspect,~,TWI] = climada_centroids_scores(lon,lat,dem,1,1);
+    [slope,aspect,~,TWI] = climada_centroids_scores(lon,lat,dem,1);
     %implement here: a function which assess the source_areas --> e.g.
     %climada_ls_sourceAreas(slope,TWI,condition_slope,condition_TWI,wiggle_factor_slope,wiggle_factor_TWI)
 else
     centroids = climada_centroids_TWI_calc(centroids);
+    
     % calculate slope_factor as cos(slope)/sin(slope)
     slope_factor = 1./(cosd(centroids.slope_deg) ./ sind(centroids.slope_deg));
     slope_factor(isinf(slope_factor)) = 0;
