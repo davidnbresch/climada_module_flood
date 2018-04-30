@@ -1,4 +1,4 @@
-function [S,src_ar,end_ar] = climada_ls_scoresShapefile(lon,lat,elevation,S,field,buffer)
+function [S,polyraster,src_ar,end_ar] = climada_ls_scoresShapefile(lon,lat,elevation,S,field,buffer)
 
 % 
 % MODULE:
@@ -46,6 +46,8 @@ function [S,src_ar,end_ar] = climada_ls_scoresShapefile(lon,lat,elevation,S,fiel
 %              when considering the slope. the lenght is defined as the
 %              distance from the highest to the lowest raster point of the
 %              corresponding polygon.
+%   polyraster: Transformed polygons in gridded raster labelled with the
+%               corresponding name of the choosen 'field'
 %   src_ar:   (nxm)-matrix with source area (highest points) of each slide.
 %             The slides are labelled with the corresponding number given
 %             in S.(field).

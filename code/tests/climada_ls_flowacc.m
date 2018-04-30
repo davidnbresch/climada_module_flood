@@ -81,11 +81,16 @@ else
     %mult_flow = climada_ls_multipleflow(lon,lat,z,1.1,1,0);
     %to get from outflow to inflow --> shift matrix
     inflow_proportion = circshift(mult_flowOrGridObj,4,3);
-    total_field = mult_flowOrGridObj(:,:,1)*0;
+    total_field = mult_flowOrGridObj(:,:,1)*0+1;
     field = mult_flowOrGridObj(:,:,1)*0+1;
     inflow_temp = mult_flowOrGridObj(:,:,1)*0;
     shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1];
     sumold = 0;
+    
+    figure('units','normalized','outerposition',[0 0 1 1])
+    s = surface(total_field);
+    %view([30,30,50])
+    colorbar
     
     while sum(field(:),'omitnan')~=sumold && sum(field(:),'omitnan')~=0
         sumold = sum(field(:));
@@ -94,7 +99,10 @@ else
         end
         field = sum(inflow_temp,3);
         total_field = total_field + field;
-        %sum(field(:))
+        
+%         s.CData = total_field;
+%         pause(0.001)
+%         sum(field(:))
     end
     
      FL_acc = total_field;

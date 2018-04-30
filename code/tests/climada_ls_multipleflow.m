@@ -45,7 +45,8 @@ function mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH,flat_
 %               after flat areas. Used in climada_centroids_gradients
 %   flat_areas: 0/1. if set to 1 --> searching for a path within flat
 %               areas. Uses routeflats in TopoToolbox v1.06, it is
-%               recommended to use this option.
+%               recommended to use this option when calculating TWI. Can
+%               take long processing time
 % OUTPUTS:
 %   mult_flow:  8-D matrix with outflow proportion in each direction (each
 %               neighbour-cell). mult_flow(:,:,1) shows the outflow to
@@ -60,8 +61,11 @@ function mult_flow = climada_ls_multipleflow(lon,lat,elevation,exponent,dH,flat_
 %   seperate function
 % Thomas Rölli, thomasroelli@gmail.com, 20180313, flow through flat areas,
 %   not working at the moment
-% Thomas Rölli, thomasroelli@gmail.com, 20150315, add dH, fix problem with
+% Thomas Rölli, thomasroelli@gmail.com, 20180315, add dH, fix problem with
 %   TopoToolbox function
+% Thomas Rölli, thomasroelli@gmail.com, 20180430, accelerated flat area
+%   adjustment by small changes
+
 global climada_global
 if ~climada_init_vars, return; end
 
@@ -99,6 +103,7 @@ mult_flow = (gradients.^exponent)./gradients_sum;
 % find path through flat areas --> see routeflats in TopoToolbox v1.06 for
 % more information
 if flat_areas
+   
     %IXf includeds the indices of all the identified cells within a flat
     %area, while IXn indcludes the next neighbour where the corresponding
     %IXf should flow in order to reach the outlet of the flat.
@@ -109,15 +114,44 @@ if flat_areas
     dif = IXn-IXf;
     nlat = numel(lat(:,1));
     n_ind = [+1 nlat+1 nlat nlat-1 -1 -nlat-1 -nlat -nlat+1];
-
+    
+    msgstr   = sprintf('Assessing flow through %i flat cells ... ',numel(IXf));
+    mod_step = 10; % first time estimate after 10 assets, then every 100
+    if climada_global.waitbar
+        fprintf('%s (updating waitbar with estimation of time remaining every 100th centroid)\n',msgstr);
+        h        = waitbar(0,msgstr);
+        set(h,'Name','Assigning TWI');
+    else
+        fprintf('%s (waitbar suppressed)\n',msgstr);
+        format_str='%s';
+    end
+    
     for i=1:numel(IXf)
         %get neighbour direction 1-8 from given index
         c = find(n_ind==dif(i));
         %outflow value in corresponding cell (flat area cell)
-        temp_mult = mult_flow(:,:,c);
-        temp_mult(IXf(i))=1;
+        
+        %part which is removed (maybe slower) restore if other solution
+        %wrong
+%         temp_mult = mult_flow(:,:,c);
+%         temp_mult(IXf(i))=1;
+%         mult_flow(:,:,c) = temp_mult;
+        
+        %maybe faster: but remove if other result in TWI --> 30.4.
+        [I,J] = ind2sub(size(lon),IXf(i));
+        mult_flow(I,J,c) = 1;
    
-        mult_flow(:,:,c) = temp_mult;
+       
+        if mod(i,mod_step)==0
+            mod_step = 1000;
+            msgstr = sprintf('%i/%i flat cells',i,numel(IXf));
+            if climada_global.waitbar
+                waitbar(i/numel(S),h,msgstr); % update waitbar
+            else
+                fprintf(format_str,msgstr); % write progress to stdout
+                format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
+            end
+        end
     end
     %in flat areas: sum over neighbours can be greater than 1 (because in routflats()
     % multiple flow option was used) --> normalise again

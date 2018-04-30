@@ -1,5 +1,5 @@
 function [tot_intensity,dist2source] = climada_ls_propagation(source_area,mult_flow,... 
-    hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
+hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
