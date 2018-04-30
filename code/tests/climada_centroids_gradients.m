@@ -42,6 +42,7 @@ function [gradients,horDist,verDist] = climada_centroids_gradients(lon,lat,eleva
 %  anymore
 % Thomas Rölli, thomasroelli@gmail.com, 20180315, add dH
 % Thomas Rölli, thomasroelli@gmail.com, 20180424, add latitude-dependence
+% Thomas Rölli, thomasroelli@gmail.com, 20180426, set boarder to zero
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -117,4 +118,9 @@ gradients(numel(lat(:,1)),:,[1 2 8]) = 0; %upper boarder
 gradients(1,:,[4 5 6]) = 0; %lower boarder
 gradients(:,1,[6 7 8]) = 0; %left boarder
 gradients(:,numel(lon(1,:)),[2 3 4]) = 0; %right boarder
+%same for verDist
+verDist(numel(lat(:,1)),:,[1 2 8]) = 0; %upper boarder
+verDist(1,:,[4 5 6]) = 0; %lower boarder
+verDist(:,1,[6 7 8]) = 0; %left boarder
+verDist(:,numel(lon(1,:)),[2 3 4]) = 0; %right boarder
 
