@@ -8,7 +8,10 @@ function cell_area = climada_centroids_area(lon,lat,dem,lat_dep)
 % PURPOSE:
 %   Calculation of the area of each centroid in grid by considering the
 %   slope to its 8 neighbours. Thereby, the area of each subtriangle is
-%   calculated by the side-angle-side method. It is assumed that the grid
+%   calculated with the Heron's Formula. For more information see: Jenness, 
+%   Jeff S. 2004. Calculating landscape surface area from digital elevation 
+%   models. Wildlife Society Bulletin 32 (3): 829-839
+%   It is assumed that the grid
 %   is rectangle and that dx (resolution in x direction [m]) and dy are the
 %   same for each cell.
 % CALLING SEQUENCE:
@@ -25,7 +28,7 @@ function cell_area = climada_centroids_area(lon,lat,dem,lat_dep)
 %            considered when calculating the horizontal distance between
 %            the grid points.
 % OUTPUTS:
-%    cell_area: nxm matrix of area of each centroids in rectangular grid in
+%   cell_area: nxm matrix of area of each centroids in rectangular grid in
 %               m^2.
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180423, init
@@ -53,13 +56,23 @@ slopDist = sqrt(horDist.^2 + verDist.^2)/2; %divided by 2
 
 %calculate areas of subtriangle by side-angle-side method
 %area = (a*b*sin(C))/2
-dim_angle = [1 2;3 2;3 4;5 4;5 6;7 6;7 8;1 8];
-angle = zeros(size(dem)); %angle between two side
+%dim_angle = [1 2;3 2;3 4;5 4;5 6;7 6;7 8;1 8];
+%angle = zeros(size(dem)); %angle between two side
 area_triangle = zeros(size(slopDist));
+horDist_bound = zeros(size(slopDist));
+verDist_bound = zeros(size(slopDist));
 dim = [1 2;2 3;3 4;4 5;5 6;6 7;7 8;8 1];%for selectation of corresponding sides
+dim2 = [3 1 5 3 7 5 1 7];
 for c = 1:8
-    angle = acosd(slopDist(:,:,dim_angle(c,1))./slopDist(:,:,dim_angle(c,2)));
-    area_triangle(:,:,c) = (slopDist(:,:,dim(c,1)).*slopDist(:,:,dim(c,2)).*sind(angle))/2;
+    a_T = slopDist(:,:,c);
+    b_T = slopDist(:,:,dim(c,2));
+    verDist_bound = verDist(:,:,dim(c,1))-verDist(:,:,dim(c,2));
+    horDist_bound = horDist(:,:,dim2(c));
+    c_T = sqrt(verDist_bound.^2 + horDist_bound.^2)/2;
+    s = (a_T+b_T+c_T)/2;
+    area_triangle(:,:,c) = sqrt(s.*(s-a_T).*(s-b_T).*(s-c_T));
+%     angle = acosd(slopDist(:,:,dim_angle(c,1))./slopDist(:,:,dim_angle(c,2)));
+%     area_triangle(:,:,c) = (slopDist(:,:,dim(c,1)).*slopDist(:,:,dim(c,2)).*sind(angle))/2;
 end
 
 %sum up subtriangle to get area of cell
