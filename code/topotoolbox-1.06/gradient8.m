@@ -1,7 +1,7 @@
 function [G,ASP] = gradient8(DEM,res,unit)
 
 % 8-connected neighborhood gradient and aspect of a digital elevation model
-%
+%cl
 % Syntax
 %
 %     [G,ASP] = gradient8(DEM,cellsize,unit)
