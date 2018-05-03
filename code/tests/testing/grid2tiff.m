@@ -46,7 +46,7 @@ end
 DEM = GRIDobj(lon,lat,grid);
 GRIDobj2geotiff(DEM,savepth);
 
-fprintf('%s.tif saved in: \n %s',name,filepath)
+fprintf('%s.tif saved in: \n %s \n',name,filepath)
 
 
 
