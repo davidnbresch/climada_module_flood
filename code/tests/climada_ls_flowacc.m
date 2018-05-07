@@ -87,10 +87,10 @@ else
     shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1];
     sumold = 0;
     
-    figure('units','normalized','outerposition',[0 0 1 1])
-    s = surface(total_field);
-    %view([30,30,50])
-    colorbar
+%     figure('units','normalized','outerposition',[0 0 1 1])
+%     s = surface(total_field);
+%     %view([30,30,50])
+%     colorbar
     
     while sum(field(:),'omitnan')~=sumold && sum(field(:),'omitnan')~=0
         sumold = sum(field(:));
