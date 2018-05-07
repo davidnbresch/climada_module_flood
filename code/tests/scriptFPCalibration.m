@@ -2,7 +2,7 @@ function climada_ls_FPcalibration(calculate,calculate2)
 
 % Script to calibrate flow path parameters
 % INPUTS: 
-%     calculate: 1 if area lenght start end need to be calcualted
+%     calculate: 1 if area lenght start end of original high resolution Sample need to be calcualted
 %     calculate2: 1 if 
 % OPTIONAL INPUT PARAMETERS:
 %    
@@ -28,7 +28,9 @@ orgLon = reshape(centroids.lon,n_lat,n_lon);
 orgLat = reshape(centroids.lat,n_lat,n_lon);
 orgElevation = reshape(centroids.elevation_m,n_lat,n_lon);
 
-load('C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm1','centroids');
+calSave = '7x10m';
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm1','centroids');
+load('C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_interpol_alti3d','centroids');
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
 lon = reshape(centroids.lon,n_lat,n_lon);
@@ -43,7 +45,7 @@ if calculate
     %S = shaperead('C:\Users\Simon Rölli\Desktop\data\inventory\slides_forMatlab.shp');
     orgS = shaperead('C:\Users\Simon Rölli\Desktop\data\inventory\be_polygon_forMatlab.shp');
 
-    [orgS,orgPolyraster,orgStart,orgEnd] = climada_ls_scoresS2poly(orgLon,orgLat,orgElevation,orgS,field,0);
+    [orgS,orgPolyraster,orgStart,orgEnd] = climada_calibration_orgS2raster(orgLon,orgLat,orgElevation,orgS,field,0);
 
 %     figure
 %     plot([S.AREA_GIS],[S.P_AREA_noSL],'*')
@@ -78,7 +80,23 @@ if calculate2
    orgEnd = flipud(grid.Z);
    clear grid;
    
-   climada_ls_FPcalibration(orgS,orgLon,orgLat,orgStart,orgEnd,lon,lat,elevation,field)
+   %get length and starting/end points of slides when changing to coarser
+   %resolution (snapping)
+   [snapS,snapStart,snapEnd_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,orgEnd,lon,lat,elevation,field);
+   
+   %%
+   %%%toDo
+   %get endlon startlon to X and lat to Y --> to be able to draw line in
+   %arcgis
+   
+   %%
+   
+   shapewrite(orgS,['C:\Users\Simon Rölli\Desktop\data\calibration\shapes\snapS_' calSave '.shp']);
+   grid2tiff(orgLon,orgLat,orgStart,['C:\Users\Simon Rölli\Desktop\data\calibration\snapStart_' calSave '.tif']);
+   grid2tiff(orgLon,orgLat,orgEnd,['C:\Users\Simon Rölli\Desktop\data\calibration\snapEnd_' calSave '.tif']);
+   
+   
+   [S,spreaded,IDfield] = climada_ls_FPcalibration(orgS,orgLon,orgLat,orgStart,orgEnd,lon,lat,elevation,field);
     
     %find nearest cell in 10m grid and assign corresponding value 
     start_10m = zeros(n_lat_10m,n_lon_10m);
@@ -102,60 +120,7 @@ if calculate2
     grid2tiff(lon_10m,lat_10m,end_10m,'C:\Users\Simon Rölli\Desktop\data\calibration\end_30m.tif');
 end
 
-S = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\be_fromMatlab.shp');
-grid = GRIDobj('C:\Users\Simon Rölli\Desktop\data\calibration\start_30m.tif');
-start_10m = flipud(grid.Z);
-grid = GRIDobj('C:\Users\Simon Rölli\Desktop\data\calibration\end_30m.tif');
-end_10m = flipud(grid.Z);
-clear grid;
 
-
-deg_km = 111.32;
-dlat = abs(min(diff(lat_10m(:,1)))); 
-dlon = abs(min(diff(lon_10m(1,:))));
-dy = dlat*(deg_km * 1000);
-dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000); 
-unitarea_10m = dx*dy;
-
-%parameters for flowpath
-dH = 0;
-exponent = 25;
-v_max = 4;
-phi = 22;
-delta_i = 0.0003;
-perWt = [1 0.8 0.4 0 0 0 0.4 0.8];
-
-%needed data for flowpath
-source = zeros(size(elevation_10m));
-elevation_10m = fillsinks(elevation_10m);
-mult_flow = climada_ls_multipleflow(lon_10m,lat_10m,elevation_10m,exponent,dH,1);
-[~,horDist,verDist] = climada_centroids_gradients(lon_10m,lat_10m,elevation_10m);
-
-%area of each raster cell
-cell_area = climada_centroids_area(lon_10m,lat_10m,elevation_10m,0);
-
-forced_slides = zeros(size(elevation_10m));
-
-for i = 1:numel(S)
-    source(find(start_10m==S(i).ID)) = 1;
-    spreaded = climada_ls_propagation(source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
-    
-    %calculate area
-    %without consideration of slope --> unitarea
-    slide = find(spreaded~=0);
-    raster_area = numel(slide)*unitarea_10m;
-    S(i).m10_area_noSL = raster_area;
-    
-    %with consideration of slope
-    raster_area_slope = sum(cell_area(slide));
-    S(i).m10_area_SL = raster_area_slope;
-    
-    %add to forced slides
-    source(slide) = S(i).ID;
-    forced_slides = forced_slides+source;
-    source = source*0;
-    i
-end
 
 
 end
