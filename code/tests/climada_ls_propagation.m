@@ -203,8 +203,10 @@ for j=1:n_lat %iteration through rows
             for c=1:8
                 if temp_spread(c) > 0;
                     %coordinates of neighbour
+                    
                     J = j+shift_matrix(c,1); 
                     I = i+shift_matrix(c,2);
+ 
                     %spread_old = spread(j+shift_matrix(c,1),i+shift_matrix(c,2));
                     %if temp_spread(c) > spread_old
                     if temp_active_cells(J,I) || active_cells(J,I)
