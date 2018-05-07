@@ -1,4 +1,4 @@
-function [S,polyraster,src_ar,end_ar] = climada_ls_scoresS2poly(lon,lat,elevation,S,field,buffer)
+function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,elevation,S,field,buffer)
 
 % 
 % MODULE:
@@ -141,18 +141,22 @@ for i = 1:numel(S)
     %starting point: maximum of slide; end point: minimum of slide
     [~,imax] = max(elevation(slide));
     if ~isempty([lon(imax) lon(imax)]);
-        S(i).start = [lon(imax) lon(imax)];
+        S(i).startlon = lon(imax);
+        S(i).startlat = lat(imax);
     else
-        S(i).start = [0 0];
+        S(i).startlon = 0;
+        S(i).startlat = 0;
     end
     src_ar(slide(imax)) = S(i).(field);
     
     %find minimum elvation of slide --> end area
     [~,imin] = min(elevation(slide));
     if ~isempty([lon(imin) lon(imin)])
-        S(i).end = [lon(imin) lon(imin)];
+        S(i).endlon = lon(imin);
+        S(i).endlat = lat(imin);
     else
-        S(i).end = [0 0];
+        S(i).endlon = 0;
+        S(i).endlat = 0;
     end
     end_ar(slide(imin)) = S(i).(field);
     
@@ -186,4 +190,8 @@ for i = 1:numel(S)
             format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
         end
     end
+end
+
+
+
 end
