@@ -1,5 +1,5 @@
-function S = climada_ls_FPcalibration(orgS,orgLon,orgLat,orgStart,orgEnd,...
-    lon,lat,elevation,field,save_name)
+function [S,spreaded,IDfield] = climada_ls_FPcalibration(orgS,orgLon,orgLat,orgStart,orgEnd,...
+    lon,lat,elevation,field)
 
 % Script to calibrate flow path parameters
 % MODULE:
@@ -49,24 +49,34 @@ grid = [lon(:) lat(:)];
 
 %when get to coarser resolution --> 
 %indices of start areas
+fprintf('Find start cells of new/coarser grid\n');
 idx_st = find(orgStart~=0); %indices of original start
 points = [orgLon(idx_st) orgLat(idx_st)];
 k_st = dsearchn(grid,points); 
 
+fprintf('Find end cells of new/coarser grid\n');
 idx_en = find(orgEnd~=0); %indices of original end
 points = [orgLon(idx_en) orgLat(idx_en)]; %original points
 k_en = dsearchn(grid,points); %get indices of nearest point to original points
 
 maxfield='AREA_GIS';
+start = zeros(size(elevation));
+end_ = zeros(size(elevation));
+length = zeros(size(elevation)); %to check if other (longer) slide exists at same cell already
 for i=1:numel(orgS)
     S(i).(field) = orgS(i).(field); %transform field ID
     
     ik_st = find(orgStart(idx_st) == orgS(i).(field)); %find corresponding index of field ID
     ik_en = find(orgEnd(idx_en) == orgS(i).(field));
     %write start and end coordinates in Structure
-    S(i).start = [lon(k_st(ik_st)) lat(k_st(ik_st))];
-    S(i).end = [lon(k_en(ik_en)) lat(k_en(ik_en))];
+    S(i).startlon = lon(k_st(ik_st));
+    S(i).startlat = lat(k_st(ik_st));
+    S(i).endlon = lon(k_en(ik_en));
+    S(i).endlat = lat(k_en(ik_en));
     
+    if i==65 
+        disp('')
+    end
     %calculate distance of slide in new raster (with slope)
     [Ist,Jst] = ind2sub(size(lon),k_st(ik_st));
     [Ien,Jen] = ind2sub(size(lon),k_en(ik_en));
@@ -78,21 +88,20 @@ for i=1:numel(orgS)
     catch
         lgt = double(0);
     end
-    %write transformed length in structure
-    S(i).t_length = lgt;
+    %write snapped length in structure
+    S(i).snap_length = lgt;
     
-end
-start(k) = orgStart(idx);
-
-
-%indices of end areas
-idx = find(orgEnd~=0);
-points = [orgLon(idx) orgLat(idx)];
-k = dsearchn(grid,points);
-end_(k) = orgEnd(idx);
-
-
-
+    %create start matrix --> if one cell is affected several times-->
+    %take the one which is longer (of original raster length)
+    %for end matrix not so important --> just overwrite
+    old_lgt = length(k_st(ik_st));
+    if old_lgt < orgS(i).R_LGT_SL
+        length(k_st(ik_st)) = orgS(i).R_LGT_SL;
+        start(k_st(ik_st)) = orgS(i).ID;
+    end
+    end_(k_en(ik_en)) = orgS(i).ID;
+    
+end 
 
 
 %area of each raster cell --> considering slope
@@ -117,42 +126,109 @@ slides_ID = zeros(size(elevation));
 slides_int = zeros(size(elevation));
 
 
-%init structure to save results
-S = [];
 
-%dist = 
-all_source = find(start~=0);
+source = zeros(size(elevation));
+source(find(start~=0)) = 1;
+sel_source = zeros(size(elevation));
+mask = zeros(size(elevation));
+spreaded = zeros(size(elevation)); %saves intensity (max when several slides)
+temp_spreaded = zeros(size(elevation));
+IDfield = zeros(size(elevation))+100000; %saves ID of slides (sum when several slides)
 
-while sum(active_cells) > 0
+lgt = zeros(size(S));
+area = zeros(size(S));
+
+
+
+k=0;
+
+%%
+%method which chooses several slide sources at a time to save computing
+%time --> is done by taking slides which are far enough apart from each
+%other (distance defined by buf_m)
+numsource = find(source==1);
+msgstr   = sprintf('Assessing flow of %i flat cells ... ',numel(numsource));
+mod_step = 10; % first time estimate after 10 assets, then every 100
+if climada_global.waitbar
+    fprintf('%s (updating waitbar with estimation of time remaining every 100th centroid)\n',msgstr);
+    h        = waitbar(0,msgstr);
+    set(h,'Name','Assigning TWI');
+else
+    fprintf('%s (waitbar suppressed)\n',msgstr);
+    format_str='%s';
+end
+
+buf_m = 1000;
+imask = ceil(buf_m/dy);
+jmask = ceil(buf_m/dx);
+while sum(source(:)) > 0
     for i=1:n_lat
         for j=1:n_lon
-            tem_sources = find(start~=0)
-            %[I,J] = ind2sub(
-        end
-    end
-    
-end
+            if (source(i,j) == 1) && (mask(i,j) ~= 1)
+                sel_source(i,j) = 1;
 
-for i = 1:numel(orgS)
-    source(find(start==orgS(i).(field))) = 1; %find start of slide i and set as source
-    spreaded = climada_ls_propagation(source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+                %set values in mask within range to 1 --> no slides in this
+                %area
+
+                Imin=i-imask;Imax=i+imask;
+                Jmin=j-jmask;Jmax=j+jmask;
+                if (Imin < 1) Imin=1; end
+                if (Imax > n_lat) Imax=n_lat; end
+                if (Jmin < 1) Jmin=1; end
+                if (Jmax > n_lon) Jmax=n_lon; end
+                mask(Imin:Imax,Jmin:Jmax) = 1;
+                %remove selected cell
+                source(i,j) = 0;
+            end 
+        end %interation through colums
+    end %iteration through rows
+
+    %spread selected source cells
+    temp_spreaded = climada_ls_propagation(sel_source,mult_flow,horDist,verDist,v_max,phi,delta_i,perWt);
+    
+    %%
+    %reconnect spreaded slides and derive area and lgt
+    temp_source_ID = zeros(size(elevation));
+    temp_source_ID = sel_source.*start;
+    [temp_IDfield,temp_ar,temp_lgt,tempID] = climada_ls_slideScores(temp_spreaded,temp_source_ID,elevation,cell_area,dx,dy);
+    
+    temp_IDfield(temp_IDfield==0) = 100000;
+    
+    %find corresponding index in S of slides in sel_source; considering
+    %'field' and save in array
+    c = bsxfun(@eq,tempID,[S.(field)]');
+    [sidx,~] = find(c); %gives field number (ID) of slide which shall be use in S.(field) to assign values
+    %write lenght and area in vector
+    lgt(sidx) = temp_lgt;
+    area(sidx) = temp_ar;
+    %merge intensity (max when overlapping) and ID (sum...)
+    spreaded = max(spreaded,temp_spreaded);
+    IDfield = min(IDfield,temp_IDfield);
    
-    %calculate area
-    %without consideration of slope --> unitarea
-    slide = find(spreaded~=0);
-    raster_area = numel(slide)*unitarea;
-    S(i).unitarea = raster_area;
+    %set to zero for next round of selection
+    mask(:) = 0;
+    sel_source(:) = 0;
     
-    %with consideration of slope
-    raster_area_slope = sum(cell_area(slide));
-    S(i).slopearea = raster_area_slope;
-    
-    %add to 
-    source(slide) = S(i).(field);
-    forced_slides = forced_slides+source;
-    source = source*0;
-    i
-end
+    %progress
+     if mod(i,mod_step)==0
+            mod_step = 1000;
+            msgstr = sprintf('%i/%i spreaded',numel(numsource-numel(find(source==1)),numsource));
+            if climada_global.waitbar
+                waitbar(i/numel(S),h,msgstr); % update waitbar
+            else
+                fprintf(format_str,msgstr); % write progress to stdout
+                format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
+            end
+        end
+end %while --> ends when no sources left
+
+c = num2cell(area);
+[S.trig_area] = c{:};
+
+c = num2cell(lgt);
+[S.trig_lgt] = c{:};
+
+IDfield(IDfield==100000) = 0;
 
 
 end
