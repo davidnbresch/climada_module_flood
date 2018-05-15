@@ -46,6 +46,8 @@ function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,
 %              when considering the slope. the lenght is defined as the
 %              distance from the highest to the lowest raster point of the
 %              corresponding polygon.
+%             .removed slides which are not covered by the high resolution
+%              grid. Most probably because they are too small.
 %   polyraster: Transformed polygons in gridded raster labelled with the
 %               corresponding name of the choosen 'field'
 %   src_ar:   (nxm)-matrix with source area (highest points) of each slide.
@@ -121,6 +123,13 @@ for i = 1:numel(S)
     raster_area = numel(slide)*unitarea;
     %raster_area = sum(cell_area(slide));
     S(i).R_AREA_noSL = raster_area;
+
+    %mark slides which are not captured by the grid
+    if(raster_area == 0)
+        S(i).removed = 1;
+    else
+        S(i).removed = 0;
+    end
     
     %considers slope when calculating cell area
     raster_area_slope = sum(cell_area(slide));
