@@ -144,7 +144,7 @@ if flat_areas
        
         if mod(i,mod_step)==0
             mod_step = 1000;
-            msgstr = sprintf('%i/%i flat cells',i,numel(IXf));
+            msgstr = sprintf('\t%i/%i flat cells',i,numel(IXf));
             if climada_global.waitbar
                 waitbar(i/numel(S),h,msgstr); % update waitbar
             else
@@ -160,6 +160,6 @@ if flat_areas
     mult_flow = mult_flow./mult_flow_sum;
 end
 
-
+fprintf(' done\n');
 
 end
