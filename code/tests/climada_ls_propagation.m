@@ -48,7 +48,7 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %   d2s:     (0/1) set to 1 if distance to source area should be
 %            calculated (in [m]). If one cell is passed more than one
 %            time, the minimum distance is saved. If set 0 (default): a zeromatrix
-%            is returned.
+%            is returned. Not testet --> no recommended to use
 % OPTIONAL INPUT PARAMETERS:
 % 
 % OUTPUTS:
