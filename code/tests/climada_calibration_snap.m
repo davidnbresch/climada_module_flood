@@ -42,31 +42,29 @@ function [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,o
 % OPTIONAL INPUT PARAMETERS:
 %  
 % OUTPUTS:
-%   S:        mapstruct of a polyline as imported by shaperead.
-%             .R_AREA_noSL: area of transformed raster of each polygon when
-%              not considering the slope.
-%             .R_AREA_SL: area of transformed raster of each polygon when
-%              considering the slope.
-%             .P_AREA_noSL: area of polygon using polyarea-function when
-%              not considering the slope.
-%             .R_LGT_noSL: length of transformed raster of each polygon
-%              when not considering the slope. the lenght is defined as the
-%              distance from the highest to the lowest raster point of the
-%              corresponding polygon.
-%             .R_LGT_noSL: length of transformed raster of each polygon
-%              when considering the slope. the lenght is defined as the
-%              distance from the highest to the lowest raster point of the
-%              corresponding polygon.
-%   polyraster: Transformed polygons in gridded raster labelled with the
-%               corresponding name of the choosen 'field'
-%   src_ar:   (nxm)-matrix with source area (highest points) of each slide.
+%   S:        mapstruct of a Line.
+%             .X: X vertices of lines from start(highest) to end(lowest) point of slide.
+%             structure is such that they can be saved and plotted as a shapefile
+%             .Y: Y vertices...
+%             .removed: info about slides which were removed (=2) or
+%             replaced by longer slide (=1)
+%             .(field): label of slide (field = 'ID' is recommended). .(field)
+%             must be a field in orgS
+%             .snap_length: length of slides after they are snapped to the
+%             new coarser grid
+%   start:   (nxm)-matrix with source area (highest points) of each slide.
 %             The slides are labelled with the corresponding number given
-%             in S.(field).
-%   end_ar:   (nxm)-matrix with end area (lowest points) of each slide.
+%             in S.(field). If several slides with same start cell --> ID
+%             of longer slide is saved in matrix.
+%   end_:    (nxm)-matrix with end area (lowest points) of each slide.
 %             The slides are labelled with the corresponding number given
-%             in S.(field).
+%             in S.(field). If several slides with same end cell --> one
+%             which is processed later is saved --> random, therefore not
+%             recommended to compare end_ar of single slides
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180426, init
+% Thomas Rölli, thomasroelli@gmail.com, 20180514, treatment of replaced
+%  slides
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -78,6 +76,7 @@ n_lon = size(lon,2);
 n_lat = size(lat,1);
 start = zeros(n_lat,n_lon);
 end_ = zeros(n_lat,n_lon);
+removed = [orgS.removed]; %saves ID if different slide is taken (when two slides start at same cell after snapping -> takes longer
 
 %caculation of unitarea --> not considering slope
 deg_km = 111.32;
@@ -107,8 +106,15 @@ start = zeros(size(lon));
 end_ = zeros(size(lon));
 length = zeros(size(lon)); %to check if other (longer) slide exists at same cell already
 for i=1:numel(orgS)
+    if i==646
+      disp('')  
+    end
+    %if slide was removed before then skip
     S(i).(field) = orgS(i).(field); %transform field ID
-    
+    if ~(orgS(i).removed)
+%     if i==1080
+%         disp('')
+%     end
     ik_st = find(orgStart(idx_st) == orgS(i).(field)); %find corresponding index of field ID
     ik_en = find(orgEnd(idx_en) == orgS(i).(field));
     %write start and end coordinates in Structure
@@ -142,13 +148,50 @@ for i=1:numel(orgS)
     %take the one which is longer (of original raster length)
     %for end matrix not so important --> just overwrite
     old_lgt = length(k_st(ik_st));
-    if old_lgt < orgS(i).R_LGT_SL
+    if (old_lgt == 0) ||(old_lgt < orgS(i).R_LGT_SL)
         length(k_st(ik_st)) = orgS(i).R_LGT_SL;
         start(k_st(ik_st)) = orgS(i).ID;
+        %removed(i) = 0;
+    else 
+        %removed(i) = 1;
     end
+    
     end_(k_en(ik_en)) = orgS(i).ID;
     
+    else
+    %for removed slides
+    S(i).startlon = nan;S(i).startlat = nan;
+    S(i).endlon = nan;S(i).endlat = nan;
+    S(i).snap_length = nan;
+    end %end of skip removed
+    
 end 
+
+
+%write X and Y coordinates in new S such that it can be plotted as polyline
+X = [S.startlon;S.endlon]';
+Y = [S.startlat;S.endlat]';
+
+for i = 1:numel(S)
+    k(i).Geometry = 'Line';
+    k(i).X = X(i,:);
+    k(i).Y = Y(i,:);
+end
+
+%find removed (2) or replaced (1) slides and save info in S.removed
+r_idx = ~ismember([S.(field)],unique(start));
+removed(r_idx) = removed(r_idx)+1;
+m = num2cell(removed);
+[k.removed] = m{:};
+
+m = num2cell([S.(field)]);
+[k.(field)] = m{:};
+m = num2cell([S.snap_length]);
+[k.length] = m{:};
+m = num2cell([S.snap_length]);
+[k.length] = m{:};
+
+S = k;
 
 
 end
