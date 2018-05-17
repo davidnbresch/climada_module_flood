@@ -93,7 +93,7 @@ if isempty(hor_dist); return; end
 if isempty(ver_dist); return; end
 if isempty(v_max); v_max = 8; end
 if isempty(phi); phi = 18; end %empirical minimum travel angle, used for friction-calculation
-if isempty(delta_i); delta_i = 0.0001; end
+if isempty(delta_i); delta_i = 0.0003; end
 if isempty(perWt); perWt = [1 0.8 0.4 0 0 0 0.4 0.8]; end
 if isempty(d2s); d2s = 0; end
 
