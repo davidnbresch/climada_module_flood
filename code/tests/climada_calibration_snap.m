@@ -86,6 +86,14 @@ dy = dlat*(deg_km * 1000);
 dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000); 
 unitarea = dx*dy;
 
+%caculation of max downward slope gradient (in degrees) of each cell
+%later to get "slope" at source cell
+gradients = climada_centroids_gradients(lon,lat,elevation);
+gradients = gradients*-1;
+gradients(gradients < 0) = 0; 
+maxdeg_gradient = atand(max(gradients,[],3));
+
+
 %prepare grid to use in dsearchn()
 grid = [lon(:) lat(:)];
 
@@ -106,63 +114,55 @@ start = zeros(size(lon));
 end_ = zeros(size(lon));
 length = zeros(size(lon)); %to check if other (longer) slide exists at same cell already
 for i=1:numel(orgS)
-    if i==646
-      disp('')  
-    end
     %if slide was removed before then skip
     S(i).(field) = orgS(i).(field); %transform field ID
     if ~(orgS(i).removed)
-%     if i==1080
-%         disp('')
-%     end
-    ik_st = find(orgStart(idx_st) == orgS(i).(field)); %find corresponding index of field ID
-    ik_en = find(orgEnd(idx_en) == orgS(i).(field));
-    %write start and end coordinates in Structure
-    S(i).startlon = lon(k_st(ik_st));
-    S(i).startlat = lat(k_st(ik_st));
-    S(i).endlon = lon(k_en(ik_en));
-    S(i).endlat = lat(k_en(ik_en));
-    
-    if orgS(i).R_AREA_noSL == 0
-        S(i).startlon = nan;
-        S(i).startlat = nan;
-        S(i).endlon = nan;
-        S(i).endlat = nan;
-    end
-    
-    %calculate distance of slide in new raster (with slope)
-    [Ist,Jst] = ind2sub(size(lon),k_st(ik_st));
-    [Ien,Jen] = ind2sub(size(lon),k_en(ik_en));
-    dI = abs(Ist-Ien)*dy;
-    dJ = abs(Jst-Jen)*dx;
-    dz = elevation(k_st(ik_st))-elevation(k_en(ik_en));
-    try 
-        lgt = double(sqrt(sqrt(dI^2+dJ^2)^2+dz^2));
-    catch
-        lgt = double(0);
-    end
-    %write snapped length in structure
-    S(i).snap_length = lgt;
-    
-    %create start matrix --> if one cell is affected several times-->
-    %take the one which is longer (of original raster length)
-    %for end matrix not so important --> just overwrite
-    old_lgt = length(k_st(ik_st));
-    if (old_lgt == 0) ||(old_lgt < orgS(i).R_LGT_SL)
-        length(k_st(ik_st)) = orgS(i).R_LGT_SL;
-        start(k_st(ik_st)) = orgS(i).ID;
-        %removed(i) = 0;
-    else 
-        %removed(i) = 1;
-    end
-    
-    end_(k_en(ik_en)) = orgS(i).ID;
-    
-    else
-    %for removed slides
-    S(i).startlon = nan;S(i).startlat = nan;
-    S(i).endlon = nan;S(i).endlat = nan;
-    S(i).snap_length = nan;
+        ik_st = find(orgStart(idx_st) == orgS(i).(field)); %find corresponding index of field ID
+        ik_en = find(orgEnd(idx_en) == orgS(i).(field));
+
+        %write maximum downward slope at source in structure
+        S(i).max_srcslope = maxdeg_gradient(k_st(ik_st));
+
+        %write start and end coordinates in Structure
+        S(i).startlon = lon(k_st(ik_st));
+        S(i).startlat = lat(k_st(ik_st));
+        S(i).endlon = lon(k_en(ik_en));
+        S(i).endlat = lat(k_en(ik_en));
+
+        %calculate distance of slide in new raster (with slope)
+        [Ist,Jst] = ind2sub(size(lon),k_st(ik_st));
+        [Ien,Jen] = ind2sub(size(lon),k_en(ik_en));
+        dI = abs(Ist-Ien)*dy;
+        dJ = abs(Jst-Jen)*dx;
+        dz = elevation(k_st(ik_st))-elevation(k_en(ik_en));
+        try 
+            lgt = double(sqrt(sqrt(dI^2+dJ^2)^2+dz^2));
+        catch
+            lgt = double(0);
+        end
+        %write snapped length in structure
+        S(i).snap_length = lgt;
+
+        %create start matrix --> if one cell is affected several times-->
+        %take the one which is longer (of original raster length)
+        %for end matrix not so important --> just overwrite
+        old_lgt = length(k_st(ik_st));
+        if (old_lgt == 0) ||(old_lgt < orgS(i).R_LGT_SL)
+            length(k_st(ik_st)) = orgS(i).R_LGT_SL;
+            start(k_st(ik_st)) = orgS(i).ID;
+            %removed(i) = 0;
+        else 
+            %removed(i) = 1;
+        end
+
+        end_(k_en(ik_en)) = orgS(i).ID;
+
+        else
+        %for removed slides
+        S(i).startlon = nan;S(i).startlat = nan;
+        S(i).endlon = nan;S(i).endlat = nan;
+        S(i).snap_length = nan;
+        S(i).max_srcslope = nan;
     end %end of skip removed
     
 end 
@@ -184,6 +184,8 @@ removed(r_idx) = removed(r_idx)+1;
 m = num2cell(removed);
 [k.removed] = m{:};
 
+m = num2cell([S.max_srcslope]);
+[k.max_srcslope] = m{:};
 m = num2cell([S.(field)]);
 [k.(field)] = m{:};
 m = num2cell([S.snap_length]);
