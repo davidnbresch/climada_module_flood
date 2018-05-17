@@ -149,9 +149,9 @@ for i = 1:numel(S)
     %%get starting (highest) and end (lowest) points
     %starting point: maximum of slide; end point: minimum of slide
     [~,imax] = max(elevation(slide));
-    if ~isempty([lon(imax) lon(imax)]);
-        S(i).startlon = lon(imax);
-        S(i).startlat = lat(imax);
+    if ~isempty([lon(slide(imax)) lon(slide(imax))]);
+        S(i).startlon = lon(slide(imax));
+        S(i).startlat = lat(slide(imax));
     else
         S(i).startlon = 0;
         S(i).startlat = 0;
@@ -160,9 +160,9 @@ for i = 1:numel(S)
     
     %find minimum elvation of slide --> end area
     [~,imin] = min(elevation(slide));
-    if ~isempty([lon(imin) lon(imin)])
-        S(i).endlon = lon(imin);
-        S(i).endlat = lat(imin);
+    if ~isempty([lon(slide(imin)) lon(slide(imin))])
+        S(i).endlon = lon(slide(imin));
+        S(i).endlat = lat(slide(imin));
     else
         S(i).endlon = 0;
         S(i).endlat = 0;
