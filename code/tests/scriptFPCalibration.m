@@ -93,13 +93,40 @@ if calculate
 %     ylabel('rel. Difference Matlab raster vs ArcGIS [%]')
 
     %calculate ratio of length/shape length
-    C = num2cell([orgS.R_LGT_noSL]./[orgS.SHAPE_Leng]);
-    [orgS.LGT_RAT_noSL] = C{:};
-    %with slope
-    C = num2cell([orgS.R_LGT_SL]./[orgS.SHAPE_Leng]);
-    [orgS.LGT_RAT_SL] = C{:};
+%     C = num2cell([orgS.R_LGT_noSL]./[orgS.SHAPE_Leng]);
+%     [orgS.LGT_RAT_noSL] = C{:};
+%     %with slope
+%     C = num2cell([orgS.R_LGT_SL]./[orgS.SHAPE_Leng]);
+%     [orgS.LGT_RAT_SL] = C{:};
+
+    %%
+    %create new shape file with only most important info --> with polyline XY
+    %coordinates
+    %write polyline (X,Y) coordinates in structure, together with ID, area and length
+    X = [orgS.startlon;orgS.endlon]';
+    Y = [orgS.startlat;orgS.endlat]';
+
+    %set coordinates of removed slides to nan
+    r_idx = find([orgS.removed]~=0);
+    X(r_idx,:) = nan;
+    Y(r_idx,:) = nan;
+    % dum = [snapS.(field)];
+    % ID(r_idx) = dum(r_idx);
+
+
+    for i = 1:numel(X(:,1))
+        orgSubS(i).Geometry = 'Line';
+        orgSubS(i).X = X(i,:);
+        orgSubS(i).Y = Y(i,:);
+        orgSubS(i).removed = orgS(i).removed;
+        orgSubS(i).(field) = orgS(i).(field);
+        orgSubS(i).area = orgS(i).R_AREA_SL;
+        orgSubS(i).length = orgS.R_LGT_SL;
+    end
+
 
     shapewrite(orgS,[sav_dir_org filesep 'orgS_' orgSave '.shp']);
+    shapewrite(orgSubS,[sav_dir_org filesep 'orgSubS_' orgSave '.shp']);
     grid2tiff(orgLon,orgLat,orgStart,[sav_dir_org filesep 'orgStart_' orgSave '.tif']);
     grid2tiff(orgLon,orgLat,orgEnd,[sav_dir_org filesep 'orgEnd_' orgSave '.tif']);
     grid2tiff(orgLon,orgLat,orgPolyraster,[sav_dir_org filesep 'orgPolyraster_' orgSave '.tif']);
@@ -131,7 +158,7 @@ end
 %when trigger slides from source areas and model flow path
 %calibrate flow path parameters (cali)
 
-orgS = shaperead([sav_dir_org filesep 'orgS_' orgSave '.shp']);
+orgSubS = shaperead([sav_dir_org filesep 'orgSubS_' orgSave '.shp']);
 % grid = GRIDobj(['C:\Users\Simon Rölli\Desktop\data\calibration\orgStart_' orgSave '.tif']);
 % orgStart = flipud(grid.Z);
 % grid = GRIDobj(['C:\Users\Simon Rölli\Desktop\data\calibration\orgEnd_' orgSave '.tif']);
@@ -176,6 +203,8 @@ if calculate3
     %%
     %flow propagation with different parameters
     %iteration through calibration parameters; save S in the end
+    vmax(1) = 9;
+    phi(1) = 30;
     for i=1:tot_cal
         %processing management
         fprintf('Parameter set %i of %i...\n\t',i,tot_cal);
@@ -214,7 +243,54 @@ end
 %%
 %load propagated calibration datasets (with different parameters and write
 %in a structure array
-disp('')
+
+files = dir([sav_dir_cali '/*.shp']);
+res_cali = repmat(struct('resol',[]),1,numel(files));
+
+for i=1:numel(files)
+   fileparts = strsplit(files(i).name,'_');
+   res_cali(i).resol = fileparts(1);
+   %phi
+   num_idx = regexp(fileparts{2},'\d');
+   res_cali(i).phi = str2double(extractAfter(fileparts{2},num_idx(1)-1));
+   %vmax
+   num_idx = regexp(fileparts{3},'\d');
+   res_cali(i).vmax = str2double(extractAfter(fileparts{3},num_idx(1)-1));
+   %exp
+   num_idx = regexp(fileparts{4},'\d');
+   res_cali(i).exp = str2double(extractAfter(fileparts{4},num_idx(1)-1));
+   %dH
+   num_idx = regexp(fileparts{5},'\d');
+   res_cali(i).dH = str2double(extractAfter(fileparts{5},num_idx(1)-1));
+   %iT
+   num_idx = regexp(fileparts{6},'\d');
+   tmp_str = extractAfter(fileparts{6},num_idx(1)-1);
+   res_cali(i).iT = str2double([tmp_str(1) '.' tmp_str(2:end)]);
+   %perWTS
+   num_idx = regexp([fileparts{7:end}],'\d');
+   tmp_str = extractBetween([fileparts{7:end}],num_idx(1),num_idx(end));
+   res_cali(i).perWT = tmp_str;
+   
+   %open corresponding caliS
+   caliS = shaperead([files(i).folder filesep files(i).name]);
+   
+   obs = [snapS.length];%observed lengths
+   pred = [caliS.length];%predicted lengths
+   
+   res_cali(i).rmse = sqrt(mean((obs-pred).^2,'omitnan'));
+   
+   
+   
+   
+   %[num2str(i) 'phi: ' num2str(res_cali(i).phi) ', vmax: ' num2str(res_cali(i).vmax) ', sum: ' num2str(sum([caliS.length]))]
+   
+   
+%    for ii=1:numel(caliS)
+%         if caliS(ii).removed == 0
+%             
+%         end
+%    end
+end
 
 
 
