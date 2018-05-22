@@ -48,6 +48,9 @@ function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,
 %              corresponding polygon.
 %             .removed slides which are not covered by the high resolution
 %              grid. Most probably because they are too small.
+%             .st_slope saves slope at starting cell (slope from
+%             climada_centroids_slope)
+%             .sl_slope saves slope of line from start to end cell
 %   polyraster: Transformed polygons in gridded raster labelled with the
 %               corresponding name of the choosen 'field'
 %   src_ar:   (nxm)-matrix with source area (highest points) of each slide.
@@ -58,6 +61,8 @@ function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,
 %             in S.(field).
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180426, init
+% Thomas Rölli, thomasroelli@gmail.com, 20180522, add start slope and
+%  slide slope
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -92,6 +97,9 @@ polyraster = climada_ls_poly2raster(lon,lat,S,field);
 
 %area of each raster cell
 cell_area = climada_centroids_area(lon,lat,elevation,0);
+
+%slope of each raster cell
+slope = climada_centroids_slope(lon,lat,elevation);
 
 %get unitarea
 deg_km = 111.32;
@@ -188,6 +196,18 @@ for i = 1:numel(S)
     end
     S(i).R_LGT_noSL = lgt_noslope;
     S(i).R_LGT_SL = lgt;
+    
+    %write slope of start and slide (from start to end) in S.
+    S(i).st_slope = slope(ymax,xmax);
+    try 
+        S(i).sl_slope = double(asind(dz/lgt));
+    catch
+        S(i).sl_slope = double(0);
+    end
+    if(raster_area == 0)
+        S(i).st_slope = double(0);
+        S(i).sl_slope = double(0);
+    end
     
     if mod(i,mod_step)==0
         mod_step = 10;
