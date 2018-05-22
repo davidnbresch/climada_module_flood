@@ -121,7 +121,9 @@ if calculate
         orgSubS(i).removed = orgS(i).removed;
         orgSubS(i).(field) = orgS(i).(field);
         orgSubS(i).area = orgS(i).R_AREA_SL;
-        orgSubS(i).length = orgS.R_LGT_SL;
+        orgSubS(i).length = orgS(i).R_LGT_SL;
+        orgSubS(i).st_slope = orgS(i).st_slope;
+        orgSubS(i).sl_slope = orgS(i).sl_slope;
     end
 
 
@@ -158,6 +160,7 @@ end
 %when trigger slides from source areas and model flow path
 %calibrate flow path parameters (cali)
 
+orgS = shaperead([sav_dir_org filesep 'orgS_' orgSave '.shp']);
 orgSubS = shaperead([sav_dir_org filesep 'orgSubS_' orgSave '.shp']);
 % grid = GRIDobj(['C:\Users\Simon Rölli\Desktop\data\calibration\orgStart_' orgSave '.tif']);
 % orgStart = flipud(grid.Z);
@@ -178,33 +181,31 @@ cell_area = climada_centroids_area(lon,lat,elevation,0);
 sav_dir_cali = [sav_dir_cali filesep calSave];
 if ~exist(sav_dir_cali,'dir'), mkdir(sav_dir_cali); end
 
+%%
+%create parameter sets
+sphi = 15;
+ephi = 30;
+svmax = 1;
+evmax = 12;
+
+tot_cal = (ephi-sphi+1)*(evmax-svmax+1);
+
+%constant parameters
+dH = repmat(0,1,tot_cal);
+exp = repmat(25,1,tot_cal);
+iT = repmat(0.0003,1,tot_cal);
+perWT = repmat([1 0.8 0.4 0 0 0 0.4 0.8],tot_cal,1);
+
+%to calibrate
+phi = sphi:1:ephi;
+vmax = svmax:1:evmax;
+[phi,vmax] = meshgrid(phi,vmax);
+phi = phi(:)';
+vmax = vmax(:)';
 if calculate3
-    %%
-    %create parameter sets
-    sphi = 15;
-    ephi = 30;
-    svmax = 1;
-    evmax = 12;
-
-    tot_cal = (ephi-sphi+1)*(evmax-svmax+1);
-
-    %constant parameters
-    dH = repmat(0,1,tot_cal);
-    exp = repmat(25,1,tot_cal);
-    iT = repmat(0.0003,1,tot_cal);
-    perWT = repmat([1 0.8 0.4 0 0 0 0.4 0.8],tot_cal,1);
-
-    %to calibrate
-    phi = sphi:1:ephi;
-    vmax = svmax:1:evmax;
-    [phi,vmax] = meshgrid(phi,vmax);
-    phi = phi(:)';
-    vmax = vmax(:)';
     %%
     %flow propagation with different parameters
     %iteration through calibration parameters; save S in the end
-    vmax(1) = 9;
-    phi(1) = 30;
     for i=1:tot_cal
         %processing management
         fprintf('Parameter set %i of %i...\n\t',i,tot_cal);
@@ -238,6 +239,7 @@ if calculate3
 
     fprintf(' done\n');
 end
+    
 
 
 %%
@@ -279,21 +281,243 @@ for i=1:numel(files)
    
    res_cali(i).rmse = sqrt(mean((obs-pred).^2,'omitnan'));
    
-   
-   
-   
-   %[num2str(i) 'phi: ' num2str(res_cali(i).phi) ', vmax: ' num2str(res_cali(i).vmax) ', sum: ' num2str(sum([caliS.length]))]
-   
-   
-%    for ii=1:numel(caliS)
-%         if caliS(ii).removed == 0
-%             
-%         end
-%    end
+   res_cali(i).source = [files(i).folder filesep files(i).name];
 end
 
+%plot RMSE vs phi for different vmax
+if 0
+    vmax = [res_cali.vmax];
+    vmax_unique = unique(vmax);
+    phi = [res_cali.phi];
+    phi_unique = unique(phi);
+    rmse = [res_cali.rmse];
+    figure
+    for i=1:numel(vmax_unique)
+        idx_vmax = find(vmax == vmax_unique(i));
+        subplot(3,4,i)
+        plot(phi(idx_vmax),rmse(idx_vmax),'-*')
+        title(['vmax = ' num2str(vmax_unique(i))])
+        xlim([min(phi_unique) max(phi_unique)])
+        ylim([0 500])
+        xlabel('phi')
+        ylabel('RMSE')
+    end
 
+%     figure
+%     for i=1:numel(phi_unique)
+%         idx_phi = find(phi == phi_unique(i));
+%         subplot(4,4,i)
+%         plot(vmax(idx_phi),rmse(idx_phi),'-*')
+%         title(['phi = ' num2str(phi_unique(i))])
+%         xlim([min(vmax_unique) max(vmax_unique)])
+%         ylim([0 500])
+%         xlabel('vmax')
+%         ylabel('RMSE')
+%     end
+end
 
+%%
+%removement of some slides 
+%%%%%%%%%%%%%%%
+%%%%%ToDo%%%%%%
+%write function where thresholds can be set again
+%plot modelled vs original with and without removed slides
+%calculate difference (evt. RMSE) of each slide and look at characteristics
+% of them. e.g. points which are far away from 1:1 line
+%evt boxplots of lenght for each parameter set
+%maybe set for slide without propagation not lenght = 0 but with e.g.
+%max(dy,dx)/2
+%
+%done: 
+%remove too long and too large slides --> 
+%remove too small slides (area and/or length) according to unitarea of
+% resolution --> done
+%remove slide at steep catchment but which are too small --> we want worst
+%case --> fully saturated, model not able to resolve short slide at steep
+% catchments (therefore plot slop at source vs length)
+%remove slide at flat areas (low slope) --> model not able to model them 
+%maybe assign length value different from 0 for slides which do not
+% propagate
+%plots of lines which have color according to e.g. slope (maybe in ArcGIS)
+%Problems: at moment best parameters --> highest phi and lowest vmax --> a
+% lot of slides do not propagate because local maximum slope gradient is
+% smaller than phi --> lenght = 0 for all this slides --> we get better
+% RMSE --> maybe remove some of this small values
+%
 
+%save slides which shall be removed from further considerations (1) and set
+%thresholds
+rmv = zeros(size([orgSubS.(field)])); %all removed slides
+
+rmv_S2R = zeros(size([orgSubS.(field)])); %already removed in S2R or snap
+
+rmv_large = zeros(size([orgSubS.(field)])); %too large (area)
+max_area_th = 30000; %[m^2] according to Millage etal area (10^1–10^4 m2).
+max_lgt_th = 1000;
+
+rmv_small_area = zeros(size([orgSubS.(field)])); %too small (area) compared to unitarea
+min_area_th = dx*dy;
+rmv_small_lgt = zeros(size([orgSubS.(field)])); %too small (length) 
+min_lgt_th = 100;
+
+rmv_minslope = zeros(size([orgSubS.(field)])); %too small slopes at start --> will not propagate
+min_slope_th = 15; %degrees minimum
+
+rmv_slVSlgt = zeros(size([orgSubS.(field)])); %too small length for steep slope --> model will be too long
+slVSlgt_th = [25 80]; %slides with start slope over th(1) and lenght under (2)
+
+%extract data
+area = [orgSubS.area];
+length = [orgSubS.length];
+st_slope = [orgSubS.st_slope];
+sl_slope = [orgSubS.sl_slope]; %slope of slide (line from start to end)
+
+%%%%%%%%%%%%%%%
+%starting plots (nothing removed)
+% figure
+% plot(area,st_slope,'*'); xlabel('area'); ylabel('st_slope')
+% figure
+% plot(area,sl_slope,'*'); xlabel('area'); ylabel('sl_slope')
+% figure
+% plot(length,sl_slope,'*'); xlabel('length'); ylabel('sl_slope')
+% figure
+% plot(length,st_slope,'*'); xlabel('length'); ylabel('st_slope') %we dont see any correlation
+%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%
+%plot([orgSubS.length],[snapS.length],'*')
+
+% plot([orgSubS.area],[orgS.R_AREA_SL],'*') %--> 1:1 line
+% plot([orgSubS.length],[orgS.R_LGT_SL],'*') % --> 1:1 line
+
+%%%%%%%%%%%%
+%save slide which have already been removed in orgS (2) or snapS (1)
+rmv_S2R([snapS.removed]~=0) = 1;
+%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%
+%remove slides which are too long/big
+%plot([orgSubS.length]) %lenght threshold around 500m
+%plot([orgSubS.area]) %area threshold around 30000m^2
+rmv_large(area>max_area_th) = 1;
+rmv_large(length>max_lgt_th) = 1;
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%remove slides which are too small
+rmv_small_area(area<(min_area_th)) = 1;
+
+rmv_small_lgt(length<(min_lgt_th)) = 1;
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%remove slides which have a too small start slope
+rmv_minslope(st_slope<min_slope_th) = 1;
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%remove slides which are too short for steep slope
+rmv_slVSlgt(length<slVSlgt_th(2) & st_slope>slVSlgt_th(1)) = 1;
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%set together rmv
+rmv = rmv_S2R+rmv_large+rmv_small_area+rmv_small_lgt+rmv_minslope+rmv_slVSlgt;
+rmv = logical(rmv);
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%caculate RMSE again without slides in rmv
+res_cali_rmv = repmat(struct('resol',[]),1,numel(files));
+for i=1:numel(files)
+   fileparts = strsplit(files(i).name,'_');
+   res_cali_rmv(i).resol = fileparts(1);
+   %phi
+   num_idx = regexp(fileparts{2},'\d');
+   res_cali_rmv(i).phi = str2double(extractAfter(fileparts{2},num_idx(1)-1));
+   %vmax
+   num_idx = regexp(fileparts{3},'\d');
+   res_cali_rmv(i).vmax = str2double(extractAfter(fileparts{3},num_idx(1)-1));
+   %exp
+   num_idx = regexp(fileparts{4},'\d');
+   res_cali_rmv(i).exp = str2double(extractAfter(fileparts{4},num_idx(1)-1));
+   %dH
+   num_idx = regexp(fileparts{5},'\d');
+   res_cali_rmv(i).dH = str2double(extractAfter(fileparts{5},num_idx(1)-1));
+   %iT
+   num_idx = regexp(fileparts{6},'\d');
+   tmp_str = extractAfter(fileparts{6},num_idx(1)-1);
+   res_cali_rmv(i).iT = str2double([tmp_str(1) '.' tmp_str(2:end)]);
+   %perWTS
+   num_idx = regexp([fileparts{7:end}],'\d');
+   tmp_str = extractBetween([fileparts{7:end}],num_idx(1),num_idx(end));
+   res_cali_rmv(i).perWT = tmp_str;
+   
+   %open corresponding caliS
+   caliS = shaperead([files(i).folder filesep files(i).name]);
+   
+   obs = [snapS.length];%observed lengths
+   pred = [caliS.length];%predicted lengths
+   
+   %set rmv to nan
+   obs(rmv) = nan;
+   pred(rmv) = nan;
+   
+   %calculate RMSE
+   res_cali_rmv(i).rmse = sqrt(mean((obs-pred).^2,'omitnan'));
+   
+   %save source file
+   res_cali_rmv(i).source = [files(i).folder filesep files(i).name];
+end
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+%plot RMSE vs phi for rmv
+if 1
+    vmax = [res_cali_rmv.vmax];
+    vmax_unique = unique(vmax);
+    phi = [res_cali_rmv.phi];
+    phi_unique = unique(phi);
+    rmse = [res_cali_rmv.rmse];
+    figure
+    for i=1:numel(vmax_unique)
+        idx_vmax = find(vmax == vmax_unique(i));
+        subplot(3,4,i)
+        plot(phi(idx_vmax),rmse(idx_vmax),'-*')
+        title(['vmax = ' num2str(vmax_unique(i))])
+        xlim([min(phi_unique) max(phi_unique)])
+        ylim([0 500])
+        xlabel('phi')
+        ylabel('RMSE')
+    end
+
+%     figure
+%     for i=1:numel(phi_unique)
+%         idx_phi = find(phi == phi_unique(i));
+%         subplot(4,4,i)
+%         plot(vmax(idx_phi),rmse(idx_phi),'-*')
+%         title(['phi = ' num2str(phi_unique(i))])
+%         xlim([min(vmax_unique) max(vmax_unique)])
+%         ylim([0 500])
+%         xlabel('vmax')
+%         ylabel('RMSE')
+%     end
+end
+
+%%%%%%%%%%%%
+%make comparisons modelled vs original
+%
+caliS = shaperead(res_cali(151).source); %vmax=4, phi=27 we have local minimum in RMSE
+mod_length = [caliS.length];
+
+figure
+plot(length,mod_length,'*')
+xlabel('observed length [m]')
+ylabel('modelled length [m]')
+
+figure
+plot(length(~rmv),mod_length(~rmv),'*')
+xlabel('observed length [m]')
+ylabel('modelled length [m]')
 
 end
