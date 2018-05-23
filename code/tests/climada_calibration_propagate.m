@@ -1,4 +1,4 @@
-function [S,spreaded,IDfield] = climada_ls_FPcalibration(lon,lat,elevation,flowPara,cell_area,snapStart,snapS,field)
+function [S,spreaded,IDfield] = climada_calibration_propagate(lon,lat,elevation,flowPara,cell_area,snapStart,snapS,field)
 
 % Script to calibrate flow path parameters
 % MODULE:
