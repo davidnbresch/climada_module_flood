@@ -1,16 +1,46 @@
-function scriptFPCalibration(calculate,calculate2,calculate3)
+function climada_calibration_ls(org_centroids,cal_centroids,calculate,calculate2,calculate3)
 
-% Script to calibrate flow path parameters
-% INPUTS: 
-%     calculate: 1 if area lenght start end of original high resolution Sample need to be calcualted
-%     calculate2: 1 if snapping of starting area from high resolution to coarse resoution need to be caluculated
-%     calculate3: 1 if area and length with different modelparameters need to be caculated
+% Script to calibrate flow path parameters 
+% MODULE:
+%   flood
+% NAME:
+%   climada_calibration_ls
+% PURPOSE:
+%   Is used to calibrate 
+% CALLING SEQUENCE:
+%   climada_calibration_ls(calculate,calculate2,calculate3)
+% EXAMPLE:
+%   
+% INPUTS:
+%   org_centroids:  original/high resolution DEM (as centroid)
+%                   transformation from polygon to raster will be based on
+%                   this resolution. The area/length and other scores for
+%                   the calibration will be derived at this DEM-resolution
+%   file_dem_snap:  snapping and calibration/low resolution DEM (as
+%                   centroid). Snapping is based on this resolution/DEM.
+%                   Scores are caculated from this resolution and starting
+%                   points (nearest grid points to starting point in
+%                   original DEM) are latter used as sources cells for
+%                   propagation model.
+%   save_dir:       string with path which defines directory to save
+%                   original 
+%   not yet defined --> probably links to directory of high and low (to be calibrated
+%   ) resolved DEM-centroids and link where to save file and load original
+%   polygone shape files
 % OPTIONAL INPUT PARAMETERS:
-%    
+%   calculate:  1 (default=0) if area lenght start end of original high 
+%               resolution Sample need to be calcualted (When transforming
+%               polygones to a raster file).
+%   calculate2: 1 (default=0) if snapping of starting area from high 
+%               resolution to coarse resoution need to be caluculated
+%   calculate3: 1 (default=0) if area and length with different
+%               model parameters need to be caculated
 % OUTPUTS:
-%    
+%   no output but saves shapefile of original raster/snapped and calibrated
+%   /modelled shape files in defined savepaths
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180417, init
+% Thomas Rölli, thomasroelli@gmail.com, 20180522, rename and restructure
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -19,8 +49,11 @@ if ~climada_init_vars, return; end
 dat_dir = 'C:\Users\Simon Rölli\Desktop\data\calibration';
 field = 'ID';
 
+if ~exist('file_dem_org') return; end
+if ~exist('file_dem_snap') return; end
 if ~exist('calculate') calculate=0; end
 if ~exist('calculate2') calculate2=0; end
+if ~exist('calculate3') calculate3=0; end
 
 %save directories
 sav_dir_org = [dat_dir filesep 'orgData'];
@@ -28,17 +61,17 @@ sav_dir_snap = [dat_dir filesep 'snapData'];
 sav_dir_cali = [dat_dir filesep 'caliData'];
 
 %dem which shall be calibration high resolution (org) and low resolution (snap)
-%orgSave = '2x3m';
-file_dem_org = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_alti3d_2m.mat';
+%file_dem_org = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_alti3d_2m.mat';
 %calSave = '20x30m';
 %file_dem_snap = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm1';%srtm1
-file_dem_snap = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_interpol_alti3d';%alti3d ca. 7*10m
+%file_dem_snap = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm3'; %srtm3
+%file_dem_snap = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_interpol_alti3d';%alti3d ca. 7*10m
 
 %%
 %load data --> DEM org and snap/cali
 %read in DEM (original alti3d with 2x3m resolution is best choice --> best results when assessing source
 %area lenght and width of slides 
-load(file_dem_org,'centroids');
+centroids = org_centroids;
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
 orgLon = reshape(centroids.lon,n_lat,n_lon);
@@ -53,7 +86,7 @@ dy = dlat*(deg_km * 1000);
 dx = dlon*cosd(mean(orgLat(:,1)))*(deg_km * 1000); 
 orgSave=[num2str(round(dx)) 'x' num2str(round(dy)) 'm'];
 
-load(file_dem_snap,'centroids');
+centroids = cal_centroids
 % calSave = '7x10m';
 % load(,'centroids');
 n_lon = numel(unique(centroids.lon));
@@ -219,7 +252,7 @@ if calculate3
         flowPara.perWT = perWT(i,:);
 
         %propagate and calculate length/area
-        [S,~,~] = climada_ls_FPcalibration(lon,lat,elevation,flowPara,cell_area,snapStart,snapS,field);
+        [S,~,~] = climada_calibration_propagate(lon,lat,elevation,flowPara,cell_area,snapStart,snapS,field);
 
         %remove point from iT and point and ' ' from perWT
         iT_str = num2str(iT(i));
@@ -371,6 +404,7 @@ area = [orgSubS.area];
 length = [orgSubS.length];
 st_slope = [orgSubS.st_slope];
 sl_slope = [orgSubS.sl_slope]; %slope of slide (line from start to end)
+max_st_slope = [snapS.max_srcslop]; %slope gradient maximum considert 8 neighbours
 
 %%%%%%%%%%%%%%%
 %starting plots (nothing removed)
@@ -473,7 +507,7 @@ end
 
 %%%%%%%%%%%%%
 %plot RMSE vs phi for rmv
-if 1
+if 0
     vmax = [res_cali_rmv.vmax];
     vmax_unique = unique(vmax);
     phi = [res_cali_rmv.phi];
@@ -504,20 +538,42 @@ if 1
 %     end
 end
 
+%%
 %%%%%%%%%%%%
 %make comparisons modelled vs original
 %
+%read in data
 caliS = shaperead(res_cali(151).source); %vmax=4, phi=27 we have local minimum in RMSE
 mod_length = [caliS.length];
+mod_area = [caliS.area];
 
+%plot slides at slope below 
+min_slope_th = 27; %degrees minimum
 figure
+subplot(1,2,1)
 plot(length,mod_length,'*')
-xlabel('observed length [m]')
-ylabel('modelled length [m]')
+title(['slides with start max gradient<' num2str(min_slope_th) ' [degrees]'])
+xlabel('observed [m]'); ylabel('modelled [m]'); xlim([0 1000]); ylim([0 1000]);
+hold on
+plot(length(max_st_slope<min_slope_th),mod_length(max_st_slope<min_slope_th),'*','color','red')
+subplot(1,2,2)
+plot(area,mod_area,'*')
+xlabel('observed [m^2]'); ylabel('modelled [m^2]'); xlim([0 30000]); ylim([0 30000]);
+hold on
+plot(area(st_slope<min_slope_th),mod_area(st_slope<min_slope_th),'*','color','red')
 
-figure
-plot(length(~rmv),mod_length(~rmv),'*')
-xlabel('observed length [m]')
-ylabel('modelled length [m]')
+%other things to plot
+max_area_th = 30000; %[m^2] according to Millage etal area (10^1–10^4 m2).
+max_lgt_th = 1000;
+min_area_th = dx*dy;
+min_lgt_th = 100;
+slVSlgt_th = [25 80]; %slides with start slope over th(1) and length under (2)
+
+%%%%%%%%%
+%plot relative difference vs slope....
+
+reldiff_lgt = (mod_length-length)./length
+
+
 
 end
