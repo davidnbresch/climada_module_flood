@@ -70,6 +70,8 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %  climada_ls_spread_v2 to climada_ls_propagation
 % Thomas Rölli, thomasroelli@gmail.com, 20180406, calculate distance to
 %  source
+% Thomas Rölli, thomasroelli@gmail.com, 20180529, slow version --> for
+%  commit
 
 
 global climada_global
@@ -124,7 +126,7 @@ tot_intensity = source_area;
 %distance to source
 dist2source = zeros(size(source_area));
 
-%%%%%for animation can be removed%%%%%
+%%%%%for animation during propagation can be removed%%%%%
 % load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
 % n_lon = numel(unique(centroids.lon));
 % n_lat = numel(unique(centroids.lat));
@@ -146,7 +148,7 @@ dist2source = zeros(size(source_area));
 % caxis([-4 0])
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-k=1;
+k=0;
 while sum(sum(active_cells))>0 %iteration through number of runs  
 temp_active_cells = temp_active_cells*0;
 for j=1:n_lat %iteration through rows
