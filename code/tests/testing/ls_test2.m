@@ -1,74 +1,104 @@
 function ls_test2()
 %function to test stuff... can be deleted afterwards
 
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
+
 %load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
-
+%get gridded datasets
 n_lon = numel(unique(centroids.lon));
 n_lat = numel(unique(centroids.lat));
 lon = reshape(centroids.lon,n_lat,n_lon);
 lat = reshape(centroids.lat,n_lat,n_lon);
 elevation = reshape(centroids.elevation_m,n_lat,n_lon);
+intensity = logical(zeros(n_lat,n_lon,hazard.event_count));
+for i = 1:hazard.event_count
+    intensity(:,:,i) = reshape(hazard.intensity(i,:),n_lat,n_lon);
+end
+
+deg_km = 111.32;
+dlat = abs(min(diff(lat(:,1)))); 
+dlon = abs(min(diff(lon(1,:))));
+dy = dlat*(deg_km * 1000);
+dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000);
+
+source = intensity(:,:,1);
 
 elevation = deminpaint(elevation);
 elevation = fillsinks(elevation);
 
-%derive raster grid in meters, x coordinates need to be adjsted to have
-%same resolution as y coordinates --> therefore DEM interpolation from
-%original x to adjusted x need to be conducted
-deg_km = 111.12;
-dy = abs(min(diff(lat(:,1)))*(deg_km * 1000));
-dx = abs(min(diff(lon(1,:)))*cosd(mean(lat(:,1)))*(deg_km * 1000));
-x = [1:360]*dx;
-nX = floor(x(numel(x))/dy);
-x_i = [1:nX]*dy;
-y = ([1:360]*dy)';
-[X,Y] = meshgrid(x,y);
-[X_i,Y_i] = meshgrid(x_i,y);
-elevation_i = interp2(X,Y,elevation,X_i,Y_i,'linear');
+exp = 10;
+v_max = 15;
+phi = 5;
 
-%I think coordinates are already pointing to middle of gridcell, therefore
-%add a half length of cellsize in lat/lon direction. Because GRIDobj2ascii
-%substract same amount afterwards
-cellsizelonlat = lat(1)-lat(2);
-cellsizexyinterp = Y_i(1)-Y_i(2);
-lat2 = lat+abs(cellsizelonlat/2);
-lon2 = lon+abs(cellsizelonlat/2);
-Y_i2 = Y_i+abs(cellsizexyinterp/2);
-X_i2 = X_i+abs(cellsizexyinterp/2);
+[~,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
+mult_flow = climada_ls_multipleflow(lon,lat,elevation,exp);
 
-%%%%%%%%%%%%
-%write ascii files
+%select source cells(buffer region)
+sel_source = zeros(size(elevation));
+mask = zeros(size(elevation));
 
-DEM = GRIDobj(lon2,lat2,elevation);
-%DEM = GRIDobj(X,Y,elevation); %not working because not same lat/lon resolution
-%DEM = GRIDobj(X_i2,Y_i2,elevation_i);
-%GRIDobj2ascii(DEM);
+buf_m = 1500; %bufferregion in meters in which no other slides are choosen--> prevents slides from flow over each other
+imask = ceil(buf_m/dy);
+jmask = ceil(buf_m/dx);
+for i=1:n_lat
+    for j=1:n_lon
+        if (source(i,j) == 1) && (mask(i,j) ~= 1)
+            sel_source(i,j) = 1;
 
-%%%%%%%%%%%%%%%%
-%write tiff file 
+            %set values in mask within range to 1 --> no slides in this
+            %area
 
-%DEM
-DEM = GRIDobj(lon,lat,elevation)
-GRIDobj2geotiff(DEM);
+            Imin=i-imask;Imax=i+imask;
+            Jmin=j-jmask;Jmax=j+jmask;
+            if (Imin < 1) Imin=1; end
+            if (Imax > n_lat) Imax=n_lat; end
+            if (Jmin < 1) Jmin=1; end
+            if (Jmax > n_lon) Jmax=n_lon; end
+            mask(Imin:Imax,Jmin:Jmax) = 1;
+            %remove selected cell
+            source(i,j) = 0;
+        end 
+    end %interation through colums
+end %iteration through rows
 
-%source file
-source_area = reshape(hazard.intensity(1,:),n_lat,n_lon);
+sel_source = intensity(:,:,1);
+sum(sum(sel_source))
+k=0;
+tic
+tot_spreaded_slow = zeros(size(elevation));
+for i=1:n_lat
+    for j=1:n_lon
+        if sel_source(i,j) == 1
+            k=k+1;
+            if mod(k,100) == 0
+               k
+            end
+            scr = zeros(size(elevation));
+            scr(i,j) = 1;
+            spreaded = climada_ls_propagation_slow(scr,mult_flow,horDist,verDist,v_max,phi);
+            tot_spreaded_slow = max(tot_spreaded_slow,spreaded);
+        end
+    end
+end
+toc
+
+tic
+tot_spreaded = zeros(size(elevation));
+for i=1:n_lat
+    for j=1:n_lon
+        if sel_source(i,j) == 1
+            scr = zeros(size(elevation));
+            scr(i,j) = 1;
+            spreaded = climada_ls_propagation(scr,mult_flow,horDist,verDist,v_max,phi);
+            tot_spreaded = max(tot_spreaded,spreaded);
+        end
+    end
+end
+toc          
 
 
-
-
-
-
-
-
-%K = GRIDobj(lon,lat,full(k));
-%GRIDobj2geotiff(K)
-
-% rasterwrite('source.asc',lat,lon,full(k));
-% rasterwrite('elevation.asc',lat,lon,elevation); 
 
 end
