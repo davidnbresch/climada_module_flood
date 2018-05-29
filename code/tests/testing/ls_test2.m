@@ -39,10 +39,12 @@ mult_flow = climada_ls_multipleflow(lon,lat,elevation,exp);
 %select source cells(buffer region)
 sel_source = zeros(size(elevation));
 mask = zeros(size(elevation));
+tot_spreaded = zeros(size(elevation));
 
 buf_m = 1500; %bufferregion in meters in which no other slides are choosen--> prevents slides from flow over each other
 imask = ceil(buf_m/dy);
 jmask = ceil(buf_m/dx);
+while sum(source(:)) > 0
 for i=1:n_lat
     for j=1:n_lon
         if (source(i,j) == 1) && (mask(i,j) ~= 1)
@@ -64,41 +66,51 @@ for i=1:n_lat
     end %interation through colums
 end %iteration through rows
 
-sel_source = intensity(:,:,1);
-sum(sum(sel_source))
-k=0;
-tic
-tot_spreaded_slow = zeros(size(elevation));
-for i=1:n_lat
-    for j=1:n_lon
-        if sel_source(i,j) == 1
-            k=k+1;
-            if mod(k,100) == 0
-               k
-            end
-            scr = zeros(size(elevation));
-            scr(i,j) = 1;
-            spreaded = climada_ls_propagation_slow(scr,mult_flow,horDist,verDist,v_max,phi);
-            tot_spreaded_slow = max(tot_spreaded_slow,spreaded);
-        end
-    end
+spreaded = climada_ls_propagation(sel_source,mult_flow,horDist,verDist,v_max,phi);
+tot_spreaded = max(tot_spreaded,spreaded);
+
+mask(:) = 0;
+sel_source(:) = 0;
 end
-toc
 
 tic
-tot_spreaded = zeros(size(elevation));
+tot_spreaded_single = zeros(size(elevation));
+source = intensity(:,:,1);
 for i=1:n_lat
     for j=1:n_lon
-        if sel_source(i,j) == 1
+        if source(i,j) == 1
             scr = zeros(size(elevation));
             scr(i,j) = 1;
             spreaded = climada_ls_propagation(scr,mult_flow,horDist,verDist,v_max,phi);
-            tot_spreaded = max(tot_spreaded,spreaded);
+            tot_spreaded_slingle = max(tot_spreaded_single,spreaded);
         end
     end
 end
 toc          
 
+%test of old (slow version --> climada_ls_propagation_slow has been removed
+%--> see gitHub older version of climada_ls_propagation for old/slow
+%version
+% sel_source = intensity(:,:,1);
+% sum(sum(sel_source))
+% k=0;
+% tic
+% tot_spreaded_slow = zeros(size(elevation));
+% for i=1:n_lat
+%     for j=1:n_lon
+%         if sel_source(i,j) == 1
+%             k=k+1;
+%             if mod(k,100) == 0
+%                k
+%             end
+%             scr = zeros(size(elevation));
+%             scr(i,j) = 1;
+%             spreaded = climada_ls_propagation_slow(scr,mult_flow,horDist,verDist,v_max,phi);
+%             tot_spreaded_slow = max(tot_spreaded_slow,spreaded);
+%         end
+%     end
+% end
+% toc
 
 
 end
