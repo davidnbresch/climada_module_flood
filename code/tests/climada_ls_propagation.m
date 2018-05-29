@@ -70,9 +70,8 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %  climada_ls_spread_v2 to climada_ls_propagation
 % Thomas Rölli, thomasroelli@gmail.com, 20180406, calculate distance to
 %  source
-% Thomas Rölli, thomasroelli@gmail.com, 20180529, slow version --> for
-%  commit
-
+% Thomas Rölli, thomasroelli@gmail.com, 20180529, use of indices for active
+%  cells instead of matrices --> faster
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -115,6 +114,7 @@ energy = double(zeros(n_lat,n_lon)); %save energy of cells while propagating
 eFric = g*hor_dist*tand(phi); %loss of energy by friction, for whole field in each direction
 ePot = g*ver_dist*(-1); %gain of potential enenergy, for whole field in each direction
 shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1]*-1;
+active_cells_idx = []; %saves the indices of all active cells 
 
 
 %direction-matrix --> saves direction of flow (1-8)in each iteration
@@ -151,100 +151,101 @@ dist2source = zeros(size(source_area));
 k=0;
 while sum(sum(active_cells))>0 %iteration through number of runs  
 temp_active_cells = temp_active_cells*0;
-for j=1:n_lat %iteration through rows
-    for i=1:n_lon %iteration through colums
-        if active_cells(j,i)
-            %extract information out of mult_flow
-            temp_mult_flow = mult_flow(j,i,:);
-            temp_mult_flow = temp_mult_flow(:)';
-            %check if flow just started (source area) --> if yes no
-            %influence of persistence function
-            if direction(j,i) ~= 0 
-                shifted_perWt = circshift(perWt,direction(j,i)-1);
-            else
-                shifted_perWt = ones(1,8);
-            end
-            %suceptibility = multiple flow * persistence function
-            wgt_suscept = temp_mult_flow.*shifted_perWt;
-            %scale such that sum equal 1 --> outflow proportion in each
-            %direction
-            wgt_suscept = wgt_suscept./sum(wgt_suscept);
-        
-            %calculate energy to all its neigbours
-            e_Kin = energy(j,i)+ePot(j,i,:)-eFric(j,i,:);
-            e_Kin = e_Kin(:)';
-            %set v to v_max if larger than v_max; and calculate energy
-            %again
-            v = sqrt(2*e_Kin.*(e_Kin>0));
-            v(v>v_max) = v_max;
-            e_Kin = 0.5*(v).^2;
-            %stop spreading if no energy available
-            wgt_suscept(e_Kin<=0) = 0;
-            
-            %normalize wgt_susept again
-            wgt_suscept = wgt_suscept./sum(wgt_suscept);
-            
-            %spread temporarly to check if values are smaller than delta_i
-            %if yes --> set zero and redistribute by normalize again
-            temp_spread = spread(j,i).*wgt_suscept;
-            wgt_suscept(temp_spread<=delta_i) = 0;
-            
-            %normalize wgt_sucept again
-            wgt_suscept = wgt_suscept./sum(wgt_suscept);
-            
-            %final spreading
-            temp_spread = spread(j,i).*wgt_suscept;
-            
-            spread(j,i) = 0;
-            
-            %iteration through neighbours --> spread intensity
-            %if it flows in an already active cell (also temporary active)
-            %it sums up the intensity such that it is spread in the next
-            %iteration and not lost. It takes the maximum of energy and
-            %also the corresponding direction
-            for c=1:8
-                if temp_spread(c) > 0;
-                    %coordinates of neighbour
-                    
-                    J = j+shift_matrix(c,1); 
-                    I = i+shift_matrix(c,2);
- 
-                    %spread_old = spread(j+shift_matrix(c,1),i+shift_matrix(c,2));
-                    %if temp_spread(c) > spread_old
-                    if temp_active_cells(J,I) || active_cells(J,I)
-                        spread(J,I) = spread(J,I)+temp_spread(c);
-                        %if new energy greater --> take new energy and its
-                        %direction
-                        old_energy = energy(J,I);
-                        if e_Kin(c) > old_energy
-                            energy(J,I) = e_Kin(c);
-                            direction(J,I) = c;
-                        end
-                    else 
-                        spread(J,I) = temp_spread(c);
+active_cells_idx = find(active_cells == 1);
+for k=1:numel(active_cells_idx)
+    %get j and i (should be switches --> i for row, j for column)
+    [j,i] = ind2sub(size(source_area),active_cells_idx(k));
+    if active_cells(j,i)
+        %extract information out of mult_flow
+        temp_mult_flow = mult_flow(j,i,:);
+        temp_mult_flow = temp_mult_flow(:)';
+        %check if flow just started (source area) --> if yes no
+        %influence of persistence function
+        if direction(j,i) ~= 0 
+            shifted_perWt = circshift(perWt,direction(j,i)-1);
+        else
+            shifted_perWt = ones(1,8);
+        end
+        %suceptibility = multiple flow * persistence function
+        wgt_suscept = temp_mult_flow.*shifted_perWt;
+        %scale such that sum equal 1 --> outflow proportion in each
+        %direction
+        wgt_suscept = wgt_suscept./sum(wgt_suscept);
+
+        %calculate energy to all its neigbours
+        e_Kin = energy(j,i)+ePot(j,i,:)-eFric(j,i,:);
+        e_Kin = e_Kin(:)';
+        %set v to v_max if larger than v_max; and calculate energy
+        %again
+        v = sqrt(2*e_Kin.*(e_Kin>0));
+        v(v>v_max) = v_max;
+        e_Kin = 0.5*(v).^2;
+        %stop spreading if no energy available
+        wgt_suscept(e_Kin<=0) = 0;
+
+        %normalize wgt_susept again
+        wgt_suscept = wgt_suscept./sum(wgt_suscept);
+
+        %spread temporarly to check if values are smaller than delta_i
+        %if yes --> set zero and redistribute by normalize again
+        temp_spread = spread(j,i).*wgt_suscept;
+        wgt_suscept(temp_spread<=delta_i) = 0;
+
+        %normalize wgt_sucept again
+        wgt_suscept = wgt_suscept./sum(wgt_suscept);
+
+        %final spreading
+        temp_spread = spread(j,i).*wgt_suscept;
+
+        spread(j,i) = 0;
+
+        %iteration through neighbours --> spread intensity
+        %if it flows in an already active cell (also temporary active)
+        %it sums up the intensity such that it is spread in the next
+        %iteration and not lost. It takes the maximum of energy and
+        %also the corresponding direction
+        for c=1:8
+            if temp_spread(c) > 0;
+                %coordinates of neighbour
+
+                J = j+shift_matrix(c,1); 
+                I = i+shift_matrix(c,2);
+
+                %spread_old = spread(j+shift_matrix(c,1),i+shift_matrix(c,2));
+                %if temp_spread(c) > spread_old
+                if temp_active_cells(J,I) || active_cells(J,I)
+                    spread(J,I) = spread(J,I)+temp_spread(c);
+                    %if new energy greater --> take new energy and its
+                    %direction
+                    old_energy = energy(J,I);
+                    if e_Kin(c) > old_energy
                         energy(J,I) = e_Kin(c);
                         direction(J,I) = c;
                     end
-                    temp_active_cells(J,I) = 1;
-                    tot_intensity(J,I) = tot_intensity(J,I)+temp_spread(c);
-                    %save distance from source --> by adding distanc from
-                    %previous cell to inflow-cell (
-                    if d2s
-                        if dist2source(J,I) ~= 0
-                            dist2source(J,I) = min(dist2source(J,I),dist2source(j,i)+hor_dist(j,i,c));
-                        else
-                            dist2source(J,I) = dist2source(j,i)+hor_dist(j,i,c);
-                        end
+                else 
+                    spread(J,I) = temp_spread(c);
+                    energy(J,I) = e_Kin(c);
+                    direction(J,I) = c;
+                end
+                temp_active_cells(J,I) = 1;
+                tot_intensity(J,I) = tot_intensity(J,I)+temp_spread(c);
+                %save distance from source --> by adding distanc from
+                %previous cell to inflow-cell (
+                if d2s
+                    if dist2source(J,I) ~= 0
+                        dist2source(J,I) = min(dist2source(J,I),dist2source(j,i)+hor_dist(j,i,c));
+                    else
+                        dist2source(J,I) = dist2source(j,i)+hor_dist(j,i,c);
                     end
-                end %end if spread > 0
-            end %end interation through neighbours
-            %active cell is treated --> set to zero
-            active_cells(j,i)=0;
-            direction(j,i) = 0;
-            energy(j,i) = 0;
-        end %end if active cell
-    end %end interation through columns
-end %end interation through rows
+                end
+            end %end if spread > 0
+        end %end interation through neighbours
+        %active cell is treated --> set to zero
+        active_cells(j,i)=0;
+        direction(j,i) = 0;
+        energy(j,i) = 0;
+    end %end if active cell
+end %end iteration through active cells
 active_cells(temp_active_cells == 1) = 1;
 %%%%%for animation can be removed%%%%%
 % if mod(k,3)==0
