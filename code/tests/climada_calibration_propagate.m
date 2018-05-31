@@ -1,4 +1,4 @@
-function [S,spreaded,IDfield] = climada_calibration_propagate(lon,lat,elevation,flowPara,cell_area,snapStart,snapS,field)
+function [S,spreaded,IDfield] = climada_calibration_propagate(lon,lat,elevation,flowPara,cell_area,snapS,field)
 
 % Script to calibrate flow path parameters
 % MODULE:
@@ -30,9 +30,6 @@ function [S,spreaded,IDfield] = climada_calibration_propagate(lon,lat,elevation,
 %                .perWT --> persistence weights vector (8 elements), used in climada_ls_propagation
 %     cell_area: nxm matrix with area of each cell. calculated by:
 %                climada_centroids_area
-%     snapStart: (nxm)-matrix with source area (highest points) of each slide.
-%                output of climada_calibration_snap. Slides are triggered
-%                from the points given in this matrix.
 %     snapS:     mapstruct of a Line. given by: climada_calibration_snap
 %     field:     name (string, recommended: 'ID') of the numeric data to be mapped. Values in field need
 %                to be numeric.
@@ -63,6 +60,8 @@ function [S,spreaded,IDfield] = climada_calibration_propagate(lon,lat,elevation,
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180502, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180514, processing managment
+% Thomas Rölli, thomasroelli@gmail.com, 20180528, start cells directly
+%  derived from polyline coordinates and save in snapStart matrix
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -73,7 +72,6 @@ if ~exist('lat'), return; end
 if ~exist('elevation'), return; end
 if ~exist('flowPara'), return; end
 if ~exist('cell_area'), return; end
-if ~exist('snapStart'), return; end
 if ~exist('snapS'), return; end
 if ~exist('field'), field='ID'; end
 
@@ -98,6 +96,25 @@ dlon = abs(min(diff(lon(1,:))));
 dy = dlat*(deg_km * 1000);
 dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000); 
 unitarea = dx*dy;
+
+%extract removed vector
+removed = [snapS.removed];
+
+%derive snapStart snapS.X/Y --> matrix (size as lat) which indicate start
+%(orgStart) with ID of slides given in snapS.(field)
+snapStart = zeros(size(lat));
+for i=1:numel(snapS)
+   if ~removed(i)
+       %extract coordinates from polyline structure
+       x = snapS(i).X;
+       y = snapS(i).Y;
+       %find indices for start cell
+       [~,idxJ] = ismember(x(1),lon(1,:));
+       [~,idxI] = ismember(y(1),lat(:,1));
+       snapStart(idxI,idxJ) = snapS(i).(field);
+   end
+end
+clear x y idxJ idxI
 
 
 %needed data for flowpath

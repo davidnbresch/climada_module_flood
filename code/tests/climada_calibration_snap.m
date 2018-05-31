@@ -1,4 +1,4 @@
-function [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,orgEnd,...
+function [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,...
     lon,lat,elevation,field)
 
 % 
@@ -8,30 +8,31 @@ function [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,o
 %   climada_calibration_snap
 % PURPOSE:
 %   Transforms starting and end points of slides of original dataset
-%   (indicated in orgStart/orgEnd --> derived from orgS) to new grid with
+%   (indicated in orgStart/orgEnd --> derived from subS) to new grid with
 %   coarser resolution of lon/lat grid. Therefore it uses the dsearchn
 %   function to find the nearest grid point in lon/lat of each
-%   starting/ending point in orgStart/orgEnd. If several starting points
+%   starting/ending point in subStart/orgEnd. If several starting points
 %   are assigned to the same cell in the new/coarser grid, the starting
-%   point is assigned to the slide with the greater area (in orgS). The
+%   point is assigned to the slide with the greater area (in subS). The
 %   left out slides saved with []/0 in S.
 % CALLING SEQUENCE:
-%   [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,orgEnd,...
+%   [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,subStart,orgEnd,...
 %   lon,lat,field)
 % EXAMPLE:
 %   
 % INPUTS: 
-%   orgS:      original S --> mapstruct of a polyline as imported by shaperead
-%              with additional fields calculated in climada_calibration_orgS2raster
+%   subS:      original S --> mapstruct of a polyline as imported by shaperead
+%              with additional fields calculated in climada_calibration_subS2raster
 %              Must at least include field definded in 'field' (e.g. 'ID'),
 %              in order to be able to compare derived slide scores (from
-%              this function) with original S.
+%              this function) with original S and X/Y vertice coordinates
+%              of polylines.
 %
 %   orgLat/lat: norgxmorg Matrix of the latitutional information about the grid cells 
 %               corresponding to the original/coarser resolved slides.
 %   orgLon/lon: nxm Matrix of the longitudinal information about the grid cells 
 %               corresponding to the original/coarser resolved slides.
-%   orgStart:   original starting points of the slides indicated with
+%   subStart:   original starting points of the slides indicated with
 %               'field'. Must have same dimension as orgLat/orgLon(norgxmorg)
 %   orgEnd:     original end points of the slides indicated with
 %               'field'. Must have same dimension as orgLat/orgLon (norgxmorg)
@@ -49,7 +50,7 @@ function [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,o
 %             .removed: info about slides which were removed (=2) or
 %             replaced by longer slide (=1)
 %             .(field): label of slide (field = 'ID' is recommended). .(field)
-%             must be a field in orgS
+%             must be a field in subS
 %             .snap_length: length of slides after they are snapped to the
 %             new coarser grid
 %   start:   (nxm)-matrix with source area (highest points) of each slide.
@@ -65,9 +66,20 @@ function [S,start,end_] = climada_calibration_snap(orgS,orgLon,orgLat,orgStart,o
 % Thomas Rölli, thomasroelli@gmail.com, 20180426, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180514, treatment of replaced
 %  slides
+% Thomas Rölli, thomasroelli@gmail.com, 20180528, start/end directly
+%  derived from polyline coordinates
 
 global climada_global
 if ~climada_init_vars, return; end
+
+%check arguments
+if ~exist('subS') return; end
+if ~exist('orgLon') return; end
+if ~exist('orgLat') return; end
+if ~exist('lon','var') return; end
+if ~exist('lat') return; end
+if ~exist('elevation') return; end
+if ~exist('field') return; end
 
 %init S
 S = [];
@@ -76,7 +88,7 @@ n_lon = size(lon,2);
 n_lat = size(lat,1);
 start = zeros(n_lat,n_lon);
 end_ = zeros(n_lat,n_lon);
-removed = [orgS.removed]; %saves ID if different slide is taken (when two slides start at same cell after snapping -> takes longer
+removed = [subS.removed]; %saves ID if different slide is taken (when two slides start at same cell after snapping -> takes longer
 
 %caculation of unitarea --> not considering slope
 deg_km = 111.32;
@@ -93,6 +105,27 @@ gradients = gradients*-1;
 gradients(gradients < 0) = 0; 
 maxdeg_gradient = atand(max(gradients,[],3));
 
+%derive orgStart / orgEnd from subS.X/Y --> matrix (size as orgLat) which indicate start
+%(orgStart) and end cells (orgEnd)
+%fprintf('create start/end matrices of original/dense grid\n');
+orgStart = zeros(size(orgLat));
+orgEnd = zeros(size(orgLat));
+for i=1:numel(subS)
+   if ~removed(i)
+       %extract coordinates from polyline structure
+       x = subS(i).X;
+       y = subS(i).Y;
+       %find indices for start cell
+       [~,idxJ] = ismember(x(1),orgLon(1,:));
+       [~,idxI] = ismember(y(1),orgLat(:,1));
+       orgStart(idxI,idxJ) = subS(i).(field);
+       %find indices for end cell
+       [~,idxJ] = ismember(x(2),orgLon(1,:));
+       [~,idxI] = ismember(y(2),orgLat(:,1));
+       orgEnd(idxI,idxJ) = subS(i).(field);
+   end
+end
+clear x y idxJ idxI
 
 %prepare grid to use in dsearchn()
 grid = [lon(:) lat(:)];
@@ -113,12 +146,12 @@ maxfield='AREA_GIS';
 start = zeros(size(lon));
 end_ = zeros(size(lon));
 length = zeros(size(lon)); %to check if other (longer) slide exists at same cell already
-for i=1:numel(orgS)
+for i=1:numel(subS)
     %if slide was removed before then skip
-    S(i).(field) = orgS(i).(field); %transform field ID
-    if ~(orgS(i).removed)
-        ik_st = find(orgStart(idx_st) == orgS(i).(field)); %find corresponding index of field ID
-        ik_en = find(orgEnd(idx_en) == orgS(i).(field));
+    S(i).(field) = subS(i).(field); %transform field ID
+    if ~(subS(i).removed)
+        ik_st = find(orgStart(idx_st) == subS(i).(field)); %find corresponding index of field ID
+        ik_en = find(orgEnd(idx_en) == subS(i).(field));
 
         %write maximum downward slope at source in structure
         S(i).max_srcslope = maxdeg_gradient(k_st(ik_st));
@@ -147,15 +180,15 @@ for i=1:numel(orgS)
         %take the one which is longer (of original raster length)
         %for end matrix not so important --> just overwrite
         old_lgt = length(k_st(ik_st));
-        if (old_lgt == 0) ||(old_lgt < orgS(i).R_LGT_SL)
-            length(k_st(ik_st)) = orgS(i).R_LGT_SL;
-            start(k_st(ik_st)) = orgS(i).ID;
+        if (old_lgt == 0) ||(old_lgt < subS(i).length)
+            length(k_st(ik_st)) = subS(i).length;
+            start(k_st(ik_st)) = subS(i).(field);
             %removed(i) = 0;
         else 
             %removed(i) = 1;
         end
 
-        end_(k_en(ik_en)) = orgS(i).ID;
+        end_(k_en(ik_en)) = subS(i).(field);
 
         else
         %for removed slides

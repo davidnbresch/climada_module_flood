@@ -1,4 +1,4 @@
-function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,elevation,S,field,buffer)
+function [subS,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,elevation,S,field,buffer)
 
 % 
 % MODULE:
@@ -31,26 +31,34 @@ function [S,polyraster,src_ar,end_ar] = climada_calibration_orgS2raster(lon,lat,
 %              arc and defines the width of the bufferzone along the polygon
 %              (default = 0) 
 % OUTPUTS:
-%   S:        mapstruct of a polyline as imported by shaperead. with additional fields:
+%   subS:      mapstruct of a polgones as imported by shaperead. with additional fields:
 %             .R_AREA_noSL: area of transformed raster of each polygon when
 %              not considering the slope.
-%             .R_AREA_SL: area of transformed raster of each polygon when
+%             .area: area of transformed raster of each polygon when
 %              considering the slope.
 %             .P_AREA_noSL: area of polygon using polyarea-function when
 %              not considering the slope.
-%             .R_LGT_noSL: length of transformed raster of each polygon
-%              when not considering the slope. the lenght is defined as the
-%              distance from the highest to the lowest raster point of the
+%             .dL: length of transformed raster of each polygon
+%              when not considering the slope (horizontal length of slide). the lenght is defined as the
+%              horizontal distance from the highest to the lowest raster point of the
 %              corresponding polygon.
-%             .R_LGT_noSL: length of transformed raster of each polygon
+%             .length: length of transformed raster of each polygon
 %              when considering the slope. the lenght is defined as the
 %              distance from the highest to the lowest raster point of the
 %              corresponding polygon.
+%             .dH: vertical difference of start (highest) and end cell
+%             (lowest)
 %             .removed slides which are not covered by the high resolution
 %              grid. Most probably because they are too small.
-%             .st_slope saves slope at starting cell (slope from
+%             .slope saves slope at starting cell (slope from
 %             climada_centroids_slope)
-%             .sl_slope saves slope of line from start to end cell
+%             .reachAngle saves slope of line from start to end cell,
+%             corresponds to angle of reach
+%   subS:      mapstruct of polylines with fields:
+%             .ID
+%             .X/.Y
+%             .length
+%             .area
 %   polyraster: Transformed polygons in gridded raster labelled with the
 %               corresponding name of the choosen 'field'
 %   src_ar:   (nxm)-matrix with source area (highest points) of each slide.
@@ -127,21 +135,23 @@ for i = 1:numel(S)
     %%%%area%%%%
     slide = find(polyraster==S(i).(field));
     
+    subS(i).(field) = S(i).(field);
+    
     %no consideration of slope --> with unitarea
     raster_area = numel(slide)*unitarea;
     %raster_area = sum(cell_area(slide));
-    S(i).R_AREA_noSL = raster_area;
+    subS(i).R_AREA_noSL = raster_area;
 
     %mark slides which are not captured by the grid
     if(raster_area == 0)
-        S(i).removed = 1;
+        subS(i).removed = 1;
     else
-        S(i).removed = 0;
+        subS(i).removed = 0;
     end
     
     %considers slope when calculating cell area
     raster_area_slope = sum(cell_area(slide));
-    S(i).R_AREA_SL = raster_area_slope;
+    subS(i).R_AREA_SL = raster_area_slope;
     
     %use polygon function of matlab to get area, therefore translate
     %lon lat to x y coordinates
@@ -151,29 +161,29 @@ for i = 1:numel(S)
     %meanLat = nanmean(S(i).Y);
     %x = S(i).X*cosd(meanLat)*(deg_km * 1000); %considers change with latitude
     poly_area = polyarea(x(1:numel(x)-1),y(1:numel(y)-1));
-    S(i).P_AREA_noSL = poly_area;
+    subS(i).P_AREA_noSL = poly_area;
     
     %%
     %%get starting (highest) and end (lowest) points
     %starting point: maximum of slide; end point: minimum of slide
     [~,imax] = max(elevation(slide));
     if ~isempty([lon(slide(imax)) lon(slide(imax))]);
-        S(i).startlon = lon(slide(imax));
-        S(i).startlat = lat(slide(imax));
+        subS(i).startlon = lon(slide(imax));
+        subS(i).startlat = lat(slide(imax));
     else
-        S(i).startlon = 0;
-        S(i).startlat = 0;
+        subS(i).startlon = 0;
+        subS(i).startlat = 0;
     end
     src_ar(slide(imax)) = S(i).(field);
     
     %find minimum elvation of slide --> end area
     [~,imin] = min(elevation(slide));
     if ~isempty([lon(slide(imin)) lon(slide(imin))])
-        S(i).endlon = lon(slide(imin));
-        S(i).endlat = lat(slide(imin));
+        subS(i).endlon = lon(slide(imin));
+        subS(i).endlat = lat(slide(imin));
     else
-        S(i).endlon = 0;
-        S(i).endlat = 0;
+        subS(i).endlon = 0;
+        subS(i).endlat = 0;
     end
     end_ar(slide(imin)) = S(i).(field);
     
@@ -184,29 +194,33 @@ for i = 1:numel(S)
     dys = abs(ymax-ymin)*dy;
     dxs = abs(xmax-xmin)*dx;
     dz = max(elevation(slide))-min(elevation(slide));
+    %horizontal distance
     try 
         lgt_noslope = double(sqrt(dys^2+dxs^2));
     catch
         lgt_noslope = double(0);
     end
+    %length with slope
     try 
         lgt = double(sqrt(sqrt(dys^2+dxs^2)^2+dz^2));
     catch
         lgt = double(0);
     end
-    S(i).R_LGT_noSL = lgt_noslope;
-    S(i).R_LGT_SL = lgt;
+    subS(i).dL = lgt_noslope;
+    subS(i).length = lgt;
+    subS(i).dH = double(dz);
     
     %write slope of start and slide (from start to end) in S.
-    S(i).st_slope = slope(ymax,xmax);
+    subS(i).slope = slope(ymax,xmax);
     try 
-        S(i).sl_slope = double(asind(dz/lgt));
+        subS(i).reachAngle = double(asind(dz/lgt));
     catch
-        S(i).sl_slope = double(0);
+        subS(i).reachAngle = double(0);
     end
     if(raster_area == 0)
-        S(i).st_slope = double(0);
-        S(i).sl_slope = double(0);
+        subS(i).slope = double(0);
+        subS(i).reachAngle = double(0);
+        subS(i).dH = double(0);
     end
     
     if mod(i,mod_step)==0
@@ -221,6 +235,26 @@ for i = 1:numel(S)
     end
 end
 
+%create new shape file with only most important info --> with polyline XY
+%coordinates
+%write polyline (X,Y) coordinates in structure, together with ID, area and length
+X = [subS.startlon;subS.endlon]';
+Y = [subS.startlat;subS.endlat]';
 
+%set coordinates of removed slides to nan
+r_idx = find([subS.removed]~=0);
+X(r_idx,:) = nan;
+Y(r_idx,:) = nan;
+% dum = [snapS.(field)];
+% ID(r_idx) = dum(r_idx);
+
+
+for i = 1:numel(X(:,1))
+    subS(i).Geometry = 'Line';
+    subS(i).X = X(i,:);
+    subS(i).Y = Y(i,:);
+end
+
+subS = rmfield(subS,{'startlon';'startlat';'endlon';'endlat'})
 
 end
