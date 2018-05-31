@@ -30,8 +30,8 @@ elevation = deminpaint(elevation);
 elevation = fillsinks(elevation);
 
 exp = 10;
-v_max = 15;
-phi = 5;
+v_max = 12;
+phi = 15;
 
 [~,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
 mult_flow = climada_ls_multipleflow(lon,lat,elevation,exp);
@@ -41,37 +41,38 @@ sel_source = zeros(size(elevation));
 mask = zeros(size(elevation));
 tot_spreaded = zeros(size(elevation));
 
-buf_m = 1500; %bufferregion in meters in which no other slides are choosen--> prevents slides from flow over each other
+buf_m = 1000; %bufferregion in meters in which no other slides are choosen--> prevents slides from flow over each other
 imask = ceil(buf_m/dy);
 jmask = ceil(buf_m/dx);
+tic
 while sum(source(:)) > 0
-for i=1:n_lat
-    for j=1:n_lon
-        if (source(i,j) == 1) && (mask(i,j) ~= 1)
-            sel_source(i,j) = 1;
+    for i=1:n_lat
+        for j=1:n_lon
+            if (source(i,j) == 1) && (mask(i,j) ~= 1)
+                sel_source(i,j) = 1;
 
-            %set values in mask within range to 1 --> no slides in this
-            %area
+                %set values in mask within range to 1 --> no slides in this
+                %area
 
-            Imin=i-imask;Imax=i+imask;
-            Jmin=j-jmask;Jmax=j+jmask;
-            if (Imin < 1) Imin=1; end
-            if (Imax > n_lat) Imax=n_lat; end
-            if (Jmin < 1) Jmin=1; end
-            if (Jmax > n_lon) Jmax=n_lon; end
-            mask(Imin:Imax,Jmin:Jmax) = 1;
-            %remove selected cell
-            source(i,j) = 0;
-        end 
-    end %interation through colums
-end %iteration through rows
+                Imin=i-imask;Imax=i+imask;
+                Jmin=j-jmask;Jmax=j+jmask;
+                if (Imin < 1) Imin=1; end
+                if (Imax > n_lat) Imax=n_lat; end
+                if (Jmin < 1) Jmin=1; end
+                if (Jmax > n_lon) Jmax=n_lon; end
+                mask(Imin:Imax,Jmin:Jmax) = 1;
+                %remove selected cell
+                source(i,j) = 0;
+            end 
+        end %interation through colums
+    end %iteration through rows
+    spreaded = climada_ls_propagation(sel_source,mult_flow,horDist,verDist,v_max,phi);
+    tot_spreaded = max(tot_spreaded,spreaded);
 
-spreaded = climada_ls_propagation(sel_source,mult_flow,horDist,verDist,v_max,phi);
-tot_spreaded = max(tot_spreaded,spreaded);
-
-mask(:) = 0;
-sel_source(:) = 0;
+    mask(:) = 0;
+    sel_source(:) = 0;
 end
+toc
 
 tic
 tot_spreaded_single = zeros(size(elevation));
@@ -82,7 +83,7 @@ for i=1:n_lat
             scr = zeros(size(elevation));
             scr(i,j) = 1;
             spreaded = climada_ls_propagation(scr,mult_flow,horDist,verDist,v_max,phi);
-            tot_spreaded_slingle = max(tot_spreaded_single,spreaded);
+            %tot_spreaded_single = max(tot_spreaded_single,spreaded);
         end
     end
 end
