@@ -1,4 +1,4 @@
-function climada_calibration_ls(org_centroids,cal_centroids,orgS,flowPara,sav_dir,subS,snapS)
+function [sel_files,unitarea] = climada_calibration_ls(org_centroids,cal_centroids,orgS,flowPara,sav_dir,subS,snapS,cali_files)
 
 % Script to calibrate flow path parameters 
 % MODULE:
@@ -32,17 +32,17 @@ function climada_calibration_ls(org_centroids,cal_centroids,orgS,flowPara,sav_di
 %                   original, snapping and calibration data in the
 %                   save-directory.
 % OPTIONAL INPUT PARAMETERS:
-%   snapS:      Provides structure of slides after    
-%   calculate:  1 (default=0) if area lenght start end of original high 
-%               resolution Sample need to be calcualted (When transforming
-%               polygones to a raster file).
-%   calculate2: 1 (default=0) if snapping of starting area from high 
-%               resolution to coarse resoution need to be caluculated
-%   calculate3: 1 (default=0) if area and length with different
-%               model parameters need to be caculated
+%   subS:       provides structure of high resolved start/end. Gotten from
+%               climada_calibration_orgS2raster. If provided climada_calibration_orgS2raster
+%               is skipped.
+%   snapS:      Provides structure of slides after start/end cells are
+%               translated to low resoved grid. Gotten from 
+%               climada_calibration_snap. If provided climada_calibration_snap
+%               is skipped.
+%   cali_fiels: Matrix of s
 % OUTPUTS:
-%   no output but saves shapefile of original raster/snapped and calibrated
-%   /modelled shape files in defined savepaths
+%   sel_files:  return name and path of all files which were choosen by all
+%               possible combionation in flowPara. 
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180417, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180522, rename and restructure
@@ -50,8 +50,6 @@ function climada_calibration_ls(org_centroids,cal_centroids,orgS,flowPara,sav_di
 global climada_global
 if ~climada_init_vars, return; end
 
-%folder for calibration
-%dat_dir = 'C:\Users\Simon Rölli\Desktop\data\calibration';
 field = 'ID';
 
 if ~exist('org_centroids') return; end
@@ -151,14 +149,7 @@ end
 %%
 % snapping of high resolution (2x3m) starting points (org) in coarser resolution
 % (snap)
-if isempty(snapS)
-   %subS = shaperead([sav_dir_sub filesep 'subS_' orgSave '.shp']);
-%    grid = GRIDobj([sav_dir_org filesep 'orgStart_' orgSave '.tif']);
-%    orgStart = flipud(grid.Z);
-%    grid = GRIDobj([sav_dir_org filesep 'orgEnd_' orgSave '.tif']);
-%    orgEnd = flipud(grid.Z);
-%    clear grid;
-   
+if isempty(snapS)  
    %get length and starting/end points of slides when changing to coarser
    %resolution (snapping)
    [snapS,~,~] = climada_calibration_snap(subS,orgLon,orgLat,lon,lat,elevation,field);
@@ -170,160 +161,154 @@ if isempty(snapS)
 end
 
 
-%%
-%calculate slides parameter (area/length) for changing phi and vmax values,
-%when trigger slides from source areas and model flow path
-%calibrate flow path parameters (cali)
-  
-%area of each raster cell --> considering slope
-cell_area = climada_centroids_area(lon,lat,elevation,0);
 
-%create folder to saveif not exising
-sav_dir_cali = [sav_dir_cali filesep calSave];
-if ~exist(sav_dir_cali,'dir'), mkdir(sav_dir_cali); end
-
-   
-%flow propagation with different parameters
-%iteration through calibration parameters; save S in the end
-for i=1:numel(flowPara.phi)
-    %processing management
-    fprintf('Parameter set %i of %i...\n\t',i,numel(flowPara.phi));
-
-    %extract flow path parameters
-    subFlowPara.dH = flowPara.dH(i);
-    subFlowPara.exp = flowPara.exp(i);
-    subFlowPara.phi = flowPara.phi(i);
-    subFlowPara.vmax = flowPara.vmax(i);
-    subFlowPara.iT = flowPara.iT(i);
-    subFlowPara.perWT = flowPara.perWT(i,:);
-
-    %propagate and calculate length/area
-    [S,~,~] = climada_calibration_propagate(lon,lat,elevation,subFlowPara,cell_area,snapS,field);
-
-    %remove point from iT and point and ' ' from perWT
-    iT_str = num2str(subFlowPara.iT);
-    iT_str(iT_str=='.') = [];
-
-    perWT_str = num2str(subFlowPara.perWT);
-    perWT_str(diff(double(perWT_str))==0) = [];
-    perWT_str(perWT_str==' ') = '_';
-    perWT_str(perWT_str=='.') = [];
-
-    %create filename and save
-    filename = [calSave '_phi' num2str(subFlowPara.phi) '_vmax'...
-        num2str(subFlowPara.vmax) '_exp' num2str(subFlowPara.exp)...
-        '_dH' num2str(subFlowPara.dH) '_iT' iT_str '_perWT' perWT_str];
-    shapewrite(S,[sav_dir_cali filesep filename '.shp']);
-    
-end
-
-fprintf(' done\n');
 
     
 
 
 %%
 %load propagated calibration datasets (with different parameters and write
-%in a structure array
+%in a structure array --> to check which parameter sets are not need to be
+%probagated
 
-% files = dir([sav_dir_cali '/*.shp']);
-% res_cali = repmat(struct('resol',[]),1,numel(files));
-% 
-% for i=1:numel(files)
-%    fileparts = strsplit(files(i).name,'_');
-%    res_cali(i).resol = fileparts(1);
-%    %phi
-%    num_idx = regexp(fileparts{2},'\d');
-%    res_cali(i).phi = str2double(extractAfter(fileparts{2},num_idx(1)-1));
-%    %vmax
-%    num_idx = regexp(fileparts{3},'\d');
-%    res_cali(i).vmax = str2double(extractAfter(fileparts{3},num_idx(1)-1));
-%    %exp
-%    num_idx = regexp(fileparts{4},'\d');
-%    res_cali(i).exp = str2double(extractAfter(fileparts{4},num_idx(1)-1));
-%    %dH
-%    num_idx = regexp(fileparts{5},'\d');
-%    res_cali(i).dH = str2double(extractAfter(fileparts{5},num_idx(1)-1));
-%    %iT
-%    num_idx = regexp(fileparts{6},'\d');
-%    tmp_str = extractAfter(fileparts{6},num_idx(1)-1);
-%    res_cali(i).iT = str2double([tmp_str(1) '.' tmp_str(2:end)]);
-%    %perWTS
-%    num_idx = regexp([fileparts{7:end}],'\d');
-%    tmp_str = extractBetween([fileparts{7:end}],num_idx(1),num_idx(end));
-%    res_cali(i).perWT = tmp_str;
-%    
-%    %open corresponding caliS
-%    caliS = shaperead([files(i).folder filesep files(i).name]);
-%    
-%    obs = [snapS.length];%observed lengths
-%    pred = [caliS.length];%predicted lengths
-%    
-%    res_cali(i).rmse = sqrt(mean((obs-pred).^2,'omitnan'));
-%    
-%    res_cali(i).source = [files(i).folder filesep files(i).name];
-% end
-% 
-% %plot RMSE vs phi for different vmax
-% if 0
-%     vmax = [res_cali.vmax];
-%     vmax_unique = unique(vmax);
-%     phi = [res_cali.phi];
-%     phi_unique = unique(phi);
-%     rmse = [res_cali.rmse];
-%     figure
-%     for i=1:numel(vmax_unique)
-%         idx_vmax = find(vmax == vmax_unique(i));
-%         subplot(3,4,i)
-%         plot(phi(idx_vmax),rmse(idx_vmax),'-*')
-%         title(['vmax = ' num2str(vmax_unique(i))])
-%         xlim([min(phi_unique) max(phi_unique)])
-%         ylim([0 500])
-%         xlabel('phi')
-%         ylabel('RMSE')
-%     end
-% 
-% %     figure
-% %     for i=1:numel(phi_unique)
-% %         idx_phi = find(phi == phi_unique(i));
-% %         subplot(4,4,i)
-% %         plot(vmax(idx_phi),rmse(idx_phi),'-*')
-% %         title(['phi = ' num2str(phi_unique(i))])
-% %         xlim([min(vmax_unique) max(vmax_unique)])
-% %         ylim([0 500])
-% %         xlabel('vmax')
-% %         ylabel('RMSE')
-% %     end
-% end
-% 
+%create folder to save if not existing
+sav_dir_cali = [sav_dir_cali filesep calSave];
+if ~exist(sav_dir_cali,'dir'), mkdir(sav_dir_cali); end
+
+%find files in sav_dir_cali
+files = dir([sav_dir_cali '/*.shp']);
+res_cali = repmat(struct('resol',[]),1,numel(files));
+
+for i=1:numel(files)
+   fileparts = strsplit(files(i).name,'_');
+   res_cali(i).resol = fileparts(1);
+   %phi
+   num_idx = regexp(fileparts{2},'\d');
+   res_cali(i).phi = str2double(extractAfter(fileparts{2},num_idx(1)-1));
+   %vmax
+   num_idx = regexp(fileparts{3},'\d');
+   res_cali(i).vmax = str2double(extractAfter(fileparts{3},num_idx(1)-1));
+   %exp
+   num_idx = regexp(fileparts{4},'\d');
+   res_cali(i).exp = str2double(extractAfter(fileparts{4},num_idx(1)-1));
+   %dH
+   num_idx = regexp(fileparts{5},'\d');
+   res_cali(i).dH = str2double(extractAfter(fileparts{5},num_idx(1)-1));
+   %iT
+   num_idx = regexp(fileparts{6},'\d');
+   tmp_str = extractAfter(fileparts{6},num_idx(1)-1);
+   res_cali(i).iT = str2double([tmp_str(1) '.' tmp_str(2:end)]);
+   %perWTS
+   num_idx = regexp([fileparts{7:end}],'\d');
+   tmp_str = extractBetween([fileparts{7:end}],num_idx(1),num_idx(end));
+   res_cali(i).perWT = tmp_str;
+end
+
+%find parameter sets which are not yet saved in sav_dir_cali --> one which
+%need to be calculated/propagated
+dum_res(:,1) = [res_cali.phi];dum_res(:,2) = [res_cali.vmax];
+dum_para(:,1) = flowPara.phi;dum_para(:,2) = flowPara.vmax;
+toDo_idx = ~(ismember(dum_para,dum_res,'rows'));
+clear dum_res dum_para
+%%
+%calculate slides parameter (area/length) for changing phi and vmax values,
+%when trigger slides from source areas and model flow path
+%calibrate flow path parameters (cali)
+  
+if sum(toDo_idx) > 0
+    %area of each raster cell --> considering slope
+    cell_area = climada_centroids_area(lon,lat,elevation,0);
+
+
+    %flow propagation with different parameters
+    %iteration through calibration parameters; save S in the end7
+    k=1;
+    for i=1:numel(flowPara.phi)
+        if toDo_idx(i)
+            %processing management
+            fprintf('Parameter set %i of %i...\n\t',k,sum(toDo_idx));
+            k=k+1;
+            %extract flow path parameters
+            subFlowPara.dH = flowPara.dH(i);
+            subFlowPara.exp = flowPara.exp(i);
+            subFlowPara.phi = flowPara.phi(i);
+            subFlowPara.vmax = flowPara.vmax(i);
+            subFlowPara.iT = flowPara.iT(i);
+            subFlowPara.perWT = flowPara.perWT(i,:);
+
+            %propagate and calculate length/area
+            [S,~,~] = climada_calibration_propagate(lon,lat,elevation,subFlowPara,cell_area,snapS,field);
+
+            %remove point from iT and point and ' ' from perWT
+            iT_str = num2str(subFlowPara.iT);
+            iT_str(iT_str=='.') = [];
+
+            perWT_str = num2str(subFlowPara.perWT);
+            perWT_str(diff(double(perWT_str))==0) = [];
+            perWT_str(perWT_str==' ') = '_';
+            perWT_str(perWT_str=='.') = [];
+
+            %create filename and save
+            filename = [calSave '_phi' num2str(subFlowPara.phi) '_vmax'...
+                num2str(subFlowPara.vmax) '_exp' num2str(subFlowPara.exp)...
+                '_dH' num2str(subFlowPara.dH) '_iT' iT_str '_perWT' perWT_str];
+            shapewrite(S,[sav_dir_cali filesep filename '.shp']);
+        end
+    end
+    fprintf(' done\n');
+
+end
+
+%%
+%write paths and parameter sets of wanted files in res_phi
+files = dir([sav_dir_cali '/*.shp']);
+res_cali = repmat(struct('resol',[]),1,numel(files));
+
+for i=1:numel(files)
+   res_cali(i).filename = files(i).name;
+   res_cali(i).folder = files(i).folder;
+   fileparts = strsplit(files(i).name,'_');
+   res_cali(i).resol = fileparts(1);
+   %phi
+   num_idx = regexp(fileparts{2},'\d');
+   res_cali(i).phi = str2double(extractAfter(fileparts{2},num_idx(1)-1));
+   %vmax
+   num_idx = regexp(fileparts{3},'\d');
+   res_cali(i).vmax = str2double(extractAfter(fileparts{3},num_idx(1)-1));
+   %exp
+   num_idx = regexp(fileparts{4},'\d');
+   res_cali(i).exp = str2double(extractAfter(fileparts{4},num_idx(1)-1));
+   %dH
+   num_idx = regexp(fileparts{5},'\d');
+   res_cali(i).dH = str2double(extractAfter(fileparts{5},num_idx(1)-1));
+   %iT
+   num_idx = regexp(fileparts{6},'\d');
+   tmp_str = extractAfter(fileparts{6},num_idx(1)-1);
+   res_cali(i).iT = str2double([tmp_str(1) '.' tmp_str(2:end)]);
+   %perWTS
+   num_idx = regexp([fileparts{7:end}],'\d');
+   tmp_str = extractBetween([fileparts{7:end}],num_idx(1),num_idx(end));
+   res_cali(i).perWT = tmp_str;
+end
+%find parameterset in res_cali which correspond to paraSet
+dum_res(:,1) = [res_cali.phi];dum_res(:,2) = [res_cali.vmax];
+dum_para(:,1) = flowPara.phi;dum_para(:,2) = flowPara.vmax;
+toReturn_idx = ismember(dum_res,dum_para,'rows');
+
+res_files = res_cali(toReturn_idx);
+
+for i=1:numel(res_files)
+    sel_files(i).name = res_files(i).filename;
+    sel_files(i).folder = res_files(i).folder;
+end
+
+unitarea = dx*dy;
+%wirte parameter combinations of 
+
+
+
 % %%
 % %removement of some slides 
-% %%%%%%%%%%%%%%%
-% %%%%%ToDo%%%%%%
-% %write function where thresholds can be set again
-% %plot modelled vs original with and without removed slides
-% %calculate difference (evt. RMSE) of each slide and look at characteristics
-% % of them. e.g. points which are far away from 1:1 line
-% %evt boxplots of lenght for each parameter set
-% %maybe set for slide without propagation not lenght = 0 but with e.g.
-% %max(dy,dx)/2
-% %
-% %done: 
-% %remove too long and too large slides --> 
-% %remove too small slides (area and/or length) according to unitarea of
-% % resolution --> done
-% %remove slide at steep catchment but which are too small --> we want worst
-% %case --> fully saturated, model not able to resolve short slide at steep
-% % catchments (therefore plot slop at source vs length)
-% %remove slide at flat areas (low slope) --> model not able to model them 
-% %maybe assign length value different from 0 for slides which do not
-% % propagate
-% %plots of lines which have color according to e.g. slope (maybe in ArcGIS)
-% %Problems: at moment best parameters --> highest phi and lowest vmax --> a
-% % lot of slides do not propagate because local maximum slope gradient is
-% % smaller than phi --> lenght = 0 for all this slides --> we get better
-% % RMSE --> maybe remove some of this small values
-% %
 % 
 % %save slides which shall be removed from further considerations (1) and set
 % %thresholds
