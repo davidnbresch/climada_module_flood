@@ -1,6 +1,6 @@
-function climada_probSet_ls(width,binORlin)
+function para_set = climada_probSet_ls(edges_vmax,edges_phi,count_phi,numrun,binORlin)
 
-% Script to calibrate flow path parameters 
+% Generates probabilistic parameter sets (vmax, phi)
 % MODULE:
 %  flood
 % NAME:
@@ -12,17 +12,41 @@ function climada_probSet_ls(width,binORlin)
 % EXAMPLE:
 %   
 % INPUTS:
-%   
+%   edges_vmax: vector with 4 elements. First and last element gives range
+%               of possible vmax values. From the first to the second edge
+%               in the vector, the probability is linear increasing.
+%               Between element 2 and 3, the probability is constant and
+%               between 3 and 4, linear decreasing. Outside of the range,
+%               (element 1 and 4) the probabiliy is zero
+%   edges_phi:  Vector which was derived from [~,edges_phi] =
+%               histcounts(...). Defines the edges of the histogram of
+%               angle of reach (phi) of landslide inventory.
+%   count_phi:  Vector which was derived from [count_phi,~] =
+%               histcounts(...). Values should be normalized (use
+%               'Normalization', 'probability'). Defines bar height of
+%               histogram of angle of reach (phi) of landslide inventory.
 % OPTIONAL INPUT PARAMETERS:
-%   
-% OUTPUTS:
-%  
+%   numrun:     Defines the number of random numbers which are generated to
+%               produce the probabilistic paramater set. Default = 10^6
+%   binORlin:   string with 'bin' or lin' (default = 'lin'). Defines way how probability
+%               curve of histogram of phi is constructed.
+%               'bin': probability curve is constructed along bars of
+%               histogram --> steep steps between bars
+%               'lin': probability curve is cunstructed by connecting
+%               center points of bar with linear functions.
+% OUTPUTS:   
+%   para_set:   Matrix with probabilistic paramerters. para_set(:,1) = vmax
+%               para_set(:,2) = phi
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180531, init
 
 global climada_global
 if ~climada_init_vars, return; end
 
+if ~exist('edges_vmax') return; end
+if ~exist('edges_phi') return; end
+if ~exist('count_phi') return; end
+if ~exist('numrun') numrun = 10^6; end
 if ~exist('binORlin') binORlin = 'lin'; end
 
 subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
@@ -134,7 +158,7 @@ value = h.Values;
 
 %pcolor(value)
 figure
-contour(histx,histy,value)
+%contour(histx,histy,value)
 figure
 contourf(histx,histy,value)
 %hold on
