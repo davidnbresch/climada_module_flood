@@ -155,7 +155,7 @@ active_cells_idx = find(active_cells == 1);
 for k=1:numel(active_cells_idx)
     %get j and i (should be switches --> i for row, j for column)
     [j,i] = ind2sub(size(source_area),active_cells_idx(k));
-    if active_cells(j,i)
+    %if active_cells(j,i)
         %extract information out of mult_flow
         temp_mult_flow = mult_flow(j,i,:);
         temp_mult_flow = temp_mult_flow(:)';
@@ -244,7 +244,7 @@ for k=1:numel(active_cells_idx)
         active_cells(j,i)=0;
         direction(j,i) = 0;
         energy(j,i) = 0;
-    end %end if active cell
+    %end %end if active cell
 end %end iteration through active cells
 active_cells(temp_active_cells == 1) = 1;
 %%%%%for animation can be removed%%%%%
