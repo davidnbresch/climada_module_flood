@@ -151,7 +151,7 @@ for i = 1:numel(S)
     
     %considers slope when calculating cell area
     raster_area_slope = sum(cell_area(slide));
-    subS(i).R_AREA_SL = raster_area_slope;
+    subS(i).area = raster_area_slope;
     
     %use polygon function of matlab to get area, therefore translate
     %lon lat to x y coordinates
