@@ -81,7 +81,7 @@ if ~exist('flat_areas', 'var'), flat_areas = []; end
 % PARAMETERS 
 if isempty(exponent); exponent = 25; end
 if isempty(dH); dH = 0; end
-if isempty(flat_areas); flat_areas = 0; end
+if isempty(flat_areas); flat_areas = 1; end
 
 
 %calculate gradients from each cell to its 8 neighbours
