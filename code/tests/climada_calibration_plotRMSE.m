@@ -1,4 +1,4 @@
-function climada_calibration_plotRMSE(res,res2,res3,res_,res2_,res3_)
+function [f_plot,f_con] = climada_calibration_plotRMSE(res,res2,res3,res_,res2_,res3_)
 
 % Ploting of the RMSE for all shapefiles defined in files
 % 
@@ -80,7 +80,7 @@ end
 %%%%plot for phi
 
 %figure with subplots
-figure
+f_plot = figure('units','normalized','outerposition',[0 0 1 1]);
 dim = [3 4];%dimension of subplot
 subplot1(dim(1),dim(2),'Gap',[0.01 0.01],'XTickL','Margin','YTickL','Margin','FontS',10)
 
@@ -174,10 +174,10 @@ v = 1100:-100:100; %define contour classes
 %define colormap
 cmap = jet(numel(v)+1);
 cmap = cmap(3:end,:);
-xtic = min(phi):5:max(phi)
+xtic = min(phi):5:max(phi);
 ytic = [1 5 10 12];
 
-figure
+f_con = figure('units','normalized','outerposition',[0 0 1 1]);
 subplot1(3,1,'Gap',[0.01 0.02],'XTickL','Margin','YTickL','Margin','FontS',10)
 
 [VMAX,PHI] = meshgrid(linspace(min(phi),max(phi),200), linspace(min(vmax),max(vmax),200));
@@ -244,7 +244,8 @@ if ~isempty(res3)
     axis equal
 end
 
-colorbar('south');
+cb = colorbar('south');
+cb.Ticks = flipud(v');
 
 
 
