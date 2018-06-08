@@ -1,5 +1,5 @@
-function [tot_intensity,dist2source] = climada_ls_propagation(source_area,mult_flow,... 
-hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
+function [rel_prob,intensity] = climada_ls_propagation(source_area,mult_flow,... 
+hor_dist,ver_dist,v_max,phi,delta_i,perWt,cal_int,cell_area)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
@@ -25,13 +25,13 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %             Dimension:nxmx8. Needed to calculate friction
 %   ver_dist: vertical distance of each cell to its 8 neighbours.
 %             Dimension:nxmx8. Needed to calculate potential energy
-%   friction: 1/0 include friction/no friction while spreading
-%   v_max: describes maximal possible velocity of slide. If velocity is 
-%          exceeded v_max is taken. Should keep energy amounts within reasonal values
-%          and therefore prevent improbalbe runout distances
-%   phi: angle of reach, angle of the line connnecting the source area to
-%        the most distant point reached by the slide, along its path.
-%        Factor controlls maximum possible runout distance
+% OPTIONAL INPUT PARAMETERS:
+%   v_max:   describes maximal possible velocity of slide. If velocity is 
+%            exceeded v_max is taken. Should keep energy amounts within reasonal values
+%            and therefore prevent improbalbe runout distances
+%   phi:     angle of reach, angle of the line connnecting the source area to
+%            the most distant point reached by the slide, along its path.
+%            Factor controlls maximum possible runout distance
 %   delta_i: Minimum threshold which prevent propagation when deceeded. Small values
 %            are removed and spreaded to the other remaining, lower
 %            situated neighbouring cells 
@@ -45,17 +45,16 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %            the central cell to corresponding neighbour) .. last element
 %            represents weight of neighbour to the left of flow direction
 %            (45 degree anticlockwise). 
-%   d2s:     (0/1) set to 1 if distance to source area should be
-%            calculated (in [m]). If one cell is passed more than one
-%            time, the minimum distance is saved. If set 0 (default): a zeromatrix
-%            is returned. Not testet --> no recommended to use
-% OPTIONAL INPUT PARAMETERS:
-% 
+%   cal_int:     (0/1) set to 1 if intenisty should be calculated (in m^2),
+%            Intensity is defined as covered area (similar to upstream
+%            contributing area). If one cell is passed more than once
+%            , the maximum intensity is saved. If set 0 (default): a zeromatrix
+%            is returned.
 % OUTPUTS:
-%   tot_intensity: matrix (lon lat) with the resulting intensity after a
+%   rel_prob: matrix (lon lat) with the resulting relative probability after a
 %                  single landslides is propagated downstream starting from source areas
-%   dist2source:   matrix (lon lat) which saves the minimum propagation
-%                  distance from source cell.
+%   intensity:   matrix (lon lat) which saves the intensity [m^2] as
+%                  covered area (similar to upstream contributing area)
 %  
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180219, init
@@ -72,6 +71,8 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,d2s)
 %  source
 % Thomas Rölli, thomasroelli@gmail.com, 20180529, use of indices for active
 %  cells instead of matrices --> faster
+% Thomas Rölli, thomasroelli@gmail.com, 20180608, implementation of
+%  intensity definition (as covered area)
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -85,7 +86,8 @@ if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi', 'var'), phi = []; end
 if ~exist('delta_i', 'var'), delta_i = []; end
 if ~exist('perWt', 'var'), perWt = []; end
-if ~exist('d2s', 'var'), d2s = []; end
+if ~exist('cal_int', 'var'), cal_int = []; end
+if ~exist('cell_area', 'var'), cell_area = []; end
 
 % PARAMETERS 
 if isempty(source_area); return; end
@@ -96,7 +98,8 @@ if isempty(v_max); v_max = 8; end
 if isempty(phi); phi = 18; end %empirical minimum travel angle, used for friction-calculation
 if isempty(delta_i); delta_i = 0.0003; end
 if isempty(perWt); perWt = [1 0.8 0.4 0 0 0 0.4 0.8]; end
-if isempty(d2s); d2s = 0; end
+if isempty(cal_int); cal_int = 0; end
+if isempty(cell_area) && cal_int==1; return; end
 
 %if numel(perWt) ~= 8; return; end
 
@@ -121,10 +124,14 @@ active_cells_idx = []; %saves the indices of all active cells
 direction = source_area*0; %will save flow-direction in each iteration
 
 %total intensity
-tot_intensity = source_area;
+rel_prob = source_area;
 
 %distance to source
-dist2source = zeros(size(source_area));
+intensity = zeros(size(source_area));
+if cal_int
+    %set intensity of source cell to area of source cell
+    intensity(source_area==1) = cell_area(source_area==1);
+end
 
 %%%%%for animation during propagation can be removed%%%%%
 % load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
@@ -138,11 +145,11 @@ dist2source = zeros(size(source_area));
 % fullpath = [path filesep 'pic' num2str(picnumber) '.tif'];
 % figure('units','normalized','outerposition',[0 0 1 1])
 % 
-% intensity_plot = tot_intensity;
-% intensity_plot(intensity_plot==0) = nan;
-% s = surface(lon,lat,tot_intensity);
-% s.CData = log(intensity_plot);
-% K = GRIDobj(lon,lat,log(intensity_plot));
+% prob_plot = rel_prob;
+% prob_plot(prob_plot==0) = nan;
+% s = surface(lon,lat,rel_prob);
+% s.CData = log(prob_plot);
+% K = GRIDobj(lon,lat,log(prob_plot));
 % GRIDobj2geotiff(K,fullpath);
 % colorbar
 % caxis([-4 0])
@@ -228,15 +235,11 @@ for k=1:numel(active_cells_idx)
                     direction(J,I) = c;
                 end
                 temp_active_cells(J,I) = 1;
-                tot_intensity(J,I) = tot_intensity(J,I)+temp_spread(c);
+                rel_prob(J,I) = rel_prob(J,I)+temp_spread(c);
                 %save distance from source --> by adding distanc from
                 %previous cell to inflow-cell (
-                if d2s
-                    if dist2source(J,I) ~= 0
-                        dist2source(J,I) = min(dist2source(J,I),dist2source(j,i)+hor_dist(j,i,c));
-                    else
-                        dist2source(J,I) = dist2source(j,i)+hor_dist(j,i,c);
-                    end
+                if cal_int
+                    intensity(J,I) = max(intensity(J,I),intensity(j,i)+cell_area(j,i));
                 end
             end %end if spread > 0
         end %end interation through neighbours
@@ -249,13 +252,13 @@ end %end iteration through active cells
 active_cells(temp_active_cells == 1) = 1;
 %%%%%for animation can be removed%%%%%
 % if mod(k,3)==0
-%     intensity_plot = tot_intensity;
-%     intensity_plot(intensity_plot==0) = nan;
-%     s.CData = log(intensity_plot);
+%     prob_plot = rel_prob;
+%     prob_plot(prob_plot==0) = nan;
+%     s.CData = log(prob_plot);
 %     pause(1)
 %     picnumber = picnumber+1;
 %     fullpath = [path filesep 'pic' num2str(picnumber) '.tif'];
-%     K = GRIDobj(lon,lat,log(intensity_plot));
+%     K = GRIDobj(lon,lat,log(prob_plot));
 %     GRIDobj2geotiff(K,fullpath);
 % end
 % k
