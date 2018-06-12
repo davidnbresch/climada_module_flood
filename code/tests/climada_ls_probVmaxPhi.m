@@ -1,4 +1,4 @@
-function [vmax,phi] = climada_probSet_ls(reachAngle,phi_hwidth,edges_vmax,numrun,binORlin,fig)
+function [vmax,phi] = climada_ls_probVmaxPhi(count_phi,edges_phi,edges_vmax,numrun,binORlin,fig)
 
 % Generates probabilistic parameter sets (vmax, phi)
 % MODULE:
@@ -43,15 +43,15 @@ function [vmax,phi] = climada_probSet_ls(reachAngle,phi_hwidth,edges_vmax,numrun
 global climada_global
 if ~climada_init_vars, return; end
 
-if ~exist('reachAngle') return; end
-if ~exist('phi_hwidth') return; end
+if ~exist('count_phi') return; end
+if ~exist('edges_phi') return; end
 if ~exist('edges_vmax') return; end
 if ~exist('numrun') numrun = 10^6; end
 if ~exist('binORlin') binORlin = 'lin'; end
 if ~exist('fig') fig = 0; end
 
-[count_phi,edges_phi] = histcounts(reachAngle,'BinWidth',phi_hwidth,'Normalization', 'probability');
 %normalise bars according to area --> area of bars gets equal to 1
+phi_hwidth = unique(diff(edges_phi));
 count_phi = count_phi/sum(count_phi*phi_hwidth);
 count_phi(isnan(count_phi)) = 0;
 
@@ -210,7 +210,7 @@ if fig
     colormap(cmap)
     set(p, 'EdgeColor', 'none','facealpha',0.75);
     hold on
-    plot(phi,vmax,'.','color','black')
+    plot(phi,vmax,'.','MarkerSize',2,'color','black')
     %boarder plot
     xl = xlim;
     yl = ylim;
