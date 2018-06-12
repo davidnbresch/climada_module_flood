@@ -113,8 +113,24 @@ modS.(demstr(1)) = modS_SRTM3; obsS.(demstr(1)) = obsS_SRTM3;
 modS.(demstr(2)) = modS_SRTM1; obsS.(demstr(2)) = obsS_SRTM1;
 modS.(demstr(3)) = modS_ALTI3D; obsS.(demstr(3)) = obsS_ALTI3D;
 
-figure
-subplot1(2,3)
+%plots
+climada_ls_probAssPlot(modS,obsS,'length','both',[0 2500],50,[0 2500])
+climada_ls_probAssPlot(modS,obsS,'length','qq',[0 500])
+climada_ls_probAssPlot(modS,obsS,'length','hist','',100,[0 2500])
+climada_ls_probAssPlot(modS,obsS,'length','hist','',25,[0 1000])
+
+%histogram of distribution of vmax and phi for slides lenght = 0 and slides
+%vs distribtuion of vmax phi for slides >0 --> maybe you see that it is
+%just dependend on phi (or this is the case by definition to be clear)
+zero_SRTM3 = find([modS_SRTM3.length]==0);
+modS_zeros.(demstr(1)) = modS_SRTM3(zero_SRTM3);
+phi_SRTM3 = [modS_SRTM3.phi];
+zero_SRTM1 = [modS_SRTM1.length]==0;
+phi_SRTM1 = [modS_SRTM1.phi];
+zero_ALTI3D = [modS_ALTI3D.length]==0;
+phi_ALTI3D = [modS_ALTI3D.phi];
+
+%histogram(phi_SRTM3(zeroSRTM3)
 
 
 disp('hier')
