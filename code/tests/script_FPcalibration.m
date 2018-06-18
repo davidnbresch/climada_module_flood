@@ -165,15 +165,49 @@ climada_calibration_plotRMSE(rmse_alti3d_rmv,rmse_srtm1_rmv,rmse_srtm3_rmv)
 
 %plots for appendix
 climada_calibration_plotRMSE(rmse_alti3d_maxslope,rmse_srtm1_maxslope,rmse_srtm3_maxslope)
+
+%plot of number of slides considered --> only for maxslope possible (other
+%with rmv slides --> number of observations is not taken
+% rmse_srtm3_maxslope_num = rmse_srtm3_maxslope;
+% c = num2cell([rmse_srtm3_maxslope_num.num_obs]);
+% [rmse_srtm3_maxslope_num.rmse_lgt] = c{:};
+% rmse_srtm1_maxslope_num = rmse_srtm1_maxslope;
+% c = num2cell([rmse_srtm1_maxslope_num.num_obs]);
+% [rmse_srtm1_maxslope_num.rmse_lgt] = c{:};
+% rmse_alti3d_maxslope_num = rmse_alti3d_maxslope;
+% c = num2cell([rmse_alti3d_maxslope_num.num_obs]);
+% [rmse_alti3d_maxslope_num.rmse_lgt] = c{:};
+% climada_calibration_plotRMSE(rmse_alti3d_maxslope,rmse_srtm1_maxslope,rmse_srtm3_maxslope,rmse_alti3d_maxslope_num,rmse_srtm1_maxslope_num,rmse_srtm3_maxslope_num)
+
+%remove small
 climada_calibration_plotRMSE(rmse_alti3d_rmvsmall,rmse_srtm1_rmvsmall,rmse_srtm3_rmvsmall)
-climada_calibration_plotRMSE(rmse_alti3d_bothsmall,rmse_srtm1_bothsmall,rmse_srtm3_bothsmall)
+%climada_calibration_plotRMSE(rmse_alti3d_bothsmall,rmse_srtm1_bothsmall,rmse_srtm3_bothsmall)
 %area --> code needed to be changed
-[f1,f2]=climada_calibration_plotRMSE(rmse_alti3d_rmv,rmse_srtm1_rmv,rmse_srtm3_rmv)
+%[f1,f2]=climada_calibration_plotRMSE(rmse_alti3d_rmv,rmse_srtm1_rmv,rmse_srtm3_rmv)
 
 
-phi = reshape(phi,numel(unique(phi)),numel(unique(vmax)));
-vmax = reshape(vmax,numel(unique(phi)),numel(unique(vmax)));
-rmse = reshape(rmse,numel(unique(phi)),numel(unique(vmax)));
+
+%plot which shows distribution of source cell slope
+subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+snapS_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_63x92m.shp');
+snapS_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_21x30m.shp');
+snapS_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_7x10m.shp');
+
+figure
+b=boxplot([[subS.slope];[snapS_alti3d.slope];[snapS_srtm1.slope];[snapS_srtm3.slope]]',...
+    {'ALTI3D (2m)','ALTI3D (10m)','SRTM1 (30m)','SRTM3 (90m)'},'Widths',[0.2 0.2 0.2 0.2],...
+    'FactorGap',0.001)
+ylabel('Slope of Source Cell [\circ]')
+yl = ylim;
+ylim([0 yl(2)])
+xl = xlim; yl = ylim;
+hold on
+plot([xl(1) xl(2) xl(2) xl(1) xl(1)],[yl(1) yl(1) yl(2) yl(2) yl(1)],'-','LineWidth',2,'Color','black')
+
+hold on
+
+
+
 
 
 end
