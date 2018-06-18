@@ -51,8 +51,12 @@ function [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,...
 %             replaced by longer slide (=1)
 %             .(field): label of slide (field = 'ID' is recommended). .(field)
 %             must be a field in subS
-%             .snap_length: length of slides after they are snapped to the
+%             .length: length of slides after they are snapped to the
 %             new coarser grid
+%             .max_srcslope: maximum gradient slope for corresponding
+%             source cell
+%             .slope: slope at source cell--> slope derived from
+%             climada_centroids_slope (with coarser grid)
 %   start:   (nxm)-matrix with source area (highest points) of each slide.
 %             The slides are labelled with the corresponding number given
 %             in S.(field). If several slides with same start cell --> ID
@@ -68,6 +72,7 @@ function [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,...
 %  slides
 % Thomas Rölli, thomasroelli@gmail.com, 20180528, start/end directly
 %  derived from polyline coordinates
+% Thomas Rölli, thomasroelli@gmail.com, 20180614, slope of source cell
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -97,6 +102,9 @@ dlon = abs(min(diff(lon(1,:))));
 dy = dlat*(deg_km * 1000);
 dx = dlon*cosd(mean(lat(:,1)))*(deg_km * 1000); 
 unitarea = dx*dy;
+
+%caculate slope in coarser grid
+slope_grid = climada_centroids_slope(lon,lat,elevation);
 
 %caculation of max downward slope gradient (in degrees) of each cell
 %later to get "slope" at source cell
@@ -161,6 +169,9 @@ for i=1:numel(subS)
         S(i).startlat = lat(k_st(ik_st));
         S(i).endlon = lon(k_en(ik_en));
         S(i).endlat = lat(k_en(ik_en));
+        
+        %write slope of source are from slope_grid
+        S(i).slope = slope_grid(k_st(ik_st));
 
         %calculate distance of slide in new raster (with slope)
         [Ist,Jst] = ind2sub(size(lon),k_st(ik_st));
@@ -196,6 +207,7 @@ for i=1:numel(subS)
         S(i).endlon = nan;S(i).endlat = nan;
         S(i).snap_length = nan;
         S(i).max_srcslope = nan;
+        S(i).slope = nan;
     end %end of skip removed
     
 end 
@@ -225,6 +237,9 @@ m = num2cell([S.snap_length]);
 [k.length] = m{:};
 m = num2cell([S.snap_length]);
 [k.length] = m{:};
+m = num2cell([S.slope]);
+[k.slope] = m{:};
+
 
 S = k;
 
