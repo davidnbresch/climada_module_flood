@@ -27,7 +27,8 @@ function res = climada_calibration_calcRMSE(files,subS,snapS,rmv)
 %            resolution as DEM of calibrated shape files. If snapS is provided Field
 %            .max_srcslope is extracted and used to remove slide with a
 %            maximum local source slope smaller than phi--> do not
-%            propagate, stop immediately
+%            propagate, stop immediately. also number of considered
+%            observations is save in res.num_obs
 %   rmv:     vector which includes info if slides need to be removed (1)
 %            from the RMSE calculation
 % OUTPUTS:
@@ -35,6 +36,8 @@ function res = climada_calibration_calcRMSE(files,subS,snapS,rmv)
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180523, init
 % Thomas Rölli, thomasroelli@gmail.com, 20180604, option to remove slides
+% Thomas Rölli, thomasroelli@gmail.com, 20180614, count number of
+%  considered slides
 
 %check arguments
 if ~exist('files'), return; end
@@ -97,6 +100,10 @@ for i=1:numel(files)
    obs = [subS.area];%observed area
    pred = [caliS.area];%predicted area
    res_cali(i).rmse_area = sqrt(mean((obs-pred).^2,'omitnan'));
+   
+   if ~isempty(snapS)
+        res_cali(i).num_obs = numel(obs)-sum(max_slope<res_cali(i).phi);
+   end
    
    %save source file
    res_cali(i).source = [files(i).folder filesep files(i).name];
