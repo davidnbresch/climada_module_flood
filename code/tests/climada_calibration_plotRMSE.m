@@ -177,7 +177,7 @@ cmap = cmap(3:end,:);
 xtic = min(phi):5:max(phi);
 ytic = [1 5 10 12];
 
-f_con = figure('units','normalized','outerposition',[0 0 1 1]);
+f_con = figure('Renderer','painters','units','normalized','outerposition',[0 0 1 1]);
 subplot1(3,1,'Gap',[0.01 0.02],'XTickL','Margin','YTickL','Margin','FontS',10)
 
 [VMAX,PHI] = meshgrid(linspace(min(phi),max(phi),200), linspace(min(vmax),max(vmax),200));
