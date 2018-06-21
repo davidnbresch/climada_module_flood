@@ -188,23 +188,66 @@ climada_calibration_plotRMSE(rmse_alti3d_rmvsmall,rmse_srtm1_rmvsmall,rmse_srtm3
 
 
 %plot which shows distribution of source cell slope
+% subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+% snapS_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_63x92m.shp');
+% snapS_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_21x30m.shp');
+% snapS_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_7x10m.shp');
+% 
+% figure
+% b=boxplot([[subS.slope];[snapS_alti3d.slope];[snapS_srtm1.slope];[snapS_srtm3.slope]]',...
+%     {'ALTI3D (2m)','ALTI3D (10m)','SRTM1 (30m)','SRTM3 (90m)'},'Widths',[0.2 0.2 0.2 0.2],...
+%     'FactorGap',0.001)
+% ylabel('Slope of Source Cell [\circ]')
+% yl = ylim;
+% ylim([0 yl(2)])
+% xl = xlim; yl = ylim;
+% hold on
+% plot([xl(1) xl(2) xl(2) xl(1) xl(1)],[yl(1) yl(1) yl(2) yl(2) yl(1)],'-','LineWidth',2,'Color','black')
+% 
+% hold on
+
+%plot which shows xy plot (modelled lgt vs observed lgt) for phi =27, vmax
+%=1
+
 subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
 snapS_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_63x92m.shp');
 snapS_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_21x30m.shp');
 snapS_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_7x10m.shp');
+PHI27_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\7x10m\7x10m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
+PHI27_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\21x30m\21x30m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
+PHI27_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\63x92m\63x92m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
 
-figure
-b=boxplot([[subS.slope];[snapS_alti3d.slope];[snapS_srtm1.slope];[snapS_srtm3.slope]]',...
-    {'ALTI3D (2m)','ALTI3D (10m)','SRTM1 (30m)','SRTM3 (90m)'},'Widths',[0.2 0.2 0.2 0.2],...
-    'FactorGap',0.001)
-ylabel('Slope of Source Cell [\circ]')
-yl = ylim;
-ylim([0 yl(2)])
-xl = xlim; yl = ylim;
-hold on
-plot([xl(1) xl(2) xl(2) xl(1) xl(1)],[yl(1) yl(1) yl(2) yl(2) yl(1)],'-','LineWidth',2,'Color','black')
+figure('units','normalized','outerposition',[0 0.2 0.7 0.7])
+subplot1(1,2,'Gap',[0.03 0.01],'FontS',12)
 
+%read out data
+obs_lgt = [subS.length];
+mod_lgt = [PHI27_alti3d.length];
+max_srcslope = [snapS_alti3d.max_srcslop];
+idx = find(max_srcslope<27);
+
+subplot1(1)
+plot(obs_lgt,mod_lgt,'.','MarkerSize',10)
+grid on
+ylabel('modelled length [m] with PHI=27\circ and VMAX=4m/s','FontWeight','bold')
+xlabel('observed length [m]','FontWeight','bold')
+yl = xlim;
+ylim(yl);
+xt = yticks;
+xticks(xt);
 hold on
+plot(obs_lgt(idx),mod_lgt(idx),'.','color','red','MarkerSize',10)
+plot([yl(1) yl(2)],[yl(1) yl(2)],'--','color','black')
+hold off
+subplot1(2)
+plot(max_srcslope,mod_lgt,'.','MarkerSize',10)
+grid on
+xlabel('maximum slope gradient of source cell [\circ]','FontWeight','bold')
+ylim(yl);
+hold on
+plot(max_srcslope(idx),mod_lgt(idx),'.','color','red','MarkerSize',10)
+hold off
+
 
 
 
