@@ -2,10 +2,10 @@ function ls_test2()
 %function to test stuff... can be deleted afterwards
 
 load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_hazard.mat')
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_hazard.mat')
 
-%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
-load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
+load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_centroids.mat')
+%load('C:\Users\Simon Rölli\Desktop\data\centroids_hazards_nospread\_LS_Sarnen_srtm1_centroids.mat')
 
 %get gridded datasets
 n_lon = numel(unique(centroids.lon));
@@ -31,15 +31,26 @@ elevation = fillsinks(elevation);
 
 exp = 10;
 v_max = 12;
-phi = 15;
+phi = 10;
 
 [~,horDist,verDist] = climada_centroids_gradients(lon,lat,elevation);
 mult_flow = climada_ls_multipleflow(lon,lat,elevation,exp);
+
+cell_area = climada_centroids_area(lon,lat,elevation);
+
+source = source*0;
+source(80,15)=1;
+[spreaded,intensity] = climada_ls_propagation(source,mult_flow,horDist,verDist,v_max,phi,'','',1,cell_area);
+
+figure
+surface(lon,lat,intensity)
 
 %select source cells(buffer region)
 sel_source = zeros(size(elevation));
 mask = zeros(size(elevation));
 tot_spreaded = zeros(size(elevation));
+
+
 
 buf_m = 1000; %bufferregion in meters in which no other slides are choosen--> prevents slides from flow over each other
 imask = ceil(buf_m/dy);

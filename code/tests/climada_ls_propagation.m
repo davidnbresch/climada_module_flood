@@ -124,7 +124,7 @@ active_cells_idx = []; %saves the indices of all active cells
 direction = source_area*0; %will save flow-direction in each iteration
 
 %total intensity
-rel_prob = source_area;
+rel_prob = double(source_area);
 
 %distance to source
 intensity = zeros(size(source_area));
@@ -239,7 +239,7 @@ for k=1:numel(active_cells_idx)
                 %save distance from source --> by adding distanc from
                 %previous cell to inflow-cell (
                 if cal_int
-                    intensity(J,I) = max(intensity(J,I),intensity(j,i)+cell_area(j,i));
+                    intensity(J,I) = intensity(j,i)* wgt_suscept(c)+cell_area(J,I);
                 end
             end %end if spread > 0
         end %end interation through neighbours
