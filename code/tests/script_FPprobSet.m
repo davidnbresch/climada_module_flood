@@ -26,6 +26,7 @@ lon_srtm3 = reshape(centroids.lon,n_lat,n_lon);
 lat_srtm3 = reshape(centroids.lat,n_lat,n_lon);
 elevation_srtm3 = reshape(centroids.elevation_m,n_lat,n_lon);
 
+%SRTM1
 centroids = load(dem_path_srtm1,'centroids');
 centroids = centroids.centroids;
 n_lon = numel(unique(centroids.lon));
@@ -34,6 +35,7 @@ lon_srtm1 = reshape(centroids.lon,n_lat,n_lon);
 lat_srtm1 = reshape(centroids.lat,n_lat,n_lon);
 elevation_srtm1 = reshape(centroids.elevation_m,n_lat,n_lon);
 
+%ALTI3D
 centroids = load(dem_path_alti3d,'centroids');
 centroids = centroids.centroids;
 n_lon = numel(unique(centroids.lon));
@@ -66,6 +68,13 @@ c = num2cell(rmv);
 [subS.removed] = c{:};
 c = num2cell(reachAngle);
 [subS.reachAngle] = c{:};
+
+%remove them completely
+rmv = find(rmv~=0);
+subS(rmv) = [];
+snapS_srtm3(rmv) = [];
+snapS_srtm1(rmv) = [];
+snapS_alti3d(rmv) = [];
 %%
 %define structure of phi distribution --> from histogram
 
@@ -78,21 +87,22 @@ demstr = ["SRTM3" "SRTM1" "ALTI3D"];
 if 0
 
     %srtm3
-    [modS,obsS] = climada_ls_probAss(lon_srtm3,lat_srtm3,elevation_srtm3,subS,snapS_srtm3,edges_vmax,edges_phi,count_phi,num_slides,0);
-    [file,path] = uiputfile('*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(1)) '.shp']);
+    [modS,obsS] = climada_ls_probAss(lon_srtm3,lat_srtm3,elevation_srtm3,subS,snapS_srtm3,edges_vmax,edges_phi,count_phi,num_slides,fig);
+    [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(1)) '.shp']);
     shapewrite(modS,[path filesep file]);
     shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
     %boxplot([[modS.length];[obsS.length]]')
 
     %srtm1
     [modS,obsS] = climada_ls_probAss(lon_srtm1,lat_srtm1,elevation_srtm1,subS,snapS_srtm1,edges_vmax,edges_phi,count_phi,num_slides,0);
-    [file,path] = uiputfile('*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(2)) '.shp']);
+    [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(2)) '.shp']);     
+
     shapewrite(modS,[path filesep file]);
     shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
 
     %alti3d
     [modS,obsS] = climada_ls_probAss(lon_alti3d,lat_alti3d,elevation_alti3d,subS,snapS_alti3d,edges_vmax,edges_phi,count_phi,num_slides,0);
-    [file,path] = uiputfile('*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(3)) '.shp']);
+    [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(3)) '.shp']);
     shapewrite(modS,[path filesep file]);
     shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
 end
@@ -119,18 +129,77 @@ climada_ls_probAssPlot(modS,obsS,'length','qq',[0 500])
 climada_ls_probAssPlot(modS,obsS,'length','hist','',100,[0 2500])
 climada_ls_probAssPlot(modS,obsS,'length','hist','',25,[0 1000])
 
-%histogram of distribution of vmax and phi for slides lenght = 0 and slides
+%histogram of distribution of phi for slides lenght = 0 and slides
 %vs distribtuion of vmax phi for slides >0 --> maybe you see that it is
 %just dependend on phi (or this is the case by definition to be clear)
-zero_SRTM3 = find([modS_SRTM3.length]==0);
-modS_zeros.(demstr(1)) = modS_SRTM3(zero_SRTM3);
-phi_SRTM3 = [modS_SRTM3.phi];
-zero_SRTM1 = [modS_SRTM1.length]==0;
-phi_SRTM1 = [modS_SRTM1.phi];
-zero_ALTI3D = [modS_ALTI3D.length]==0;
-phi_ALTI3D = [modS_ALTI3D.phi];
 
-%histogram(phi_SRTM3(zeroSRTM3)
+%find zero_slides
+zero_idx = find([modS_SRTM3.length]==0);
+modS_zeros.SRTM3 = modS_SRTM3(zero_idx);
+obsS_zeros.SRTM3 = obsS_SRTM3(zero_idx);
+zero_idx = find([modS_SRTM1.length]==0);
+modS_zeros.SRTM1 = modS_SRTM1(zero_idx);
+obsS_zeros.SRTM1 = obsS_SRTM1(zero_idx);
+zero_idx = find([modS_ALTI3D.length]==0);
+modS_zeros.ALTI3D = modS_ALTI3D(zero_idx);
+obsS_zeros.ALTI3D = obsS_ALTI3D(zero_idx);
+
+%find slides bigger than zero
+nonzero_idx = find([modS_SRTM3.length]>0);
+modS_nonzeros.SRTM3 = modS_SRTM3(nonzero_idx);
+obsS_nonzeros.SRTM3 = obsS_SRTM3(nonzero_idx);
+nonzero_idx = find([modS_SRTM1.length]>0);
+modS_nonzeros.SRTM1 = modS_SRTM1(nonzero_idx);
+obsS_nonzeros.SRTM1 = obsS_SRTM1(nonzero_idx);
+nonzero_idx = find([modS_ALTI3D.length]>0);
+modS_nonzeros.ALTI3D = modS_ALTI3D(nonzero_idx);
+obsS_nonzeros.ALTI3D = obsS_ALTI3D(nonzero_idx);
+
+%dist zeros vs nonzeros phi
+climada_ls_probAssPlot(modS_zeros,modS_nonzeros,'phi','hist','',2.5,[0 60])
+%dist zeros vs nonzeros vmax
+%climada_ls_probAssPlot(modS_zeros,modS_nonzeros,'vmax','hist','',1,[1 11])
+
+
+%histogram of distribution of phi for slides lenght > threshold and slides
+%vs distribtuion of vmax phi for slides >0 --> maybe you see that it is
+%just dependend on phi (or this is the case by definition to be clear)
+
+str_lgt_th = '1000'; %threshold for length
+lgt_th = str2num(str_lgt_th);
+
+%find slides smaller than threshold
+idx = find([modS_SRTM3.length]<=lgt_th);
+modS_stLgtTh.SRTM3 = modS_SRTM3(idx);
+obsS_stLgtTh.SRTM3 = obsS_SRTM3(idx);
+idx = find([modS_SRTM1.length]<=lgt_th);
+modS_stLgtTh.SRTM1 = modS_SRTM1(idx);
+obsS_stLgtTh.SRTM1 = obsS_SRTM1(idx);
+idx = find([modS_ALTI3D.length]<=lgt_th);
+modS_stLgtTh.ALTI3D = modS_ALTI3D(idx);
+obsS_stLgtTh.ALTI3D = obsS_ALTI3D(idx);
+
+%find slides bigger than threshold
+idx = find([modS_SRTM3.length]>lgt_th);
+modS_gtLgtTh.SRTM3 = modS_SRTM3(idx);
+obsS_gtLgtTh.SRTM3 = obsS_SRTM3(idx);
+idx = find([modS_SRTM1.length]>lgt_th);
+modS_gtLgtTh.SRTM1 = modS_SRTM1(idx);
+obsS_gtLgtTh.SRTM1 = obsS_SRTM1(idx);
+idx = find([modS_ALTI3D.length]>lgt_th);
+modS_gtLgtTh.ALTI3D = modS_ALTI3D(idx);
+obsS_gtLgtTh.ALTI3D = obsS_ALTI3D(idx);
+
+%dist st threshold vs gt threshold for phi
+climada_ls_probAssPlot(modS_stLgtTh,modS_gtLgtTh,'phi','hist','',2.5,[0 60])
+%dist st threshold vs gt threshold for vmax
+climada_ls_probAssPlot(modS_stLgtTh,modS_gtLgtTh,'vmax','hist','',1,[1 11])
+
+%dist and qq when zero slides are not considered
+climada_ls_probAssPlot(modS_nonzeros,obsS_nonzeros,'length','both',[0 2500],50,[0 2500])
+
+
+
 
 
 disp('hier')
