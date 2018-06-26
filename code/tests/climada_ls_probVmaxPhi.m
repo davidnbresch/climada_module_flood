@@ -87,7 +87,9 @@ a1 = ((edges_vmax(2)-edges_vmax(1))*1)/2;
 a2 = ((edges_vmax(end)-edges_vmax(3))*1)/2;
 a3 = (edges_vmax(3)-edges_vmax(2))*1;
 
-prob_vmax = prob_vmax/(a1+a2+a3);
+a_vmax = a1+a2+a3;
+
+prob_vmax = prob_vmax/(a_vmax);
 clear a1 a2 a3 idx
 
 %%
@@ -134,6 +136,8 @@ if binORlin == 'bin'
 end
 if binORlin == 'lin'
     prob_phi = prob_phi_lin;
+    edges_phiplot = edges_phi_lin;
+    count_phiplot = count_phi_lin;
 end
 
 rand_wig = rand([1,numrun]);
@@ -147,6 +151,20 @@ phi = rand_phi(idx);
 %plots
 
 if fig
+    %edges and height for plot lines
+    edges_vmaxplot = edges_vmax;
+    count_vmaxplot = [0 1 1 0]/a_vmax;
+    if binORlin == 'bin'
+        edges_phiplot = [edges_phi;edges_phi];
+        edges_phiplot = edges_phiplot(:);
+        count_phiplot = [count_phi;count_phi];
+        count_phiplot = [0;count_phiplot(:);0];
+    end
+    if binORlin == 'lin'
+        edges_phiplot = edges_phi_lin;
+        count_phiplot = count_phi_lin;
+    end
+    
     %sort random numbers --> better for plot
     [~,idx_svmax] = sort(rand_vmax);
     [~,idx_sphi] = sort(rand_phi);
@@ -163,9 +181,9 @@ if fig
     ylabel('Density','FontWeight','bold');
     xlabel('PHI [\circ]','FontWeight','bold')
     hold on
-    a = area(rand_phi(idx_sphi),prob_phi(idx_sphi),'FaceColor',[0, 0.4470, 0.7410]);
+    a = area(edges_phiplot,count_phiplot,'FaceColor',[0, 0.4470, 0.7410]);
     alpha(a,0.25)
-    plot(rand_phi(idx_sphi),prob_phi(idx_sphi),'color',[0, 0.4470, 0.7410],'LineWidth',2);
+    plot(edges_phiplot,count_phiplot,'color',[0, 0.4470, 0.7410],'LineWidth',2);
     %ylim([0,0.25])
     yl = ylim;
     xl = xlim;
@@ -175,10 +193,10 @@ if fig
 
     %plot density vmax
     subplot1(2)
-    a = area(rand_vmax(idx_svmax),prob_vmax(idx_svmax),'FaceColor',[0.8500 0.3250 0.0980]);
+    a = area(edges_vmaxplot,count_vmaxplot,'FaceColor',[0.8500 0.3250 0.0980]);
     alpha(a,0.25)
     hold on
-    plot(rand_vmax(idx_svmax),prob_vmax(idx_svmax),'color',[0.8500 0.3250 0.0980],'LineWidth',2);
+    plot(edges_vmaxplot,count_vmaxplot,'color',[0.8500 0.3250 0.0980],'LineWidth',2);
     grid on
     xlabel('VMAX [m/s]','FontWeight','bold')
     yl = ylim;
@@ -196,9 +214,9 @@ if fig
     cmap = cmap(150:450,:);
     
     %get density
-    [ dmap ] = dataDensity( vmax, phi, 257, 257, [1 11 5 60]);
-    PHI = ([0:1/256:1])*(max(edges_phi)-min(edges_phi))+min(edges_phi);
-    VMAX = ([0:1/256:1])*(max(edges_vmax)-min(edges_vmax))+min(edges_vmax);
+    [ dmap ] = dataDensity( vmax, phi, 70, 70, [1 11 5 60]);
+    PHI = ([0:1/69:1])*(max(edges_phi)-min(edges_phi))+min(edges_phi);
+    VMAX = ([0:1/69:1])*(max(edges_vmax)-min(edges_vmax))+min(edges_vmax);
     [VMAX,PHI] = meshgrid(VMAX,PHI);
     
     p=pcolor(PHI,VMAX,dmap);
@@ -210,7 +228,7 @@ if fig
     colormap(cmap)
     set(p, 'EdgeColor', 'none','facealpha',0.75);
     hold on
-    plot(phi,vmax,'.','MarkerSize',2,'color','black')
+    plot(phi(1:10:end),vmax(1:10:end),'.','MarkerSize',3,'color','black')
     %boarder plot
     xl = xlim;
     yl = ylim;
@@ -218,6 +236,7 @@ if fig
     xlim(xl)
     ylim(yl)
     hold off
+    
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -229,13 +248,13 @@ if fig
     cmap = cmap(150:450,:);
     
     figure('units','normalized','outerposition',[0.5 0.1 0.5 0.5])
-    plot3(rand_phi(idx_sphi),zeros(size(rand_phi))+max(rand_vmax),prob_phi(idx_sphi),'color',[0, 0.4470, 0.7410],'LineWidth',2)
+    plot3(edges_phiplot,zeros(size(edges_phiplot))+max(edges_vmaxplot),count_phiplot,'color',[0, 0.4470, 0.7410],'LineWidth',2)
     set(gca,'fontsize', 12);
     grid on
     xlim([min(edges_phi),max(edges_phi)])
     ylim([min(edges_vmax),max(edges_vmax)])
     hold on
-    plot3(zeros(size(rand_vmax))+max(rand_phi),rand_vmax(idx_svmax),prob_vmax(idx_svmax),'color',[0.8500 0.3250 0.0980],'LineWidth',2)
+    plot3(zeros(size(edges_vmaxplot))+max(edges_phi),edges_vmaxplot,count_vmaxplot,'color',[0.8500 0.3250 0.0980],'LineWidth',2)
     xl = xlim;
     yl = ylim;
     zl = zlim;
@@ -243,14 +262,14 @@ if fig
     ylabel('VMAX [m/s]','FontWeight','bold','Rotation',-17)
     zlabel('Density','FontWeight','bold')
     %plot boarder
-    [ dmap ] = dataDensity( vmax, phi, 257, 257, [1 11 5 60]);
-    PHI = ([0:1/256:1])*(max(edges_phi)-min(edges_phi))+min(edges_phi);
-    VMAX = ([0:1/256:1])*(max(edges_vmax)-min(edges_vmax))+min(edges_vmax);
+    [ dmap ] = dataDensity( vmax, phi, 70, 70, [1 11 5 60]);
+    PHI = ([0:1/69:1])*(max(edges_phi)-min(edges_phi))+min(edges_phi);
+    VMAX = ([0:1/69:1])*(max(edges_vmax)-min(edges_vmax))+min(edges_vmax);
     [VMAX,PHI] = meshgrid(VMAX,PHI);
     p=pcolor(PHI,VMAX,dmap);
     colormap(cmap)
     set(p, 'EdgeColor', 'none','facealpha',0.75);
-    plot(phi,vmax,'.','MarkerSize',3,'color','black')
+    %plot(phi,vmax,'.','MarkerSize',3,'color','black')
     %plot boarder
     plot3([xl(2) xl(2)],[yl(2) yl(2)],[zl(1) zl(2)],'--','color',[0.75 0.75 0.75],'LineWidth',1)
     %plot3(ones(5)*xl(2),[yl(1) yl(2) yl(2) yl(1) yl(1)],[zl(1) zl(1) zl(2) zl(2) zl(1)],'color','black','LineWidth',1)
