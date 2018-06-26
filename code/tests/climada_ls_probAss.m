@@ -131,7 +131,7 @@ for i=1:num_slides
         %propagate slide
         spreaded = climada_ls_propagation(start,mult_flow,horDist,verDist,vmax(i),phi(i),PT,perWt);
         %calculate length area 
-        source_ID = start*sl_idx;
+        source_ID = start*snapS(sl_idx).ID;
         [~,tempS] = climada_ls_slideScores(lon,lat,spreaded,source_ID,elevation,cell_area);
         
         %write data in modS and obsS
