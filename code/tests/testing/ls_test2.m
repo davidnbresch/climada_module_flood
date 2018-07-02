@@ -40,10 +40,15 @@ cell_area = climada_centroids_area(lon,lat,elevation);
 
 source = source*0;
 source(80,15)=1;
-[spreaded,intensity] = climada_ls_propagation(source,mult_flow,horDist,verDist,v_max,phi,'','',1,cell_area);
+en_decay = 0.7;
+[spreaded,intensity] = climada_ls_propagation(source,mult_flow,horDist,verDist,v_max,phi,'','',en_decay,1,cell_area);
 
+% figure
+% surface(elevation,source)
+% view(60,55)
 figure
-surface(lon,lat,intensity)
+surface(elevation,spreaded>0)
+view(60,55)
 
 %select source cells(buffer region)
 sel_source = zeros(size(elevation));
