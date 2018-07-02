@@ -42,6 +42,9 @@ function [IDfield,S] = climada_ls_slideScores(lon,lat,intensity,source_ID,elevat
 %               straight line from start to end (lowest point) of slide by
 %               assuming constant linear slope.
 %               .ID: 1xs vector with slide id of each corresponding slide given in source_ID.
+%               .dL: horizontal distance between start and end -> slope =0
+%               .dH: vertical distance between start and end
+%               
 % MODIFICATION HISTORY:
 % Thomas Rölli, thomasroelli@gmail.com, 20180502, init
 
@@ -82,6 +85,8 @@ endlat = zeros(size(source_idx));
 area = zeros(size(source_idx));
 lgt = zeros(size(source_idx));
 ID = zeros(size(source_idx));
+dH = zeros(size(source_idx));
+dL = zeros(size(source_idx));
 
 for n=1:numel(source_idx)
     slide_idx = cell2mat(con_areas_idx(aidx(n)));
@@ -104,12 +109,15 @@ for n=1:numel(source_idx)
     dJ = abs(Jst-Jen)*dx;
     dz = elevation(source_idx(n))-elevation(slide_idx(end_idx));
     try 
-        lgt(n) = double(sqrt(sqrt(dI^2+dJ^2)^2+dz^2));
+        dL(n) = double(sqrt(dI^2+dJ^2));
+        lgt(n) = double(sqrt(dL^2+dz^2));
     catch
+        dL(n) = double(0);
         lgt(n) = double(0);
     end
     
     %write lon/lat of start and end points
+    dH(n) = dz;
     startlon(n) = lon(source_idx(n));
     startlat(n) = lat(source_idx(n));
     endlon(n) = lon(slide_idx(end_idx));
@@ -125,7 +133,8 @@ for i = 1:numel(startlon)
    S(i).(field) = ID(i); 
    S(i).area = area(i); 
    S(i).length = lgt(i); 
-   
+   S(i).dL = dL(i);
+   S(i).dH = dH(i);
 end
 
 
