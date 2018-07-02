@@ -57,6 +57,9 @@ function [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,...
 %             source cell
 %             .slope: slope at source cell--> slope derived from
 %             climada_centroids_slope (with coarser grid)
+%             .dL: horitzontal distance between start and end of slide
+%             .dH: vertical distance between start and end of slide
+%             .reachAngle: angle of reach atand(dH/dL)
 %   start:   (nxm)-matrix with source area (highest points) of each slide.
 %             The slides are labelled with the corresponding number given
 %             in S.(field). If several slides with same start cell --> ID
@@ -73,6 +76,7 @@ function [S,start,end_] = climada_calibration_snap(subS,orgLon,orgLat,...
 % Thomas Rölli, thomasroelli@gmail.com, 20180528, start/end directly
 %  derived from polyline coordinates
 % Thomas Rölli, thomasroelli@gmail.com, 20180614, slope of source cell
+% Thomas Rölli, thomasroelli@gmail.com, 20180702, dH, dL and angle of reach
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -180,12 +184,25 @@ for i=1:numel(subS)
         dJ = abs(Jst-Jen)*dx;
         dz = elevation(k_st(ik_st))-elevation(k_en(ik_en));
         try 
-            lgt = double(sqrt(sqrt(dI^2+dJ^2)^2+dz^2));
+            dL = double(sqrt(dI^2+dJ^2));
+            lgt = double(sqrt(dL^2+dz^2));
         catch
+            dL = double(0);
             lgt = double(0);
         end
-        %write snapped length in structure
+       
+        %calculate angle of reach
+        try
+            reachAngle = atand(dz/dL);
+        catch
+            reachAngle = 0;
+        end
+        
+         %write snapped length in structure
         S(i).snap_length = lgt;
+        S(i).dH = dz;
+        S(i).dL = dL;
+        S(i).reachAngle = reachAngle;
 
         %create start matrix --> if one cell is affected several times-->
         %take the one which is longer (of original raster length)
@@ -208,6 +225,9 @@ for i=1:numel(subS)
         S(i).snap_length = nan;
         S(i).max_srcslope = nan;
         S(i).slope = nan;
+        S(i).dH = nan;
+        S(i).dL = nan;
+        S(i).reachAngle = nan;
     end %end of skip removed
     
 end 
@@ -239,6 +259,12 @@ m = num2cell([S.snap_length]);
 [k.length] = m{:};
 m = num2cell([S.slope]);
 [k.slope] = m{:};
+m = num2cell([S.dH]);
+[k.dH] = m{:};
+m = num2cell([S.dL]);
+[k.dL] = m{:};
+m = num2cell([S.reachAngle]);
+[k.reachAngle] = m{:};
 
 
 S = k;
