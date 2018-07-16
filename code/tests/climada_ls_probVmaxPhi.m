@@ -172,7 +172,7 @@ if fig
     %%%plot density functions of angle of reach and vmax
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     figure('units','normalized','outerposition',[0 0 1 1])
-    subplot1(2,2,'Gap',[0.02 0.06],'XTickL','All','YTickL','All','FontS',12)
+    subplot1(2,2,'Gap',[0.02 0.06],'XTickL','All','YTickL','All','FontS',15)
 
     %plot density angle of reach
     subplot1(1)
@@ -249,7 +249,7 @@ if fig
     
     figure('units','normalized','outerposition',[0.5 0.1 0.5 0.5])
     plot3(edges_phiplot,zeros(size(edges_phiplot))+max(edges_vmaxplot),count_phiplot,'color',[0, 0.4470, 0.7410],'LineWidth',2)
-    set(gca,'fontsize', 12);
+    set(gca,'fontsize', 15);
     grid on
     xlim([min(edges_phi),max(edges_phi)])
     ylim([min(edges_vmax),max(edges_vmax)])
