@@ -200,9 +200,9 @@ for i=1:numel(subS)
         
          %write snapped length in structure
         S(i).snap_length = lgt;
-        S(i).dH = dz;
+        S(i).dH = double(dz);
         S(i).dL = dL;
-        S(i).reachAngle = reachAngle;
+        S(i).reachAngle = double(reachAngle);
 
         %create start matrix --> if one cell is affected several times-->
         %take the one which is longer (of original raster length)
