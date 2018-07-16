@@ -62,7 +62,7 @@ flowPara.iT = iT;
 flowPara.perWT = perWT;
 %%
 %run model for calibration
-
+[res_files_srtm3,unit_srtm3] = climada_calibration_ls(org_centroids,cal_centroids_srtm3,orgS,flowPara,dat_dir,subS,'');
 [res_files_srtm3,unit_srtm3] = climada_calibration_ls(org_centroids,cal_centroids_srtm3,orgS,flowPara,dat_dir,subS,snapS_srtm3);
 [res_files_srtm1,unit_srtm1]= climada_calibration_ls(org_centroids,cal_centroids_srtm1,orgS,flowPara,dat_dir,subS,snapS_srtm1);
 [res_files_alti3d,unit_alti3d] = climada_calibration_ls(org_centroids,cal_centroids_alti3d,orgS,flowPara,dat_dir,subS,snapS_alti3d);
