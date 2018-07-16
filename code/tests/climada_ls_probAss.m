@@ -1,5 +1,5 @@
 function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
-    edges_vmax,edges_phi,count_phi,num_slides,fig)
+    edges_vmax,edges_phi,count_phi,num_slides,en_decay,fig)
 
 % Generates probabilistic parameter sets (vmax, phi) from
 % climada_ls_probVmaxPhi, propagates n randomly chosen slides in snapS
@@ -46,6 +46,9 @@ function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
 %               histogram of angle of reach (phi) of landslide inventory.
 %   num_slides: number of slides which shall be randomly choosen from snapS
 %               and propagated with random parameter (vmax,phi).
+%   en_decay:   fraction of energy which shall be removed from total energy
+%               after a cell was propagated to the next cell -> pragmatic 
+%               approach to reduce the number of too long slides
 %   fig:        plotting (1/0) of parameter distribution in
 %               climada_ls_probVmaxPhi
 % OUTPUTS:   
@@ -67,6 +70,7 @@ if ~exist('edges_vmax') edges_vmax = []; end
 if ~exist('edges_phi') edges_phi = []; end
 if ~exist('count_phi') count_phi = []; end
 if ~exist('num_slides') num_slides = []; end
+if ~exist('en_decay') num_slides = []; end
 if ~exist('fig') fig = []; end
 
 if isempty(lon); return; end
@@ -84,6 +88,7 @@ if isempty(edges_vmax) || isempty(count_phi)
 end
 
 if isempty(num_slides); num_slides = 1000; end
+if isempty(en_decay); en_decay = 0; end
 if isempty(fig); fig = 0; end
 
 
@@ -129,7 +134,7 @@ for i=1:num_slides
         start(idxI,idxJ) = 1;
         
         %propagate slide
-        spreaded = climada_ls_propagation(start,mult_flow,horDist,verDist,vmax(i),phi(i),PT,perWt);
+        spreaded = climada_ls_propagation(start,mult_flow,horDist,verDist,vmax(i),phi(i),PT,perWt,en_decay);
         %calculate length area 
         source_ID = start*snapS(sl_idx).ID;
         [~,tempS] = climada_ls_slideScores(lon,lat,spreaded,source_ID,elevation,cell_area);
@@ -138,7 +143,7 @@ for i=1:num_slides
         X = [tempS.startlon tempS.endlon];
         Y = [tempS.startlat tempS.endlat];
         modS(i).ID = tempS.ID; modS(i).X = X; modS(i).Y = Y; modS(i).length = tempS.length; modS(i).area = tempS.area;
-        modS(i).vmax = vmax(i); modS(i).phi = phi(i);
+        modS(i).vmax = vmax(i); modS(i).phi = phi(i); modS(i).dL = tempS.dL; modS(i).dH = tempS.dH;
         
         obsS(i) = subS(sl_idx);
         modS(i).removed = 0;

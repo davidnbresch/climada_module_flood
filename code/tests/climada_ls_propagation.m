@@ -1,5 +1,5 @@
 function [rel_prob,intensity] = climada_ls_propagation(source_area,mult_flow,... 
-hor_dist,ver_dist,v_max,phi,delta_i,perWt,cal_int,cell_area)
+hor_dist,ver_dist,v_max,phi,delta_i,perWt,en_decay,cal_int,cell_area)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
@@ -45,11 +45,16 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,cal_int,cell_area)
 %            the central cell to corresponding neighbour) .. last element
 %            represents weight of neighbour to the left of flow direction
 %            (45 degree anticlockwise). 
+%   en_decay:fraction of energy which shall be removed from total energy
+%            after a cell was propagated to the next cell -> pragmatic 
+%            approach to reduce the number of too long slides
 %   cal_int:     (0/1) set to 1 if intenisty should be calculated (in m^2),
 %            Intensity is defined as covered area (similar to upstream
 %            contributing area). If one cell is passed more than once
 %            , the maximum intensity is saved. If set 0 (default): a zeromatrix
 %            is returned.
+%   cell_area: need to be provided if cal_int set to 1. derived from
+%              climada_centroids_area
 % OUTPUTS:
 %   rel_prob: matrix (lon lat) with the resulting relative probability after a
 %                  single landslides is propagated downstream starting from source areas
@@ -73,6 +78,8 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,cal_int,cell_area)
 %  cells instead of matrices --> faster
 % Thomas Rölli, thomasroelli@gmail.com, 20180608, implementation of
 %  intensity definition (as covered area)
+% Thomas Rölli, thomasroelli@gmail.com, 20180629, implementation of
+%  pragmatic reduction of energy
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -86,6 +93,7 @@ if ~exist('v_max', 'var'), v_max = []; end
 if ~exist('phi', 'var'), phi = []; end
 if ~exist('delta_i', 'var'), delta_i = []; end
 if ~exist('perWt', 'var'), perWt = []; end
+if ~exist('en_decay', 'var'), perWt = []; end
 if ~exist('cal_int', 'var'), cal_int = []; end
 if ~exist('cell_area', 'var'), cell_area = []; end
 
@@ -98,6 +106,7 @@ if isempty(v_max); v_max = 4; end
 if isempty(phi); phi = 27; end %empirical minimum travel angle, used for friction-calculation
 if isempty(delta_i); delta_i = 0.0003; end
 if isempty(perWt); perWt = [1 0.8 0.4 0 0 0 0.4 0.8]; end
+if isempty(en_decay); en_decay = 0; end
 if isempty(cal_int); cal_int = 0; end
 if isempty(cell_area) && cal_int==1; return; end
 
@@ -180,7 +189,11 @@ for k=1:numel(active_cells_idx)
         wgt_suscept = wgt_suscept./sum(wgt_suscept);
 
         %calculate energy to all its neigbours
-        e_Kin = energy(j,i)+ePot(j,i,:)-eFric(j,i,:);
+        if direction(j,i) == 0 %source cell --> not not remove energy by en_decay
+            e_Kin = energy(j,i)+ePot(j,i,:)-eFric(j,i,:);
+        else %after source cell --> remove potential energy
+            e_Kin = energy(j,i)+ePot(j,i,:)*(1-en_decay)-eFric(j,i,:);
+        end
         e_Kin = e_Kin(:)';
         %set v to v_max if larger than v_max; and calculate energy
         %again
@@ -227,11 +240,13 @@ for k=1:numel(active_cells_idx)
                     old_energy = energy(J,I);
                     if e_Kin(c) > old_energy
                         energy(J,I) = e_Kin(c);
+                        %energy(J,I) = e_Kin(c)*(1-en_decay);
                         direction(J,I) = c;
                     end
                 else 
                     spread(J,I) = temp_spread(c);
                     energy(J,I) = e_Kin(c);
+                    %energy(J,I) = e_Kin(c)*(1-en_decay);
                     direction(J,I) = c;
                 end
                 temp_active_cells(J,I) = 1;
