@@ -1,5 +1,5 @@
 function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
-    edges_vmax,edges_phi,count_phi,num_slides,en_decay,fig)
+    edges_vmax,edges_phi,count_phi,num_slides,en_decay,stdv,fig)
 
 % Generates probabilistic parameter sets (vmax, phi) from
 % climada_ls_probVmaxPhi, propagates n randomly chosen slides in snapS
@@ -11,7 +11,7 @@ function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
 % PURPOSE:
 %  Can be used to assess the performace of the flow path algorithm for a 
 %  probabilistic parameter set (different vmax phi values). Probabilistic
-%  set shall represent the natural variablity and uncertainty in the flow
+%  set shall represent the natural stdvablity and uncertainty in the flow
 %  path parameters. A good parameter sets leads to a good representation of
 %  the overall distribution, range of the area and length of the shallow
 %  landslides from the inventory
@@ -49,6 +49,14 @@ function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
 %   en_decay:   fraction of energy which shall be removed from total energy
 %               after a cell was propagated to the next cell -> pragmatic 
 %               approach to reduce the number of too long slides
+%   stdv:       Matrix with same dimension as elevation grid. Provides field of
+%               standard deviation of slope degree calculated by
+%               climada_centroids_demVariance. If matrix is not provided
+%               and empty, no wiggle factor is caculated and the slope of
+%               the source area not changed. If provided num_slides times
+%               wiggle factors from a normal distribution are generated and
+%               the slope of the source cell (in climada_ls_propagation) is
+%               changed by this factor.
 %   fig:        plotting (1/0) of parameter distribution in
 %               climada_ls_probVmaxPhi
 % OUTPUTS:   
@@ -72,6 +80,8 @@ if ~exist('count_phi') count_phi = []; end
 if ~exist('num_slides') num_slides = []; end
 if ~exist('en_decay') num_slides = []; end
 if ~exist('fig') fig = []; end
+if ~exist('stdv') stdv = []; end
+
 
 if isempty(lon); return; end
 if isempty(lat); return; end
@@ -90,6 +100,7 @@ end
 if isempty(num_slides); num_slides = 1000; end
 if isempty(en_decay); en_decay = 0; end
 if isempty(fig); fig = 0; end
+if isempty(stdv); stdv_source = 0; else; stdv_source = 1; end %include consideration of stdvance of slope degree only if stdv is provided
 
 
 
@@ -118,6 +129,13 @@ para_idx = randi([1 numel(vmax)],1,num_slides);
 vmax = vmax(para_idx);
 phi = phi(para_idx);
 
+if stdv_source
+    %generate num_slides times a wiggle factor of the slope at source area
+    %(generated from stdvance of slope of denser grid)
+    rand_wiggle = abs(normrnd(0,1,1,num_slides));
+end
+
+
 format_str = '%s';
 
 %propagate all slides with corresponding parameter set
@@ -133,8 +151,17 @@ for i=1:num_slides
         [~,idxI] = ismember(y(1),lat(:,1));
         start(idxI,idxJ) = 1;
         
+        %select stdvance of slope degree and multiply with normal dist.
+        %random number to get wiggle factor
+        if stdv_source
+           stdv_wiggle = zeros(size(lat));
+           stdv_wiggle(idxI,idxJ) = stdv(idxI,idxJ)*rand_wiggle(i);
+        else
+           stdv_wiggle = [];
+        end
+        
         %propagate slide
-        spreaded = climada_ls_propagation(start,mult_flow,horDist,verDist,vmax(i),phi(i),PT,perWt,en_decay);
+        spreaded = climada_ls_propagation(start,mult_flow,horDist,verDist,vmax(i),phi(i),PT,perWt,en_decay,'','',stdv_wiggle);
         %calculate length area 
         source_ID = start*snapS(sl_idx).ID;
         [~,tempS] = climada_ls_slideScores(lon,lat,spreaded,source_ID,elevation,cell_area);
