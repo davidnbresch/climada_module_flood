@@ -224,7 +224,7 @@ end
 
 if CDF_plot
 fig = figure('units','normalized','outerposition',[0 0.3 1 0.65]);
-subplot1(floor((n_runs-1)/3)+1,3,'Gap',[0.02 0.02],'XTickL','Margin','YTickL','Margin','FontS',15)
+subplot1(floor((n_runs-1)/3)+1,n_runs,'Gap',[0.02 0.02],'XTickL','Margin','YTickL','Margin','FontS',15)
 for i=1:n_runs
     %select corresponding structure
     model = modS.(char(names(i)));
