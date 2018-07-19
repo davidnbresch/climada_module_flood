@@ -1,5 +1,5 @@
 function [rel_prob,intensity] = climada_ls_propagation(source_area,mult_flow,... 
-hor_dist,ver_dist,v_max,phi,delta_i,perWt,en_decay,cal_int,cell_area)
+hor_dist,ver_dist,v_max,phi,delta_i,perWt,en_decay,cal_int,cell_area,stdv_wiggle)
 
 % Computes the flow path according to the multiple flow algorithm
 % (according to Holmgren 1994). The flow distance is taken into account by
@@ -55,6 +55,22 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,en_decay,cal_int,cell_area)
 %            is returned.
 %   cell_area: need to be provided if cal_int set to 1. derived from
 %              climada_centroids_area
+%   stdv_wiggle: Matrix(nlat x nlon) of wiggle factor for each source cell
+%                as a product of the stdv of the slope degree (provided by
+%                sqrt(climada_centroids_demVariance)) and a random normal
+%                distr. number (provided by abs(normrnd(0,1))). If stdv_wiggle
+%                is empty it is set to 0 (default). If not empty: slope at
+%                source cell is wiggled by slope(x,y) + stdv_wiggle (each
+%                source cell).
+%                A positive wiggle increases the downward slope gradient by
+%                the same amount.
+%                positive slopes to neighbours (upward slope) are not affected by wiggle
+%                --> to prevent upward slope --> potential energy is
+%                calculated by taking slope which is not wiggled
+%                Method is implemented to prevent too many slopes which are
+%                not triggered because of too flat area. Therefore the
+%                standarddeviation should be multiplied with a positive
+%                normal distibuted random number (abs(normrnd(0,1)))
 % OUTPUTS:
 %   rel_prob: matrix (lon lat) with the resulting relative probability after a
 %                  single landslides is propagated downstream starting from source areas
@@ -80,6 +96,8 @@ hor_dist,ver_dist,v_max,phi,delta_i,perWt,en_decay,cal_int,cell_area)
 %  intensity definition (as covered area)
 % Thomas Rölli, thomasroelli@gmail.com, 20180629, implementation of
 %  pragmatic reduction of energy
+% Thomas Rölli, thomasroelli@gmail.com, 20180718, include wiggle of source
+%  cell according to standarddeviation of slope 
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -96,6 +114,7 @@ if ~exist('perWt', 'var'), perWt = []; end
 if ~exist('en_decay', 'var'), perWt = []; end
 if ~exist('cal_int', 'var'), cal_int = []; end
 if ~exist('cell_area', 'var'), cell_area = []; end
+if ~exist('stdv_wiggle', 'var'), stdv_wiggle = []; end
 
 % PARAMETERS 
 if isempty(source_area); return; end
@@ -109,6 +128,7 @@ if isempty(perWt); perWt = [1 0.8 0.4 0 0 0 0.4 0.8]; end
 if isempty(en_decay); en_decay = 0; end
 if isempty(cal_int); cal_int = 0; end
 if isempty(cell_area) && cal_int==1; return; end
+if isempty(stdv_wiggle); stdv_wiggle = zeros(size(source_area)); end
 
 %if numel(perWt) ~= 8; return; end
 
@@ -189,8 +209,17 @@ for k=1:numel(active_cells_idx)
         wgt_suscept = wgt_suscept./sum(wgt_suscept);
 
         %calculate energy to all its neigbours
-        if direction(j,i) == 0 %source cell --> not not remove energy by en_decay
-            e_Kin = energy(j,i)+ePot(j,i,:)-eFric(j,i,:);
+        if direction(j,i) == 0 %source cell --> do not remove energy by en_decay but wiggle start slope by stdv_wiggle
+            %calculate poential energy if slope is wiggled (for all 8
+            %neighbours)
+            slope = atand(ver_dist(j,i,:)./hor_dist(j,i,:)); %slope if not wiggled
+            wiggled_slope = slope*(-1) + stdv_wiggle(j,i); %wiggled slope: *(-1) to have downslope positive --> positive wiggle lead to steeper downslope
+            %pot energy to neigbour with wiggled slope --> hor_dist kept
+            %konstant --> get ver_dist with new slope
+            %(tand(wiggled_slope)*hor_dist)
+            src_ePot = g*tand(wiggled_slope).*hor_dist(j,i,:).*(slope<=0); %potential energy of source cell: (slope<=0)--> wiggle only downward slopes (with outflow)
+            src_ePot = src_ePot + ePot(j,i,:).*(slope>=0); %include again upward slope --> taken from ePot which was not wiggled
+            e_Kin = energy(j,i)+src_ePot-eFric(j,i,:); 
         else %after source cell --> remove potential energy
             e_Kin = energy(j,i)+ePot(j,i,:)*(1-en_decay)-eFric(j,i,:);
         end

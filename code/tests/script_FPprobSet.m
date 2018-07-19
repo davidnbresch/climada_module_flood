@@ -16,6 +16,9 @@ snapS_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData
 dem_path_srtm3 = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm3'; %srtm3
 dem_path_srtm1 = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_srtm1'; %srtm1
 dem_path_alti3d = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_interpol_alti3d';%alti3d ca. 7*10m
+dem_path_alti3d_2m = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_alti3d_2m';%alti3d ca. 2x3m
+dem_path_alti3d_orig = 'C:\Users\Simon Rölli\Desktop\data\centroids_large\_LS_Sarnen_alti3d_original';%alti3d org 2x2m
+
 
 % figure
 % boxplot([[subS.reachAngle];[snapS_alti3d.reachAngle];[snapS_srtm1.reachAngle];[snapS_srtm3.reachAngle]]',...
@@ -54,6 +57,24 @@ n_lat = numel(unique(centroids.lat));
 lon_alti3d = reshape(centroids.lon,n_lat,n_lon);
 lat_alti3d = reshape(centroids.lat,n_lat,n_lon);
 elevation_alti3d = reshape(centroids.elevation_m,n_lat,n_lon);
+
+%ALTI3D 2x3m
+centroids = load(dem_path_alti3d_2m,'centroids');
+centroids = centroids.centroids;
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon_alti3d_2m = reshape(centroids.lon,n_lat,n_lon);
+lat_alti3d_2m = reshape(centroids.lat,n_lat,n_lon);
+elevation_alti3d_2m = reshape(centroids.elevation_m,n_lat,n_lon);
+
+%ALTI3D original
+centroids = load(dem_path_alti3d_orig,'centroids');
+centroids = centroids.centroids;
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon_alti3d_orig = reshape(centroids.lon,n_lat,n_lon);
+lat_alti3d_orig = reshape(centroids.lat,n_lat,n_lon);
+elevation_alti3d_orig = reshape(centroids.elevation_m,n_lat,n_lon);
 
 %%
 %remove some of slides in subS --> not considered in further calculations
@@ -181,51 +202,161 @@ if 0
     shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
 end
 
-path = 'C:\Users\Simon Rölli\Desktop\data\probSets\';
+if 0
+    path = 'C:\Users\Simon Rölli\Desktop\data\probSets\';
 
-%normal data with angle of reach from 2m
-modS_SRTM3 = shaperead([path 'modS_SRTM3.shp']);
-obsS_SRTM3 = shaperead([path 'obsS_SRTM3.shp']);
-modS_SRTM1 = shaperead([path 'modS_SRTM1.shp']);
-obsS_SRTM1 = shaperead([path 'obsS_SRTM1.shp']);
-modS_ALTI3D = shaperead([path 'modS_ALTI3D.shp']);
-obsS_ALTI3D = shaperead([path 'obsS_ALTI3D.shp']);
-%angle of reach from corresponding dem
-modS_SRTM3_rA = shaperead([path 'modS_SRTM3_rA.shp']);
-obsS_SRTM3_rA = shaperead([path 'obsS_SRTM3_rA.shp']);
-modS_SRTM1_rA = shaperead([path 'modS_SRTM1_rA.shp']);
-obsS_SRTM1_rA = shaperead([path 'obsS_SRTM1_rA.shp']);
-modS_ALTI3D_rA = shaperead([path 'modS_ALTI3D_rA.shp']);
-obsS_ALTI3D_rA = shaperead([path 'obsS_ALTI3D_rA.shp']);
+    %normal data with angle of reach from 2m
+    modS_SRTM3 = shaperead([path 'modS_SRTM3.shp']);
+    obsS_SRTM3 = shaperead([path 'obsS_SRTM3.shp']);
+    modS_SRTM1 = shaperead([path 'modS_SRTM1.shp']);
+    obsS_SRTM1 = shaperead([path 'obsS_SRTM1.shp']);
+    modS_ALTI3D = shaperead([path 'modS_ALTI3D.shp']);
+    obsS_ALTI3D = shaperead([path 'obsS_ALTI3D.shp']);
+    %angle of reach from corresponding dem
+    modS_SRTM3_rA = shaperead([path 'modS_SRTM3_rA.shp']);
+    obsS_SRTM3_rA = shaperead([path 'obsS_SRTM3_rA.shp']);
+    modS_SRTM1_rA = shaperead([path 'modS_SRTM1_rA.shp']);
+    obsS_SRTM1_rA = shaperead([path 'obsS_SRTM1_rA.shp']);
+    modS_ALTI3D_rA = shaperead([path 'modS_ALTI3D_rA.shp']);
+    obsS_ALTI3D_rA = shaperead([path 'obsS_ALTI3D_rA.shp']);
 
-%construct structure for plot
-modS_rA.SRTM3.SRTM3 = modS_SRTM3;
-modS_rA.SRTM3.SRTM3_angle = modS_SRTM3_rA;
-obsS_rA.SRTM3.SRTM3 = obsS_SRTM3;
-obsS_rA.SRTM3.SRTM3_angle = obsS_SRTM3_rA;
-modS_rA.SRTM1.SRTM1 = modS_SRTM1;
-modS_rA.SRTM1.SRTM1_angle = modS_SRTM1_rA;
-obsS_rA.SRTM1.SRTM1 = obsS_SRTM1;
-obsS_rA.SRTM1.SRTM1_angle = obsS_SRTM1_rA;
-modS_rA.ALTI3D.ALTI3D = modS_ALTI3D;
-modS_rA.ALTI3D.ALTI3D_angle = modS_ALTI3D_rA;
-obsS_rA.ALTI3D.ALTI3D = obsS_ALTI3D;
-obsS_rA.ALTI3D.ALTI3D_angle = obsS_ALTI3D_rA;
+    %construct structure for plot
+    modS_rA.SRTM3.SRTM3 = modS_SRTM3;
+    modS_rA.SRTM3.SRTM3_angle = modS_SRTM3_rA;
+    obsS_rA.SRTM3.SRTM3 = obsS_SRTM3;
+    obsS_rA.SRTM3.SRTM3_angle = obsS_SRTM3_rA;
+    modS_rA.SRTM1.SRTM1 = modS_SRTM1;
+    modS_rA.SRTM1.SRTM1_angle = modS_SRTM1_rA;
+    obsS_rA.SRTM1.SRTM1 = obsS_SRTM1;
+    obsS_rA.SRTM1.SRTM1_angle = obsS_SRTM1_rA;
+    modS_rA.ALTI3D.ALTI3D = modS_ALTI3D;
+    modS_rA.ALTI3D.ALTI3D_angle = modS_ALTI3D_rA;
+    obsS_rA.ALTI3D.ALTI3D = obsS_ALTI3D;
+    obsS_rA.ALTI3D.ALTI3D_angle = obsS_ALTI3D_rA;
 
-field = 'length'
-climada_ls_probAssPlot(modS_rA,obsS_rA,field,'both',[0 2500],50,[0 2500])
+    field = 'length';
+    %climada_ls_probAssPlot(modS_rA,obsS_rA,field,'both',[0 2500],50,[0 2500])
 
-%plot cdf of with modelled length with normal angle of reach vs cdf of
-%modelled length with corresponding angle of reach
-modS_cdf.SRTM3.SRTM3 = modS_SRTM3;
-modS_cdf.SRTM3.SRTM3_rA = modS_SRTM3_rA;
-modS_cdf.SRTM1.SRTM1 = modS_SRTM1;
-modS_cdf.SRTM1.SRTM1_rA = modS_SRTM1_rA;
-modS_cdf.ALTI3D.ALTI3D = modS_ALTI3D;
-modS_cdf.ALTI3D.ALTI3D_rA = modS_ALTI3D_rA;
+    %plot cdf of with modelled length with normal angle of reach vs cdf of
+    %modelled length with corresponding angle of reach
+    modS_cdf.SRTM3.SRTM3 = modS_SRTM3;
+    modS_cdf.SRTM3.SRTM3_rA = modS_SRTM3_rA;
+    modS_cdf.SRTM1.SRTM1 = modS_SRTM1;
+    modS_cdf.SRTM1.SRTM1_rA = modS_SRTM1_rA;
+    modS_cdf.ALTI3D.ALTI3D = modS_ALTI3D;
+    modS_cdf.ALTI3D.ALTI3D_rA = modS_ALTI3D_rA;
 
-climada_ls_probAssPlot(modS_cdf,modS_cdf,field,'both',[0 2500],50,[0 2500],1,[0 1000])
+    %climada_ls_probAssPlot(modS_cdf,modS_cdf,field,'both',[0 2500],50,[0 2500],1,[0 1000])
 
+end
+
+%%
+%analysis when variance of slope degree is considered at start cell
+if 1
+    %calculate variance resp. standard deviation
+    var_srtm3 = climada_centroids_demVariance(lon_srtm3,lat_srtm3,elevation_srtm3,lon_alti3d_2m,lat_alti3d_2m,elevation_alti3d_2m);
+    stdv_srtm3 = sqrt(var_srtm3);
+    var_srtm1 = climada_centroids_demVariance(lon_srtm1,lat_srtm1,elevation_srtm1,lon_alti3d_2m,lat_alti3d_2m,elevation_alti3d_2m);
+    stdv_srtm1 = sqrt(var_srtm1);
+    var_alti3d = climada_centroids_demVariance(lon_alti3d,lat_alti3d,elevation_alti3d,lon_alti3d_2m,lat_alti3d_2m,elevation_alti3d_2m);
+    stdv_alti3d = sqrt(var_alti3d);
+    
+    %plot standarddevition vs slope
+    %srtm3
+    slope_srtm3 = climada_centroids_slope(lon_srtm3,lat_srtm3,elevation_srtm3);
+    %sorte stdv according to slope 
+    [~,idx_sor_srtm3] = sort(slope_srtm3(:));
+    %moving average
+    mavg_srtm3 = movmean(stdv_srtm3(idx_sor_srtm3),numel(stdv_srtm3)*0.1,'omitnan');
+    %srtm1
+    slope_srtm1 = climada_centroids_slope(lon_srtm1,lat_srtm1,elevation_srtm1);
+    %sorte stdv according to slope 
+    [~,idx_sor_srtm1] = sort(slope_srtm1(:));
+    %moving average
+    mavg_srtm1 = movmean(stdv_srtm1(idx_sor_srtm1),numel(stdv_srtm1)*0.1,'omitnan');
+    %alti3d
+    slope_alti3d = climada_centroids_slope(lon_alti3d,lat_alti3d,elevation_alti3d);
+    %sorte stdv according to slope 
+    [~,idx_sor_alti3d] = sort(slope_alti3d(:));
+    %moving average
+    mavg_alti3d = movmean(stdv_alti3d(idx_sor_alti3d),numel(stdv_alti3d)*0.1,'omitnan');
+    
+    %get slope and slope deviation of source cell
+%     snapS_all.srtm3 = snapS_srtm3; snapS_all.srtm1 = snapS_srtm1; snapS_all.alti3d = snapS_alti3d; 
+%     slope_scr = zeros(numel([snapS_srtm3.length]),1);
+%     %for 
+%     names_field = fieldnames(snapS_all);
+%     for i=1:numel(names_field)
+%         snapS = snapS_all.(char(names_field(i)));
+%         removed = [snapS.removed];
+%         for k=1:numel(removed)
+%         if ~removed(k)
+%             %extract coordinates from polyline structure
+%             x = snapS(i).X;
+%             y = snapS(i).Y;
+%             %find indices for start cell
+%            [~,idxJ] = ismember(x(1),lon(1,:));
+%            [~,idxI] = ismember(y(1),lat(:,1));
+%            %slope_src(k) = slop
+%         else
+%             slope
+%         end
+%         clear snapS
+%     end
+    
+    %plot
+    fig = figure('units','normalized','outerposition',[0 0.3 0.4 0.65]);
+    col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
+    plot(slope_srtm3(idx_sor_srtm3),mavg_srtm3,'Color',col(1,:),'LineWidth',2)
+    grid on
+    xlim([0 90]);
+    xl = xlim;
+    yl = ylim;
+    xlabel('Slope [\circ]')
+    ylabel('Standard Deviation [\circ]')
+    set(gca,'fontsize', 15);
+    hold on
+    plot(slope_srtm1(idx_sor_srtm1),mavg_srtm1,'Color',col(2,:),'LineWidth',2)
+    plot(slope_alti3d(idx_sor_alti3d),mavg_alti3d,'Color',col(3,:),'LineWidth',2)
+    plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
+        '-','LineWidth',2,'color','black')
+    
+    hold off
+    
+    
+    %plot cdf of slope over whole study area
+    slope_cdf.SRTM3.SRTM3.slope = slope_srtm3(:);
+    slope_cdf.SRTM3.SRTM1.slope = slope_srtm1(:);
+    slope_cdf.SRTM3.ALTI3D.slope = slope_alti3d(:);
+    climada_ls_probAssPlot(slope_cdf,slope_cdf,'slope','both',[0 2500],50,[0 2500],1,[0 90])
+    
+    if 1
+        %probabilistic assessent when considering the variance of the slope at
+        %source cells (only wiggle slope to steeper slopes)
+        %srtm3
+        [modS,obsS] = climada_ls_probAss(lon_srtm3,lat_srtm3,elevation_srtm3,subS,snapS_srtm3,edges_vmax,edges_phi,count_phi,num_slides,'',stdv_srtm3,fig);
+        [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_' char(demstr(1)) '.shp']);
+        shapewrite(modS,[path filesep file]);
+        shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
+        %srtm1
+        [modS,obsS] = climada_ls_probAss(lon_srtm1,lat_srtm1,elevation_srtm1,subS,snapS_srtm1,edges_vmax,edges_phi,count_phi,num_slides,'',stdv_srtm1,fig);
+        [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_rA' char(demstr(2)) '.shp']);
+        shapewrite(modS,[path filesep file]);
+        shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
+        %alti3d
+        [modS,obsS] = climada_ls_probAss(lon_alti3d,lat_alti3d,elevation_alti3d,subS,snapS_alti3d,edges_vmax,edges_phi,count_phi,num_slides,'',stdv_alti3d,fig);
+        [file,path] = uiputfile('mod*.shp','Save file as',[save_dir filesep 'modS_rA' char(demstr(3)) '.shp']);
+        shapewrite(modS,[path filesep file]);
+        shapewrite(obsS,[path filesep strrep(file,'modS','obsS')]);
+        %var_srtm3_srtm1 = climada_centroids_demVariance(lon_srtm3,lat_srtm3,elevation_srtm3,lon_srtm1,lat_srtm1,elevation_srtm1);
+        %var_srtm3_alti3d = climada_centroids_demVariance(lon_srtm3,lat_srtm3,elevation_srtm3,lon_alti3d,lat_alti3d,elevation_alti3d);
+        %var_srtm1_alti3d = climada_centroids_demVariance(lon_srtm1,lat_srtm1,elevation_srtm1,lon_alti3d,lat_alti3d,elevation_alti3d);
+        disp('hier')
+    end
+    
+    
+    
+end
 
 %%
 
