@@ -27,7 +27,8 @@ function [modS,obsS] = climada_ls_probAss(lon,lat,elevation,subS,snapS,...
 %           which shall not be considered
 %  snapS:   Shape structure with 'Line' as Geometry. Derived from subS
 %           after snapping to nearest grid cell in coarser grid (with
-%           climada_calibration_snap). Need to include fields: X and Y
+%           climada_calibration_snap). Need to include fields: X and Y.
+%           SnapS need to be provided that source cell can be found
 % OPTIONAL INPUT PARAMETERS:
 %   edges_vmax: vector with 4 elements. First and last element gives range
 %               of possible vmax values. From the first to the second edge
@@ -78,7 +79,7 @@ if ~exist('edges_vmax') edges_vmax = []; end
 if ~exist('edges_phi') edges_phi = []; end
 if ~exist('count_phi') count_phi = []; end
 if ~exist('num_slides') num_slides = []; end
-if ~exist('en_decay') num_slides = []; end
+if ~exist('en_decay') en_decay = []; end
 if ~exist('fig') fig = []; end
 if ~exist('stdv') stdv = []; end
 
