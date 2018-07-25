@@ -234,11 +234,12 @@ for i=1:n_runs
     model_val = [model.(char(names_dat(1))).(fieldname)];
 
     col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
+    %col = [0 0 0;255 153 0;204 65 36;60 120 216]/255;
     [f_mod,x_mod] = ecdf(model_val);
 
     %plots
     subplot1(i)
-    plot(x_mod,f_mod,'Color',col(1,:),'LineWidth',2,'DisplayName',char(names_dat(1)))
+    plot(x_mod,f_mod,'Color',col(1,:),'LineWidth',3,'DisplayName',char(names_dat(1)))
     grid on
     hold on
     xl = xlim;
@@ -257,7 +258,7 @@ for i=1:n_runs
        
         %plots
         subplot1(i)
-        plot(x_mod,f_mod,'Color',col(j,:),'LineWidth',2,'DisplayName',char(names_dat(j)))
+        plot(x_mod,f_mod,'Color',col(j,:),'LineWidth',3,'DisplayName',char(names_dat(j)))
 
     end
     xlim(limCDF)
