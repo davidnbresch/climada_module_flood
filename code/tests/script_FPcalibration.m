@@ -206,6 +206,111 @@ climada_calibration_plotRMSE(rmse_alti3d_rmvsmall,rmse_srtm1_rmvsmall,rmse_srtm3
 % 
 % hold on
 
+%%
+%plot RMSE if slide with a normalised horizontal distance = 0 are excluded
+%from the consideration; normalised horizontal distance shall be saved in
+%shape file (subS) in new collumn --> to use in later analyses
+
+deg_km = 111.32;
+%read in grid data to get dx and dy for each grid
+%SRTM3
+centroids = cal_centroids_srtm3
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon_srtm3 = reshape(centroids.lon,n_lat,n_lon);
+lat_srtm3 = reshape(centroids.lat,n_lat,n_lon);
+dlat_srtm3 = abs(min(diff(lat_srtm3(:,1)))); 
+dlon_srtm3 = abs(min(diff(lon_srtm3(1,:))));
+dy_srtm3 = dlat_srtm3*(deg_km * 1000);
+dx_srtm3 = dlon_srtm3*cosd(mean(lat_srtm3(:,1)))*(deg_km * 1000);
+
+%SRTM1
+centroids = cal_centroids_srtm1;
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon_srtm1 = reshape(centroids.lon,n_lat,n_lon);
+lat_srtm1 = reshape(centroids.lat,n_lat,n_lon);
+dlat_srtm1 = abs(min(diff(lat_srtm1(:,1)))); 
+dlon_srtm1 = abs(min(diff(lon_srtm1(1,:))));
+dy_srtm1 = dlat_srtm1*(deg_km * 1000);
+dx_srtm1 = dlon_srtm1*cosd(mean(lat_srtm1(:,1)))*(deg_km * 1000);
+
+%ALTI3D
+centroids = cal_centroids_alti3d;
+n_lon = numel(unique(centroids.lon));
+n_lat = numel(unique(centroids.lat));
+lon_alti3d = reshape(centroids.lon,n_lat,n_lon);
+lat_alti3d = reshape(centroids.lat,n_lat,n_lon);
+dlat_alti3d = abs(min(diff(lat_alti3d(:,1)))); 
+dlon_alti3d = abs(min(diff(lon_alti3d(1,:))));
+dy_alti3d = dlat_alti3d*(deg_km * 1000);
+dx_alti3d = dlon_alti3d*cosd(mean(lat_alti3d(:,1)))*(deg_km * 1000);
+
+%create coorinate vectors --> start end of slide
+obs_X = reshape([subS.X],3,[]);
+obs_Y = reshape([subS.Y],3,[]);
+
+%srtm3
+%distance it passes trhough horizontal --> rounded
+x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm3)*dx_srtm3;
+y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm3)*dy_srtm3;
+dL = sqrt(x_diff.^2+y_diff.^2);
+%include nan for two removed slides
+nan_idx = find([subS.removed]==1);
+dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+
+c = num2cell(dL);
+[subS.dL_srtm3] = c{:};
+
+%srtm1
+%distance it passes trhough horizontal --> rounded
+x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm1)*dx_srtm1;
+y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm1)*dy_srtm1;
+dL = sqrt(x_diff.^2+y_diff.^2);
+%include nan for two removed slides
+nan_idx = find([subS.removed]==1);
+dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+
+c = num2cell(dL);
+[subS.dL_srtm1] = c{:};
+
+%alti3d
+%distance it passes trhough horizontal --> rounded
+x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_alti3d)*dx_alti3d;
+y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_alti3d)*dy_alti3d;
+dL = sqrt(x_diff.^2+y_diff.^2);
+%include nan for two removed slides
+nan_idx = find([subS.removed]==1);
+dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+
+c = num2cell(dL);
+[subS.dL_alti3d] = c{:};
+
+%set X and Y coordinates of removed slides to nan--> otherwise it cannot be
+%saved
+subS(nan_idx(1)).X = [NaN,NaN]; subS(nan_idx(2)).X = [NaN,NaN];
+subS(nan_idx(1)).Y = [NaN,NaN]; subS(nan_idx(2)).Y = [NaN,NaN];
+%shapewrite(subS,'C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+
+subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+
+%remove slides with a horizontal distance of zero
+rmv_alti3d_dL = rmv_alti3d | [subS.dL_alti3d]==0;
+rmv_srtm1_dL = rmv_srtm1 | [subS.dL_srtm1]==0;
+rmv_srtm3_dL = rmv_srtm3 | [subS.dL_srtm3]==0;
+
+%calculate RMSE when not considering zero slides
+rmse_srtm3_dL = climada_calibration_calcRMSE(res_files_srtm3,subS,[],rmv_srtm3_dL);
+rmse_srtm1_dL = climada_calibration_calcRMSE(res_files_srtm1,subS,[],rmv_srtm1_dL);
+rmse_alti3d_dL = climada_calibration_calcRMSE(res_files_alti3d,subS,[],rmv_alti3d_dL);
+
+climada_calibration_plotRMSE(rmse_alti3d_dL,rmse_srtm1_dL,rmse_srtm3_dL)
+
+
+
+
+%%
+
 %plot which shows xy plot (modelled lgt vs observed lgt) for phi =27, vmax
 %=1
 
