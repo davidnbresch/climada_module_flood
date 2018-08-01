@@ -181,7 +181,7 @@ end
 %%
 %analysis when considering distribution of angle of reach for corresponding
 %snap
-if 1
+if 0
     
     %srtm3
     fig = 1;
@@ -444,17 +444,29 @@ if 0
     
     %plot cdf of reach angle consideration original modelled_original and
     %src
+    
+    %data when excluding normalized horizontal distance is zero
+    modS_SRTM3_normdL = shaperead([path 'modS_SRTM3_normdL.shp']);
+    obsS_SRTM3_normdL = shaperead([path 'obsS_SRTM3_normdL.shp']);
+    modS_SRTM1_normdL = shaperead([path 'modS_SRTM1_normdL.shp']);
+    obsS_SRTM1_normdL = shaperead([path 'obsS_SRTM1_normdL.shp']);
+    modS_ALTI3D_normdL = shaperead([path 'modS_ALTI3D_normdL.shp']);
+    obsS_ALTI3D_normdL = shaperead([path 'obsS_ALTI3D_normdL.shp']);
+    
     cdf_all.SRTM3.orig = obsS_SRTM3;
     cdf_all.SRTM3.reaAn = modS_SRTM3_rA;
     cdf_all.SRTM3.stdv = modS_SRTM3_srcStdv;
+    cdf_all.SRTM3.normdL = modS_SRTM3_normdL;
     cdf_all.SRTM3.model = modS_SRTM3;
     cdf_all.SRTM1.orig = obsS_SRTM1;
     cdf_all.SRTM1.reaAn = modS_SRTM1_rA;
     cdf_all.SRTM1.stdv = modS_SRTM1_srcStdv;
+    cdf_all.SRTM1.normdL = modS_SRTM1_normdL;
     cdf_all.SRTM1.model = modS_SRTM1;
     cdf_all.ALTI3D.orig = obsS_ALTI3D;
     cdf_all.ALTI3D.reaAn = modS_ALTI3D_rA;
     cdf_all.ALTI3D.stdv = modS_ALTI3D_srcStdv;
+    cdf_all.ALTI3D.normdL = modS_ALTI3D_normdL;
     cdf_all.ALTI3D.model = modS_ALTI3D;
     
     field = 'length';
@@ -466,7 +478,7 @@ end
 %%
 
 %read in files for energy decay
-if 0
+if 1
     [file,path] = uigetfile('mod*SRTM3*.shp','load file',[save_dir filesep 'modS_' char(demstr(1)) '.shp'],'MultiSelect','on');
     if isstr(file), file={file}; end
     for i=1:numel(file)
@@ -503,6 +515,33 @@ if 0
     % climada_ls_probAssPlot(modS,obsS,'length','qq',[0 500])
     % climada_ls_probAssPlot(modS,obsS,'length','hist','',100,[0 2500])
     % climada_ls_probAssPlot(modS,obsS,'length','hist','',25,[0 1000])
+    
+    %plot cdf 
+    cdf_decay.SRTM3.d03 = modS.SRTM3.modS_SRTM3_decay03;
+    cdf_decay.SRTM3.d04 = modS.SRTM3.modS_SRTM3_decay04;
+    cdf_decay.SRTM3.d05 = modS.SRTM3.modS_SRTM3_decay05;
+    cdf_decay.SRTM3.d06 = modS.SRTM3.modS_SRTM3_decay06;
+    cdf_decay.SRTM3.model = modS.SRTM3.modS_SRTM3;
+    cdf_decay.SRTM3.orig = obsS.SRTM3.modS_SRTM3;
+    cdf_decay.SRTM1.d03 = modS.SRTM1.modS_SRTM1_decay03;
+    cdf_decay.SRTM1.d04 = modS.SRTM1.modS_SRTM1_decay04;
+    cdf_decay.SRTM1.d05 = modS.SRTM1.modS_SRTM1_decay05;
+    cdf_decay.SRTM1.d06 = modS.SRTM1.modS_SRTM1_decay06;
+    cdf_decay.SRTM1.model = modS.SRTM1.modS_SRTM1;
+    cdf_decay.SRTM1.orig = obsS.SRTM1.modS_SRTM1;
+    cdf_decay.ALTI3D.d03 = modS.ALTI3D.modS_ALTI3D_decay03;
+    cdf_decay.ALTI3D.d04 = modS.ALTI3D.modS_ALTI3D_decay04;
+    cdf_decay.ALTI3D.d05 = modS.ALTI3D.modS_ALTI3D_decay05;
+    cdf_decay.ALTI3D.d06 = modS.ALTI3D.modS_ALTI3D_decay06;
+    cdf_decay.ALTI3D.model = modS.ALTI3D.modS_ALTI3D;
+    cdf_decay.ALTI3D.orig = obsS.ALTI3D.modS_ALTI3D;
+    
+    field = 'length';
+    climada_ls_probAssPlot(cdf_decay,cdf_decay,field,'both',[0 2500],50,[0 2500],1,[0 1500])
+
+
+  
+    
 end
 
 
