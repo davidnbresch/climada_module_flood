@@ -62,7 +62,7 @@ flowPara.iT = iT;
 flowPara.perWT = perWT;
 %%
 %run model for calibration
-[res_files_srtm3,unit_srtm3] = climada_calibration_ls(org_centroids,cal_centroids_srtm3,orgS,flowPara,dat_dir,subS,'');
+%[res_files_srtm3,unit_srtm3] = climada_calibration_ls(org_centroids,cal_centroids_srtm3,orgS,flowPara,dat_dir,subS,'');
 [res_files_srtm3,unit_srtm3] = climada_calibration_ls(org_centroids,cal_centroids_srtm3,orgS,flowPara,dat_dir,subS,snapS_srtm3);
 [res_files_srtm1,unit_srtm1]= climada_calibration_ls(org_centroids,cal_centroids_srtm1,orgS,flowPara,dat_dir,subS,snapS_srtm1);
 [res_files_alti3d,unit_alti3d] = climada_calibration_ls(org_centroids,cal_centroids_alti3d,orgS,flowPara,dat_dir,subS,snapS_alti3d);
@@ -211,100 +211,176 @@ climada_calibration_plotRMSE(rmse_alti3d_rmvsmall,rmse_srtm1_rmvsmall,rmse_srtm3
 %from the consideration; normalised horizontal distance shall be saved in
 %shape file (subS) in new collumn --> to use in later analyses
 
-deg_km = 111.32;
-%read in grid data to get dx and dy for each grid
-%SRTM3
-centroids = cal_centroids_srtm3
-n_lon = numel(unique(centroids.lon));
-n_lat = numel(unique(centroids.lat));
-lon_srtm3 = reshape(centroids.lon,n_lat,n_lon);
-lat_srtm3 = reshape(centroids.lat,n_lat,n_lon);
-dlat_srtm3 = abs(min(diff(lat_srtm3(:,1)))); 
-dlon_srtm3 = abs(min(diff(lon_srtm3(1,:))));
-dy_srtm3 = dlat_srtm3*(deg_km * 1000);
-dx_srtm3 = dlon_srtm3*cosd(mean(lat_srtm3(:,1)))*(deg_km * 1000);
+if 0
+    deg_km = 111.32;
+    %read in grid data to get dx and dy for each grid
+    %SRTM3
+    centroids = cal_centroids_srtm3
+    n_lon = numel(unique(centroids.lon));
+    n_lat = numel(unique(centroids.lat));
+    lon_srtm3 = reshape(centroids.lon,n_lat,n_lon);
+    lat_srtm3 = reshape(centroids.lat,n_lat,n_lon);
+    dlat_srtm3 = abs(min(diff(lat_srtm3(:,1)))); 
+    dlon_srtm3 = abs(min(diff(lon_srtm3(1,:))));
+    dy_srtm3 = dlat_srtm3*(deg_km * 1000);
+    dx_srtm3 = dlon_srtm3*cosd(mean(lat_srtm3(:,1)))*(deg_km * 1000);
 
-%SRTM1
-centroids = cal_centroids_srtm1;
-n_lon = numel(unique(centroids.lon));
-n_lat = numel(unique(centroids.lat));
-lon_srtm1 = reshape(centroids.lon,n_lat,n_lon);
-lat_srtm1 = reshape(centroids.lat,n_lat,n_lon);
-dlat_srtm1 = abs(min(diff(lat_srtm1(:,1)))); 
-dlon_srtm1 = abs(min(diff(lon_srtm1(1,:))));
-dy_srtm1 = dlat_srtm1*(deg_km * 1000);
-dx_srtm1 = dlon_srtm1*cosd(mean(lat_srtm1(:,1)))*(deg_km * 1000);
+    %SRTM1
+    centroids = cal_centroids_srtm1;
+    n_lon = numel(unique(centroids.lon));
+    n_lat = numel(unique(centroids.lat));
+    lon_srtm1 = reshape(centroids.lon,n_lat,n_lon);
+    lat_srtm1 = reshape(centroids.lat,n_lat,n_lon);
+    dlat_srtm1 = abs(min(diff(lat_srtm1(:,1)))); 
+    dlon_srtm1 = abs(min(diff(lon_srtm1(1,:))));
+    dy_srtm1 = dlat_srtm1*(deg_km * 1000);
+    dx_srtm1 = dlon_srtm1*cosd(mean(lat_srtm1(:,1)))*(deg_km * 1000);
 
-%ALTI3D
-centroids = cal_centroids_alti3d;
-n_lon = numel(unique(centroids.lon));
-n_lat = numel(unique(centroids.lat));
-lon_alti3d = reshape(centroids.lon,n_lat,n_lon);
-lat_alti3d = reshape(centroids.lat,n_lat,n_lon);
-dlat_alti3d = abs(min(diff(lat_alti3d(:,1)))); 
-dlon_alti3d = abs(min(diff(lon_alti3d(1,:))));
-dy_alti3d = dlat_alti3d*(deg_km * 1000);
-dx_alti3d = dlon_alti3d*cosd(mean(lat_alti3d(:,1)))*(deg_km * 1000);
+    %ALTI3D
+    centroids = cal_centroids_alti3d;
+    n_lon = numel(unique(centroids.lon));
+    n_lat = numel(unique(centroids.lat));
+    lon_alti3d = reshape(centroids.lon,n_lat,n_lon);
+    lat_alti3d = reshape(centroids.lat,n_lat,n_lon);
+    dlat_alti3d = abs(min(diff(lat_alti3d(:,1)))); 
+    dlon_alti3d = abs(min(diff(lon_alti3d(1,:))));
+    dy_alti3d = dlat_alti3d*(deg_km * 1000);
+    dx_alti3d = dlon_alti3d*cosd(mean(lat_alti3d(:,1)))*(deg_km * 1000);
 
-%create coorinate vectors --> start end of slide
-obs_X = reshape([subS.X],3,[]);
-obs_Y = reshape([subS.Y],3,[]);
+    %create coorinate vectors --> start end of slide
+    obs_X = reshape([subS.X],3,[]);
+    obs_Y = reshape([subS.Y],3,[]);
 
-%srtm3
-%distance it passes trhough horizontal --> rounded
-x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm3)*dx_srtm3;
-y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm3)*dy_srtm3;
-dL = sqrt(x_diff.^2+y_diff.^2);
-%include nan for two removed slides
-nan_idx = find([subS.removed]==1);
-dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+    %srtm3
+    %distance it passes trhough horizontal --> rounded
+    x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm3)*dx_srtm3;
+    y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm3)*dy_srtm3;
+    dL = sqrt(x_diff.^2+y_diff.^2);
+    %include nan for two removed slides
+    nan_idx = find([subS.removed]==1);
+    dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
 
-c = num2cell(dL);
-[subS.dL_srtm3] = c{:};
+    c = num2cell(dL);
+    [subS.dL_srtm3] = c{:};
 
-%srtm1
-%distance it passes trhough horizontal --> rounded
-x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm1)*dx_srtm1;
-y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm1)*dy_srtm1;
-dL = sqrt(x_diff.^2+y_diff.^2);
-%include nan for two removed slides
-nan_idx = find([subS.removed]==1);
-dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+    %srtm1
+    %distance it passes trhough horizontal --> rounded
+    x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_srtm1)*dx_srtm1;
+    y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_srtm1)*dy_srtm1;
+    dL = sqrt(x_diff.^2+y_diff.^2);
+    %include nan for two removed slides
+    nan_idx = find([subS.removed]==1);
+    dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
 
-c = num2cell(dL);
-[subS.dL_srtm1] = c{:};
+    c = num2cell(dL);
+    [subS.dL_srtm1] = c{:};
 
-%alti3d
-%distance it passes trhough horizontal --> rounded
-x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_alti3d)*dx_alti3d;
-y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_alti3d)*dy_alti3d;
-dL = sqrt(x_diff.^2+y_diff.^2);
-%include nan for two removed slides
-nan_idx = find([subS.removed]==1);
-dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
+    %alti3d
+    %distance it passes trhough horizontal --> rounded
+    x_diff = round(abs(obs_X(1,:)-obs_X(2,:))/dlon_alti3d)*dx_alti3d;
+    y_diff = round(abs(obs_Y(1,:)-obs_Y(2,:))/dlat_alti3d)*dy_alti3d;
+    dL = sqrt(x_diff.^2+y_diff.^2);
+    %include nan for two removed slides
+    nan_idx = find([subS.removed]==1);
+    dL = [dL(1:nan_idx(1)-1) nan dL(nan_idx(1):nan_idx(2)-2) nan dL(nan_idx(2)-1:end)];
 
-c = num2cell(dL);
-[subS.dL_alti3d] = c{:};
+    c = num2cell(dL);
+    [subS.dL_alti3d] = c{:};
 
-%set X and Y coordinates of removed slides to nan--> otherwise it cannot be
-%saved
-subS(nan_idx(1)).X = [NaN,NaN]; subS(nan_idx(2)).X = [NaN,NaN];
-subS(nan_idx(1)).Y = [NaN,NaN]; subS(nan_idx(2)).Y = [NaN,NaN];
-%shapewrite(subS,'C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+    %set X and Y coordinates of removed slides to nan--> otherwise it cannot be
+    %saved
+    subS(nan_idx(1)).X = [NaN,NaN]; subS(nan_idx(2)).X = [NaN,NaN];
+    subS(nan_idx(1)).Y = [NaN,NaN]; subS(nan_idx(2)).Y = [NaN,NaN];
+    shapewrite(subS,'C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+end
 
-subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
+if 0
+    subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3m.shp');
 
-%remove slides with a horizontal distance of zero
-rmv_alti3d_dL = rmv_alti3d | [subS.dL_alti3d]==0;
-rmv_srtm1_dL = rmv_srtm1 | [subS.dL_srtm1]==0;
-rmv_srtm3_dL = rmv_srtm3 | [subS.dL_srtm3]==0;
+    %remove slides with a horizontal distance of zero
+    rmv_alti3d_dL = rmv_alti3d | [subS.dL_alti3d]==0;
+    rmv_srtm1_dL = rmv_srtm1 | [subS.dL_srtm1]==0;
+    rmv_srtm3_dL = rmv_srtm3 | [subS.dL_srtm3]==0;
+    
+    %calculate RMSE when not considering zero slides
+    rmse_srtm3_dL = climada_calibration_calcRMSE(res_files_srtm3,subS,[],rmv_srtm3_dL);
+    rmse_srtm1_dL = climada_calibration_calcRMSE(res_files_srtm1,subS,[],rmv_srtm1_dL);
+    rmse_alti3d_dL = climada_calibration_calcRMSE(res_files_alti3d,subS,[],rmv_alti3d_dL);
 
-%calculate RMSE when not considering zero slides
-rmse_srtm3_dL = climada_calibration_calcRMSE(res_files_srtm3,subS,[],rmv_srtm3_dL);
-rmse_srtm1_dL = climada_calibration_calcRMSE(res_files_srtm1,subS,[],rmv_srtm1_dL);
-rmse_alti3d_dL = climada_calibration_calcRMSE(res_files_alti3d,subS,[],rmv_alti3d_dL);
+    save([dat_dir filesep 'rmse_results_dL.mat'],'rmse_srtm3_dL','rmse_srtm1_dL','rmse_alti3d_dL')
+    
+
+end
+
+load([dat_dir filesep 'rmse_results_dL.mat'],'rmse_srtm3_dL','rmse_srtm1_dL','rmse_alti3d_dL')
 
 climada_calibration_plotRMSE(rmse_alti3d_dL,rmse_srtm1_dL,rmse_srtm3_dL)
+
+%plot zeros slides rate
+fig = figure('Renderer','painters','units','normalized','outerposition',[0 0.3 1 0.6]);
+subplot1(1,3,'Gap',[0.02 0.02],'XTickL','Margin','YTickL','Margin','FontS',15)
+col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
+
+%srtm3
+subplot1(1)
+phi = [rmse_srtm3_rmv.phi];
+zeroRate = [rmse_srtm3_rmv.zeroSlidesRate];
+zeroRate_dL = [rmse_srtm3_dL.zeroSlidesRate];
+zeroRatedL_dL = [rmse_srtm3_dL.zeroSlidesdLRate];
+[~,idx_sort] = sort(phi);
+plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
+xl = xlim;
+yl = ylim;
+xlabel('PHI [\circ]')
+ylabel('Fraction')
+grid on
+hold on
+plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
+plot(phi(idx_sort),zeroRatedL_dL(idx_sort),'Color',col(3,:),'LineWidth',3,'DisplayName','ZeroRatedL_dL')
+plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
+        '-','LineWidth',2,'color','black')
+text(0.90,0.95,'SRTM3','FontSize',15,'FontWeight','bold',...
+        'Units','normalized','HorizontalAlignment','right')
+
+%srtm1
+subplot1(2)
+phi = [rmse_srtm1_rmv.phi];
+zeroRate = [rmse_srtm1_rmv.zeroSlidesRate];
+zeroRate_dL = [rmse_srtm1_dL.zeroSlidesRate];
+zeroRatedL_dL = [rmse_srtm1_dL.zeroSlidesdLRate];
+[~,idx_sort] = sort(phi);
+plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
+xl = xlim;
+yl = ylim;
+xlabel('PHI [\circ]')
+grid on
+hold on
+plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
+plot(phi(idx_sort),zeroRatedL_dL(idx_sort),'Color',col(3,:),'LineWidth',3,'DisplayName','ZeroRatedL_dL')
+plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
+        '-','LineWidth',2,'color','black')
+text(0.90,0.95,'SRTM1','FontSize',15,'FontWeight','bold',...
+        'Units','normalized','HorizontalAlignment','right')
+
+%alti3d
+subplot1(3)
+phi = [rmse_alti3d_rmv.phi];
+zeroRate = [rmse_alti3d_rmv.zeroSlidesRate];
+zeroRate_dL = [rmse_alti3d_dL.zeroSlidesRate];
+zeroRatedL_dL = [rmse_alti3d_dL.zeroSlidesdLRate];
+[~,idx_sort] = sort(phi);
+plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
+xl = xlim;
+yl = ylim;
+xlabel('PHI [\circ]')
+grid on
+hold on
+plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
+plot(phi(idx_sort),zeroRatedL_dL(idx_sort),'Color',col(3,:),'LineWidth',3,'DisplayName','ZeroRatedL_dL')
+plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
+        '-','LineWidth',2,'color','black')
+text(0.90,0.95,'ATLI3D','FontSize',15,'FontWeight','bold',...
+        'Units','normalized','HorizontalAlignment','right')
 
 
 
