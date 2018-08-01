@@ -233,8 +233,9 @@ for i=1:n_runs
     %select corresponding values --> first value
     model_val = [model.(char(names_dat(1))).(fieldname)];
 
-    col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
-    %col = [0 0 0;255 153 0;204 65 36;60 120 216]/255;
+    %col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
+    col = [60 120 216;204 65 36;255 153 0;55 118 29;0 0 0;0 0 0]/255;%for en_decay
+    %col = [0 0 0;255 153 0;204 65 36;55 118 29;60 120 216]/255; %for cdf attempts
     [f_mod,x_mod] = ecdf(model_val);
 
     %plots
@@ -243,6 +244,7 @@ for i=1:n_runs
     grid on
     hold on
     xl = xlim;
+    ylim([0.4 1.02])%for en_decay
 
     %set xlim if not given
     if isempty(limCDF)
@@ -259,6 +261,12 @@ for i=1:n_runs
         %plots
         subplot1(i)
         plot(x_mod,f_mod,'Color',col(j,:),'LineWidth',3,'DisplayName',char(names_dat(j)))
+        %for en_decay plots
+        if j == 6
+            plot(x_mod,f_mod,':','Color',col(j,:),'LineWidth',3,'DisplayName',char(names_dat(j)))
+        else
+            plot(x_mod,f_mod,'Color',col(j,:),'LineWidth',3,'DisplayName',char(names_dat(j)))
+        end
 
     end
     xlim(limCDF)

@@ -1,4 +1,4 @@
-function FL_acc = climada_ls_flowacc(mult_flowOrGridObj,topoTB)
+function FL_acc = climada_ls_flowacc(lon,lat,elevation,topoTB)
 % Calculates flowaccumulation (upstream contributing area)
 % MODULE:
 %   flood
@@ -29,10 +29,11 @@ function FL_acc = climada_ls_flowacc(mult_flowOrGridObj,topoTB)
 %   recommended --> multflow is a 8d multiple flow matrix
 %   
 % INPUTS:
-%  mult_flowOrGridObj: If topoTB = 0: need to be a 8-D matrix with outflow proportion in
-%               each direction (each neighbour-cell).Produced by climada_ls_multipleflow
-%               If topoTB = 1; need to be a GridObj from TopoToolbox.
-%               created with DEM = GRIDobj(lon,lat,dem)
+%   lon/lat:    longitudinal/latitudinal coordinates in grid format
+%               -->lat(i,j)
+%   elevation:  the elevation according to coordinates in grid format -->
+%               elevation(i,j). If the grid includes some NaNs it can lead
+%               to problems
 % OPTIONAL INPUT PARAMETERS:
 %   topoTB:     1/0 if set to 1 the flowaccumulation is calculated with the
 %               functions from TopoToolbox (recommended). 0 --> similar
@@ -49,30 +50,40 @@ function FL_acc = climada_ls_flowacc(mult_flowOrGridObj,topoTB)
 FL_acc = [];
 
 % check arguments
-if ~exist('mult_flowOrGridObj', 'var'), mult_flowOrGridObj = []; end
+if ~exist('lon', 'var'), lon = []; end
+if ~exist('lat', 'var'), lat = []; end
+if ~exist('elevation', 'var'), elevation = []; end
 if ~exist('topoTB', 'var'), topoTB = []; end
 
 % parameters
+if isempty(lon), return; end
+if isempty(lat), return; end
+if isempty(elevation), return; end
 if isempty(topoTB), topoTB = 1; end
 
+%pre-processing: fill sinks, and NaNs --> in TopoToolbox
+DEM = GRIDobj(lon,lat,elevation);
+DEM.Z = deminpaint(DEM.Z);
+DEM = fillsinks(DEM);
 
+elevation = flipud(DEM.Z);
 
 if topoTB
-    DEM = mult_flowOrGridObj;
-    DEM.Z = deminpaint(DEM.Z);
-    DEM = fillsinks(DEM);
+    DEM = GRIDobj(lon,lat,elevation);
     %uses geodesic for flat areas --> more sophisticated than routeflat
     FD = FLOWobj(DEM,'multi');
     %use routeflats for flat areas
     %M = flowdir(lon,lat,z,'type','multi','routeflats','geodesic');
     %FD = FLOWobj(M,'cellsize',DEM.cellsize,'size',DEM.size);
     A = flowacc(FD);
-    FL_acc = A.Z;
+    FL_acc = flipud(A.Z);
     %with old TopoToolbox version 1.06
     %fl = flowdir(lon,lat,z,'routeflats','route');
     %a = flowacc(fl,[nlat nlon]);
     %FL_acc = a;
 else 
+    %multiple direction flow
+    mult_flow = climada_ls_multipleflow(lon,lat,elevation,1.1,0,1);
     %version where multipleflow directions is adjusted in flat regions by
     %using functions in TopoToolbox (see routeflats)
     %verison where multiple flow directions is dereied by using dH to have outflow in flat
@@ -80,10 +91,10 @@ else
     %donwstream to flat areas.
     %mult_flow = climada_ls_multipleflow(lon,lat,z,1.1,1,0);
     %to get from outflow to inflow --> shift matrix
-    inflow_proportion = circshift(mult_flowOrGridObj,4,3);
-    total_field = mult_flowOrGridObj(:,:,1)*0+1;
-    field = mult_flowOrGridObj(:,:,1)*0+1;
-    inflow_temp = mult_flowOrGridObj(:,:,1)*0;
+    inflow_proportion = circshift(mult_flow,4,3);
+    total_field = mult_flow(:,:,1)*0+1;
+    field = mult_flow(:,:,1)*0+1;
+    inflow_temp = mult_flow(:,:,1)*0;
     shift_matrix = [-1 0;-1 -1;0 -1;1 -1;1 0;1 1;0 1;-1 1];
     sumold = 0;
     

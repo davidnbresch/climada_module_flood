@@ -127,7 +127,7 @@ if topoTWI
     %calculate upstream contributing area by multiplying by unit area of a
     %cell
     tmp_slope = slope + 0.1; % we don't want -inf values for wet_index
-    TWI = log((1+flowAcc)*(dx*dy)./tand(tmp_slope));
+    TWI = log10((flowAcc)*(dx*dy)./tand(tmp_slope));
 else
     % Now we determine flow accumulation (which, in contrast to the local
     % parameters slope and aspect, can only be caluclated from the global
