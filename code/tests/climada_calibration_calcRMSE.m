@@ -95,11 +95,20 @@ for i=1:numel(files)
    end
    
    res_cali(i).rmse_lgt = sqrt(mean((obs-pred).^2,'omitnan'));
+   res_cali(i).num_zeroSlides = sum(pred==0);
+   res_cali(i).zeroSlidesRate = sum(pred==0)./(numel(pred)-sum(rmv));
+   
+   %just for scaled dL --> comment afterwards
+   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm3]==0)./sum([subS.dL_srtm3]==0);
+   res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm1]==0)./sum([subS.dL_srtm1]==0);
+   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_alti3d]==0)./sum([subS.dL_alti3d]==0);
    
    %calculate RMSE for area
    obs = [subS.area];%observed area
    pred = [caliS.area];%predicted area
    res_cali(i).rmse_area = sqrt(mean((obs-pred).^2,'omitnan'));
+   
+   
    
    if ~isempty(snapS)
         res_cali(i).num_obs = numel(obs)-sum(max_slope<res_cali(i).phi);
