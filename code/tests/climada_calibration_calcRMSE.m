@@ -99,9 +99,17 @@ for i=1:numel(files)
    res_cali(i).zeroSlidesRate = sum(pred==0)./(numel(pred)-sum(rmv));
    
    %just for scaled dL --> comment afterwards
-   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm3]==0)./sum([subS.dL_srtm3]==0);
-   res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm1]==0)./sum([subS.dL_srtm1]==0);
-   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_alti3d]==0)./sum([subS.dL_alti3d]==0);
+   res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm3]==0)./sum([caliS.length]==0);
+   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_srtm1]==0)./sum([caliS.length]==0);
+   %res_cali(i).zeroSlidesdLRate = sum([caliS.length]==0 & [subS.dL_alti3d]==0)./sum([caliS.length]==0);
+   %slides with a scaled length = 0 (which are removed) which are also
+   %slides with a modelled length of 0
+   %the number of zero slides
+   res_cali(i).num_zeroandscaledlgt = sum([caliS.length]==0 & [subS.dL_srtm3]==0);
+   %res_cali(i).num_zeroandscaledlgt = sum([caliS.length]==0 & [subS.dL_srtm1]==0);
+   %res_cali(i).num_zeroandscaledlgt = sum([caliS.length]==0 & [subS.dL_alti3d]==0);
+
+
    
    %calculate RMSE for area
    obs = [subS.area];%observed area

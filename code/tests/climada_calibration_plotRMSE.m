@@ -1,6 +1,7 @@
 function [f_plot,f_con] = climada_calibration_plotRMSE(res,res2,res3,res_,res2_,res3_)
 
-% Ploting of the RMSE for all shapefiles defined in files
+% Ploting of the RMSE for all shapefiles defined in files; very specific
+% plots --> may not work for different datasets --> still in construction
 % 
 % MODULE:
 %   flood

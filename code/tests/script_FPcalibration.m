@@ -317,7 +317,7 @@ load([dat_dir filesep 'rmse_results_dL.mat'],'rmse_srtm3_dL','rmse_srtm1_dL','rm
 climada_calibration_plotRMSE(rmse_alti3d_dL,rmse_srtm1_dL,rmse_srtm3_dL)
 
 %plot zeros slides rate
-fig = figure('Renderer','painters','units','normalized','outerposition',[0 0.3 1 0.6]);
+fig = figure('units','normalized','outerposition',[0 0.3 1 0.6]);
 subplot1(1,3,'Gap',[0.02 0.02],'XTickL','Margin','YTickL','Margin','FontS',15)
 col = [60 120 216;204 65 36;255 153 0;55 118 29;83 193 176;163 58 203]/255;
 
@@ -327,12 +327,13 @@ phi = [rmse_srtm3_rmv.phi];
 zeroRate = [rmse_srtm3_rmv.zeroSlidesRate];
 zeroRate_dL = [rmse_srtm3_dL.zeroSlidesRate];
 zeroRatedL_dL = [rmse_srtm3_dL.zeroSlidesdLRate];
+zeronumDLandzero = [rmse_srtm3_dL.num_zeroandscaledlgt];
 [~,idx_sort] = sort(phi);
 plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
 xl = xlim;
 yl = ylim;
-xlabel('PHI [\circ]')
-ylabel('Fraction')
+xlabel('PHI [\circ]','FontWeight','bold')
+ylabel('Fraction','FontWeight','bold')
 grid on
 hold on
 plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
@@ -341,6 +342,11 @@ plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
         '-','LineWidth',2,'color','black')
 text(0.90,0.95,'SRTM3','FontSize',15,'FontWeight','bold',...
         'Units','normalized','HorizontalAlignment','right')
+yyaxis right
+plot(phi(idx_sort),zeronumDLandzero(idx_sort),'Color',col(4,:),'LineWidth',3,'DisplayName','num_zero')
+yl2 = ylim;
+ylim([0 yl2(2)]);
+yl2 = ylim;
 
 %srtm1
 subplot1(2)
@@ -348,11 +354,12 @@ phi = [rmse_srtm1_rmv.phi];
 zeroRate = [rmse_srtm1_rmv.zeroSlidesRate];
 zeroRate_dL = [rmse_srtm1_dL.zeroSlidesRate];
 zeroRatedL_dL = [rmse_srtm1_dL.zeroSlidesdLRate];
+zeronumDLandzero = [rmse_srtm1_dL.num_zeroandscaledlgt];
 [~,idx_sort] = sort(phi);
 plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
 xl = xlim;
 yl = ylim;
-xlabel('PHI [\circ]')
+xlabel('PHI [\circ]','FontWeight','bold')
 grid on
 hold on
 plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
@@ -361,6 +368,9 @@ plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
         '-','LineWidth',2,'color','black')
 text(0.90,0.95,'SRTM1','FontSize',15,'FontWeight','bold',...
         'Units','normalized','HorizontalAlignment','right')
+yyaxis right
+plot(phi(idx_sort),zeronumDLandzero(idx_sort),'Color',col(4,:),'LineWidth',3,'DisplayName','num_zero')
+ylim(yl2);
 
 %alti3d
 subplot1(3)
@@ -368,11 +378,12 @@ phi = [rmse_alti3d_rmv.phi];
 zeroRate = [rmse_alti3d_rmv.zeroSlidesRate];
 zeroRate_dL = [rmse_alti3d_dL.zeroSlidesRate];
 zeroRatedL_dL = [rmse_alti3d_dL.zeroSlidesdLRate];
+zeronumDLandzero = [rmse_alti3d_dL.num_zeroandscaledlgt];
 [~,idx_sort] = sort(phi);
 plot(phi(idx_sort),zeroRate(idx_sort),'Color',col(1,:),'LineWidth',3,'DisplayName','ZeroRate')
 xl = xlim;
 yl = ylim;
-xlabel('PHI [\circ]')
+xlabel('PHI [\circ]','FontWeight','bold')
 grid on
 hold on
 plot(phi(idx_sort),zeroRate_dL(idx_sort),'Color',col(2,:),'LineWidth',3,'DisplayName','ZeroRate_dL')
@@ -381,7 +392,10 @@ plot([xl(1),xl(2),xl(2),xl(1),xl(1)],[yl(1),yl(1),yl(2),yl(2),yl(1)],...
         '-','LineWidth',2,'color','black')
 text(0.90,0.95,'ATLI3D','FontSize',15,'FontWeight','bold',...
         'Units','normalized','HorizontalAlignment','right')
-
+yyaxis right
+plot(phi(idx_sort),zeronumDLandzero(idx_sort),'Color',col(4,:),'LineWidth',3,'DisplayName','num_zero')
+ylabel('Number of slides','FontWeight','bold')
+ylim(yl2);
 
 
 
@@ -394,12 +408,12 @@ subS = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\subData\subS_2x3
 snapS_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_63x92m.shp');
 snapS_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_21x30m.shp');
 snapS_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\snapData\snapS_7x10m.shp');
-PHI27_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\7x10m\7x10m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
-PHI27_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\21x30m\21x30m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
-PHI27_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\63x92m\63x92m_phi27_vmax4_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
+PHI27_alti3d = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\7x10m\7x10m_phi27_vmax1_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
+PHI27_srtm1 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\21x30m\21x30m_phi27_vmax1_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
+PHI27_srtm3 = shaperead('C:\Users\Simon Rölli\Desktop\data\calibration\caliData\63x92m\63x92m_phi27_vmax1_exp25_dH0_iT00003_perWT1_08_04_0_0_0_04_08.shp');
 
 figure('units','normalized','outerposition',[0 0.2 0.7 0.7])
-subplot1(1,2,'Gap',[0.03 0.01],'FontS',12)
+subplot1(1,2,'Gap',[0.03 0.01],'FontS',15)
 
 %read out data
 obs_lgt = [subS.length];
@@ -410,7 +424,7 @@ idx = find(max_srcslope<27);
 subplot1(1)
 plot(obs_lgt,mod_lgt,'.','MarkerSize',10)
 grid on
-ylabel('modelled length [m] with PHI=27\circ and VMAX=4m/s','FontWeight','bold')
+ylabel('modelled length [m] with PHI=27\circ and VMAX=1m/s','FontWeight','bold')
 xlabel('observed length [m]','FontWeight','bold')
 yl = xlim;
 ylim(yl);
@@ -428,6 +442,11 @@ ylim(yl);
 hold on
 plot(max_srcslope(idx),mod_lgt(idx),'.','color','red','MarkerSize',10)
 hold off
+
+
+%%
+%plot minimum RMSE for different VMAX values
+
 
 
 
